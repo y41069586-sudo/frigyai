@@ -1,73 +1,155 @@
 import SwiftUI
 
-/// SCREEN 1 — "Hold to continue" experience.
-/// The user presses and holds a central button; the whole screen fills with a
-/// fluid liquid gradient that reacts live to progress. Releasing early rewinds
-/// smoothly; completing fires a haptic + cinematic flash and seamlessly advances.
+/// SCREEN 1 — "Press & Shape" experience.
+/// A soft surface physically deforms under the finger — liquid/material feel.
+/// After ~3–5 s of cumulative interaction OR reaching full deformation,
+/// a "Continue" CTA appears. No game loop — clear guided funnel.
 struct HoldToContinueStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    @State private var progress: Double = 0
-    @State private var isHolding = false
-    @State private var completed = false
-    @State private var flash: Double = 0
-    @State private var breathe = false
+    // Deformation state
+    @State private var touchPoint: CGPoint = .zero
+    @State private var touchRadius: CGFloat = 0       // 0 when not pressing
+    @State private var deformDepth: CGFloat = 0       // 0–1, how deep the dent is
+    @State private var ripples: [Ripple] = []
 
-    private let holdDuration: Double = 1.8          // seconds to fill
-    private let releaseDuration: Double = 0.7        // faster rewind
+    // Completion logic
+    @State private var interactionSeconds: Double = 0  // accumulated engagement
+    @State private var ctaVisible: Bool = false
+    @State private var ctaScale: Double = 0.86
+    @State private var autoAdvanceTask: Task<Void, Never>? = nil
+
+    private let targetSeconds: Double = 3.5
     private let tick = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
+
+    // Ripple model
+    struct Ripple: Identifiable {
+        let id = UUID()
+        let origin: CGPoint
+        var radius: CGFloat = 0
+        var opacity: Double = 0.7
+    }
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Ambient light grows with progress + gentle zoom while holding.
-                AmbientBackground(intensity: 0.45 + progress * 0.9, motion: 0.8 + progress)
-                    .scaleEffect(1 + progress * 0.06)
+                AmbientBackground(intensity: 0.5 + deformDepth * 0.6, motion: 0.7 + deformDepth * 0.5)
 
-                // Liquid gradient fill rising from the bottom.
-                TimelineView(.animation) { timeline in
-                    let phase = timeline.date.timeIntervalSinceReferenceDate * 2.4
-                    LiquidFillShape(progress: progress, phase: phase)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    ExperiencePalette.accent.opacity(0.32),
-                                    ExperiencePalette.accentDeep.opacity(0.55),
-                                ],
-                                startPoint: .top, endPoint: .bottom
-                            )
-                        )
-                        .overlay(
-                            LiquidFillShape(progress: progress, phase: phase)
-                                .stroke(ExperiencePalette.accentGlow.opacity(0.6), lineWidth: 1.5)
-                                .blur(radius: 0.5)
-                        )
-                        .ignoresSafeArea()
-                }
-
-                ParticleField(count: 30, speed: 0.9 + progress, intensity: 0.4 + progress * 0.8)
-
-                content(in: geo)
-                    .scaleEffect(1 + progress * 0.03)
-
-                // Cinematic completion flash.
-                Color.white
-                    .opacity(flash)
+                // The "surface" canvas
+                surfaceCanvas(in: geo.size)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
+
+                ParticleField(count: 22, speed: 0.6 + deformDepth * 0.5,
+                              intensity: 0.3 + deformDepth * 0.7)
+
+                chrome(in: geo)
             }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { v in
+                        let pt = v.location
+                        if touchRadius < 1 {
+                            // first contact
+                            ExperienceHaptics.impact(.light, intensity: 0.5)
+                            addRipple(at: pt)
+                        }
+                        touchPoint = pt
+                        withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.6)) {
+                            touchRadius = 120
+                            deformDepth = min(1, deformDepth + 0.06)
+                        }
+                    }
+                    .onEnded { v in
+                        addRipple(at: v.location)
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.55)) {
+                            touchRadius = 0
+                        }
+                    }
+            )
         }
-        .onReceive(tick) { _ in advance() }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-                breathe = true
+        .onReceive(tick) { _ in tick60() }
+    }
+
+    // MARK: - Surface
+
+    @ViewBuilder
+    private func surfaceCanvas(in size: CGSize) -> some View {
+        TimelineView(.animation) { tl in
+            let t = tl.date.timeIntervalSinceReferenceDate
+            Canvas { ctx, sz in
+                // Base surface layer
+                let baseColor = ExperiencePalette.accent.opacity(0.07 + deformDepth * 0.10)
+                ctx.fill(Path(CGRect(origin: .zero, size: sz)), with: .color(baseColor))
+
+                // Deformation dent — soft gaussian-like glow under finger
+                if touchRadius > 1 {
+                    let cx = touchPoint.x
+                    let cy = touchPoint.y
+                    let r = touchRadius * (1 + 0.12 * sin(t * 4))
+                    let shading = GraphicsContext.Shading.radialGradient(
+                        Gradient(colors: [
+                            ExperiencePalette.accent.opacity(0.38 * deformDepth),
+                            ExperiencePalette.accentGlow.opacity(0.15 * deformDepth),
+                            ExperiencePalette.accent.opacity(0),
+                        ]),
+                        center: CGPoint(x: cx, y: cy),
+                        startRadius: 0,
+                        endRadius: r
+                    )
+                    ctx.fill(
+                        Path(ellipseIn: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2)),
+                        with: shading
+                    )
+                }
+
+                // Ripple rings
+                for ripple in ripples {
+                    let rr = ripple.radius
+                    let c = touchPoint
+                    let ringPath = Path(ellipseIn: CGRect(
+                        x: ripple.origin.x - rr, y: ripple.origin.y - rr,
+                        width: rr * 2, height: rr * 2
+                    ))
+                    ctx.stroke(ringPath,
+                               with: .color(ExperiencePalette.accentGlow.opacity(ripple.opacity * 0.5)),
+                               lineWidth: 1.2)
+                    _ = c
+                }
+
+                // Grid mesh that warps near touch (surface topology feel)
+                let cols = 10
+                let rows = 16
+                let cw = sz.width / CGFloat(cols)
+                let ch = sz.height / CGFloat(rows)
+                for row in 0...rows {
+                    for col in 0...cols {
+                        let bx = CGFloat(col) * cw
+                        let by = CGFloat(row) * ch
+                        let dx = bx - touchPoint.x
+                        let dy = by - touchPoint.y
+                        let dist = sqrt(dx * dx + dy * dy)
+                        let maxR: CGFloat = 160
+                        let pull = touchRadius > 1 ? max(0, 1 - dist / maxR) : 0
+                        let warpX = bx - dx * pull * 0.08 * deformDepth
+                        let warpY = by - dy * pull * 0.08 * deformDepth
+                        let pt = CGPoint(x: warpX, y: warpY)
+                        ctx.fill(
+                            Path(ellipseIn: CGRect(x: pt.x - 1, y: pt.y - 1, width: 2, height: 2)),
+                            with: .color(ExperiencePalette.accent.opacity(0.08 + pull * 0.14 * deformDepth))
+                        )
+                    }
+                }
             }
         }
     }
 
+    // MARK: - Chrome
+
     @ViewBuilder
-    private func content(in geo: GeometryProxy) -> some View {
+    private func chrome(in geo: GeometryProxy) -> some View {
         VStack(spacing: 0) {
             HStack {
                 if let onBack {
@@ -82,123 +164,95 @@ struct HoldToContinueStepView: View {
 
             Spacer()
 
-            VStack(spacing: 14) {
-                Text("Build your personalized\nexperience")
+            VStack(spacing: 12) {
+                Text("Dein Erlebnis\nentsteht gerade")
                     .font(.system(size: 28, weight: .bold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(ExperiencePalette.textPrimary)
                     .lineSpacing(2)
+                    .shadow(color: ExperiencePalette.accentGlow.opacity(0.3 * deformDepth), radius: 16)
 
-                Text("Hold to continue")
+                Text("Berühre den Bildschirm")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(ExperiencePalette.textMuted)
-                    .opacity(isHolding ? 0.4 : 1)
-                    .animation(.easeInOut(duration: 0.3), value: isHolding)
+                    .opacity(ctaVisible ? 0 : 1)
+                    .animation(.easeOut(duration: 0.4), value: ctaVisible)
             }
             .padding(.horizontal, 32)
 
             Spacer()
 
-            holdButton
+            // Progress hint bar
+            progressBar
 
-            Spacer()
-            Spacer()
+            Spacer().frame(height: 32)
+
+            // CTA — appears after engagement threshold
+            if ctaVisible {
+                ExperienceCTAButton(title: "Weiter", action: onNext)
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 40)
+                    .scaleEffect(ctaScale)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: ctaScale)
+                    .onAppear {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            ctaScale = 1.0
+                        }
+                    }
+            } else {
+                Color.clear.frame(height: 98)
+                    .padding(.bottom, 40)
+            }
         }
     }
 
-    private var holdButton: some View {
-        ZStack {
-            // Outer breathing halo
-            Circle()
-                .stroke(ExperiencePalette.accent.opacity(0.18), lineWidth: 1.5)
-                .frame(width: 210, height: 210)
-                .scaleEffect(breathe ? 1.06 : 0.96)
-                .opacity(0.6 + progress * 0.4)
-
-            Circle()
-                .stroke(ExperiencePalette.accent.opacity(0.25), lineWidth: 1)
-                .frame(width: 168, height: 168)
-                .scaleEffect(breathe ? 1.04 : 0.98)
-
-            // Glass core
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 150, height: 150)
-                .overlay(
-                    Circle().stroke(
-                        LinearGradient(colors: [ExperiencePalette.accent, ExperiencePalette.accentDeep],
-                                       startPoint: .topLeading, endPoint: .bottomTrailing),
-                        lineWidth: 1.5
-                    )
-                )
-                .shadow(color: ExperiencePalette.accentGlow.opacity(0.4 + progress * 0.5),
-                        radius: 26 + progress * 24, y: 0)
-
-            // Progress ring
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
+    private var progressBar: some View {
+        let fraction = min(1, interactionSeconds / targetSeconds)
+        return ZStack(alignment: .leading) {
+            Capsule()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 3)
+            Capsule()
+                .fill(
                     LinearGradient(colors: [ExperiencePalette.accentGlow, ExperiencePalette.accent],
-                                   startPoint: .top, endPoint: .bottom),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                                   startPoint: .leading, endPoint: .trailing)
                 )
-                .frame(width: 150, height: 150)
-                .rotationEffect(.degrees(-90))
-
-            VStack(spacing: 6) {
-                Image(systemName: completed ? "checkmark" : "hand.tap.fill")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(ExperiencePalette.textPrimary)
-                    .contentTransition(.symbolEffect(.replace))
-                Text(completed ? "Ready" : "HOLD")
-                    .font(.system(size: 12, weight: .bold))
-                    .tracking(2)
-                    .foregroundStyle(ExperiencePalette.textMuted)
-            }
+                .frame(width: max(0, CGFloat(fraction) * 220), height: 3)
+                .animation(.linear(duration: 1.0 / 60.0), value: fraction)
         }
-        .scaleEffect(isHolding ? 1.06 : 1)
-        .animation(.spring(response: 0.35, dampingFraction: 0.6), value: isHolding)
-        .contentShape(Circle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard !completed, !isHolding else { return }
-                    isHolding = true
-                    ExperienceHaptics.impact(.light, intensity: 0.7)
-                }
-                .onEnded { _ in
-                    isHolding = false
-                }
-        )
+        .frame(width: 220)
+        .opacity(ctaVisible ? 0 : 0.7)
+        .animation(.easeOut(duration: 0.5), value: ctaVisible)
     }
 
-    // MARK: - Progress engine
+    // MARK: - Tick
 
-    private func advance() {
-        guard !completed else { return }
-        if isHolding {
-            progress = min(1, progress + (1.0 / 60.0) / holdDuration)
-            // light "rising" haptic pulses as the fill climbs
-            if progress < 1, Int(progress * 100) % 12 == 0 {
-                ExperienceHaptics.impact(.soft, intensity: 0.35)
-            }
-            if progress >= 1 { complete() }
-        } else if progress > 0 {
-            progress = max(0, progress - (1.0 / 60.0) / releaseDuration)
+    private func tick60() {
+        // Animate ripples outward & fade
+        for i in ripples.indices {
+            ripples[i].radius += 2.2
+            ripples[i].opacity -= 0.018
+        }
+        ripples.removeAll { $0.opacity <= 0 || $0.radius > 220 }
+
+        // Accumulate engagement while touching
+        if touchRadius > 1 {
+            interactionSeconds += 1.0 / 60.0
+        }
+
+        // Decay deformation slowly when not pressing
+        if touchRadius < 1 && deformDepth > 0 {
+            deformDepth = max(0, deformDepth - (1.0 / 60.0) / 2.0)
+        }
+
+        // Reveal CTA once threshold is met
+        if !ctaVisible && interactionSeconds >= targetSeconds {
+            ctaVisible = true
+            ExperienceHaptics.impact(.medium, intensity: 0.8)
         }
     }
 
-    private func complete() {
-        completed = true
-        isHolding = false
-        progress = 1
-        ExperienceHaptics.success()
-
-        withAnimation(.easeOut(duration: 0.18)) { flash = 0.85 }
-        withAnimation(.easeIn(duration: 0.45).delay(0.18)) { flash = 0 }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.62) {
-            onNext()
-        }
+    private func addRipple(at point: CGPoint) {
+        ripples.append(Ripple(origin: point))
     }
 }

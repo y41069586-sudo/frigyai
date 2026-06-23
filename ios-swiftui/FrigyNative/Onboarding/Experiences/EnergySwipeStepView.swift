@@ -1,210 +1,289 @@
 import SwiftUI
 
-/// SCREEN 2 — Interactive "energy" swipe experience.
-/// The user swipes horizontally through immersive "energy modes". Colors, light,
-/// glow and motion interpolate continuously with the swipe gesture — each mode
-/// feels like its own world. Selection haptics fire on mode changes.
+/// SCREEN 2 — "State Control" experience.
+/// A continuous soft controller lets the user pick between 4 named states.
+/// After ~2 s of holding one zone the UI recognises commitment → "Confirm"
+/// button appears. Tap to proceed. No game feeling — clear completion logic.
 struct EnergySwipeStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    struct Mode {
+    struct Zone {
         let name: String
-        let tagline: String
-        let symbol: String
+        let description: String
         let tint: Color
         let secondary: Color
+        let symbol: String
     }
 
-    private let modes: [Mode] = [
-        Mode(name: "Focus",    tagline: "Klarheit für jede Entscheidung.",  symbol: "scope",
-             tint: Color(hex: "#36D1FF"), secondary: Color(hex: "#0A6Cff")),
-        Mode(name: "Momentum", tagline: "Bewegung, die dich vorantreibt.",  symbol: "bolt.fill",
-             tint: Color(hex: "#75FBB2"), secondary: Color(hex: "#2EB56D")),
-        Mode(name: "Balance",  tagline: "Energie im Gleichgewicht.",        symbol: "circle.hexagongrid.fill",
-             tint: Color(hex: "#B69BFF"), secondary: Color(hex: "#6D3Cff")),
-        Mode(name: "Power",    tagline: "Volle Kraft, wenn du sie brauchst.", symbol: "flame.fill",
-             tint: Color(hex: "#FF8A5B"), secondary: Color(hex: "#FF3D6E")),
+    private let zones: [Zone] = [
+        Zone(name: "Fokus",      description: "Klarheit & Konzentration",
+             tint: Color(hex: "#36D1FF"), secondary: Color(hex: "#0A6Cff"),
+             symbol: "scope"),
+        Zone(name: "Balance",    description: "Ruhe & Stabilität",
+             tint: Color(hex: "#75FBB2"), secondary: Color(hex: "#2EB56D"),
+             symbol: "circle.hexagongrid.fill"),
+        Zone(name: "Gelassen",   description: "Leichtigkeit & Flow",
+             tint: Color(hex: "#B69BFF"), secondary: Color(hex: "#6D3Cff"),
+             symbol: "cloud.fill"),
+        Zone(name: "Struktur",   description: "Ordnung & Energie",
+             tint: Color(hex: "#FF8A5B"), secondary: Color(hex: "#FF3D6E"),
+             symbol: "bolt.fill"),
     ]
 
-    @State private var index: Int = 0
-    @State private var drag: CGFloat = 0
+    // 0...3 (can be fractional between zones)
+    @State private var position: Double = 1.5
+    @State private var isDragging = false
 
-    @State private var swipeWidth: CGFloat = 1
+    // Commitment detection
+    @State private var holdStart: Date? = nil
+    @State private var commitSeconds: Double = 0
+    @State private var committed: Bool = false
+    @State private var confirming: Bool = false   // brief lock animation
+    @State private var ctaScale: Double = 0.88
 
-    /// Continuous fractional page position (e.g. 1.4 = between Momentum & Balance).
-    private var fractional: Double {
-        Double(index) - Double(drag) / Double(max(1, swipeWidth))
-    }
+    private let commitThreshold: Double = 2.0
+    private let tick = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
+
+    private var activeZoneIndex: Int { Int(position.rounded()) }
+    private var activeZone: Zone { zones[max(0, min(zones.count - 1, activeZoneIndex))] }
 
     private var blendedTint: Color {
-        let lower = Int(floor(fractional)).clamped(to: 0...(modes.count - 1))
-        let upper = Int(ceil(fractional)).clamped(to: 0...(modes.count - 1))
-        let f = fractional - floor(fractional)
-        return modes[lower].tint.blended(with: modes[upper].tint, amount: f)
+        let lo = Int(floor(position)).clamped(to: 0...(zones.count - 1))
+        let hi = Int(ceil(position)).clamped(to: 0...(zones.count - 1))
+        return zones[lo].tint.blended(with: zones[hi].tint, amount: position - floor(position))
     }
-
     private var blendedSecondary: Color {
-        let lower = Int(floor(fractional)).clamped(to: 0...(modes.count - 1))
-        let upper = Int(ceil(fractional)).clamped(to: 0...(modes.count - 1))
-        let f = fractional - floor(fractional)
-        return modes[lower].secondary.blended(with: modes[upper].secondary, amount: f)
+        let lo = Int(floor(position)).clamped(to: 0...(zones.count - 1))
+        let hi = Int(ceil(position)).clamped(to: 0...(zones.count - 1))
+        return zones[lo].secondary.blended(with: zones[hi].secondary, amount: position - floor(position))
     }
 
     var body: some View {
         GeometryReader { geo in
-            let width = geo.size.width
-
             ZStack {
                 AmbientBackground(tint: blendedTint, secondaryTint: blendedSecondary,
-                                  intensity: 1, motion: 1)
+                                  intensity: 1, motion: 0.8)
 
-                ParticleField(count: 28, color: blendedTint, speed: 1,
-                              bias: CGSize(width: -drag * 0.05, height: 0))
+                ParticleField(count: 24, color: blendedTint, speed: 0.8, intensity: 0.7)
 
                 VStack(spacing: 0) {
-                    HStack {
-                        if let onBack {
-                            ExperienceBackButton(action: onBack)
-                        } else {
-                            Color.clear.frame(width: 42, height: 42)
-                        }
-                        Spacer()
-                        Text("\(index + 1) / \(modes.count)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(ExperiencePalette.textMuted)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    navBar
 
                     Spacer()
 
-                    // Mode cards — laid out in a row and offset by the swipe.
-                    ZStack {
-                        ForEach(Array(modes.enumerated()), id: \.offset) { i, mode in
-                            modeCard(mode, pageOffset: Double(i) - fractional)
-                                .frame(width: width)
-                                .offset(x: CGFloat(i) * width - CGFloat(index) * width + drag)
-                        }
-                    }
-                    .frame(width: width, height: 360)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                var t = value.translation.width
-                                // Rubber-band at the ends (elastic overscroll).
-                                if (index == 0 && t > 0) || (index == modes.count - 1 && t < 0) {
-                                    t *= 0.35
-                                }
-                                drag = t
-                            }
-                            .onEnded { value in
-                                let threshold = width * 0.22
-                                var newIndex = index
-                                if value.predictedEndTranslation.width < -threshold, index < modes.count - 1 {
-                                    newIndex += 1
-                                } else if value.predictedEndTranslation.width > threshold, index > 0 {
-                                    newIndex -= 1
-                                }
-                                if newIndex != index {
-                                    ExperienceHaptics.selection()
-                                }
-                                withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
-                                    index = newIndex
-                                    drag = 0
-                                }
-                            }
-                    )
+                    zoneDisplay(geo: geo)
 
                     Spacer()
 
-                    pageDots
+                    controller(width: geo.size.width)
                         .padding(.bottom, 24)
 
-                    ExperienceCTAButton(title: "Weiter", pulses: false, action: onNext)
-                        .padding(.horizontal, 28)
-                        .padding(.bottom, 28)
+                    ctaArea
+                        .padding(.bottom, 36)
                 }
             }
-            .onAppear { swipeWidth = width }
-            .onChange(of: width) { _, newValue in swipeWidth = newValue }
         }
+        .onReceive(tick) { _ in tick60() }
     }
 
-    // MARK: - Pieces
+    // MARK: - Nav
+
+    private var navBar: some View {
+        HStack {
+            if let onBack {
+                ExperienceBackButton(action: onBack)
+            } else {
+                Color.clear.frame(width: 42, height: 42)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Zone display
 
     @ViewBuilder
-    private func modeCard(_ mode: Mode, pageOffset: Double) -> some View {
-        // Parallax + fade for neighbouring cards.
-        let distance = abs(pageOffset)
-        let scale = 1 - min(0.18, distance * 0.18)
-        let opacity = 1 - min(0.85, distance * 0.9)
-
-        VStack(spacing: 26) {
+    private func zoneDisplay(geo: GeometryProxy) -> some View {
+        VStack(spacing: 20) {
+            // Animated icon
             ZStack {
-                // Animated energy rings (layered, slow rotation).
-                TimelineView(.animation) { timeline in
-                    let t = timeline.date.timeIntervalSinceReferenceDate
-                    ZStack {
-                        ForEach(0..<3) { ring in
-                            Circle()
-                                .trim(from: 0.05, to: 0.85)
-                                .stroke(
-                                    mode.tint.opacity(0.5 - Double(ring) * 0.12),
-                                    style: StrokeStyle(lineWidth: 2.5 - CGFloat(ring) * 0.6, lineCap: .round)
-                                )
-                                .frame(width: 150 + CGFloat(ring) * 40, height: 150 + CGFloat(ring) * 40)
-                                .rotationEffect(.degrees(t * (18 + Double(ring) * 10) * (ring % 2 == 0 ? 1 : -1)))
-                        }
-                    }
-                }
-
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 124, height: 124)
-                    .overlay(Circle().stroke(mode.tint.opacity(0.6), lineWidth: 1.2))
-                    .shadow(color: mode.tint.opacity(0.5), radius: 30)
+                    .fill(blendedTint.opacity(0.12))
+                    .frame(width: 130, height: 130)
+                    .overlay(Circle().stroke(blendedTint.opacity(0.25), lineWidth: 1.5))
+                    .shadow(color: blendedTint.opacity(committed ? 0.55 : 0.3),
+                            radius: committed ? 40 : 24)
+                    .scaleEffect(committed ? 1.06 : 1)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.65), value: committed)
 
-                Image(systemName: mode.symbol)
-                    .font(.system(size: 46, weight: .semibold))
+                Image(systemName: activeZone.symbol)
+                    .font(.system(size: 48, weight: .semibold))
                     .foregroundStyle(
-                        LinearGradient(colors: [.white, mode.tint],
+                        LinearGradient(colors: [.white, blendedTint],
                                        startPoint: .top, endPoint: .bottom)
                     )
-                    // subtle parallax: icon moves a touch more than the card
-                    .offset(x: CGFloat(pageOffset) * -22)
+                    .contentTransition(.symbolEffect(.replace))
             }
-            .frame(height: 230)
 
-            VStack(spacing: 10) {
-                Text(mode.name)
-                    .font(.system(size: 36, weight: .heavy))
+            VStack(spacing: 8) {
+                Text(activeZone.name)
+                    .font(.system(size: 38, weight: .heavy))
                     .foregroundStyle(ExperiencePalette.textPrimary)
-                    .offset(x: CGFloat(pageOffset) * -36) // deeper parallax layer
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: activeZoneIndex)
 
-                Text(mode.tagline)
+                Text(activeZone.description)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(ExperiencePalette.textMuted)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 36)
-                    .offset(x: CGFloat(pageOffset) * -50)
+                    .animation(.easeOut(duration: 0.3), value: activeZoneIndex)
             }
-            .blur(radius: distance * 6)
+
+            // Commitment progress ring
+            commitRing
         }
-        .scaleEffect(scale)
-        .opacity(opacity)
+        .padding(.horizontal, 32)
     }
 
-    private var pageDots: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<modes.count, id: \.self) { i in
-                let active = i == index
-                Capsule()
-                    .fill(active ? ExperiencePalette.accent : Color.white.opacity(0.25))
-                    .frame(width: active ? 22 : 7, height: 7)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: index)
+    private var commitRing: some View {
+        let fraction = min(1, commitSeconds / commitThreshold)
+        return ZStack {
+            Circle()
+                .stroke(blendedTint.opacity(0.12), lineWidth: 3)
+                .frame(width: 56, height: 56)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(blendedTint, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .frame(width: 56, height: 56)
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 1.0 / 60.0), value: fraction)
+
+            if committed {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(blendedTint)
+                    .transition(.scale.combined(with: .opacity))
+            } else {
+                Text(fraction > 0.02 ? "\(Int(fraction * 100))%" : "")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(blendedTint.opacity(0.8))
             }
+        }
+        .opacity(committed || commitSeconds > 0.05 ? 1 : 0)
+        .animation(.easeOut(duration: 0.3), value: committed)
+    }
+
+    // MARK: - Controller track
+
+    @ViewBuilder
+    private func controller(width: CGFloat) -> some View {
+        let trackW = width - 56
+        let thumbX = CGFloat(position / Double(zones.count - 1)) * trackW
+
+        VStack(spacing: 12) {
+            // Zone labels
+            HStack {
+                ForEach(zones.indices, id: \.self) { i in
+                    Text(zones[i].name)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(i == activeZoneIndex
+                                         ? blendedTint
+                                         : ExperiencePalette.textMuted.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                        .animation(.easeOut(duration: 0.2), value: activeZoneIndex)
+                }
+            }
+            .padding(.horizontal, 28)
+
+            // Track + thumb
+            ZStack(alignment: .leading) {
+                // Track
+                Capsule()
+                    .fill(Color.white.opacity(0.08))
+                    .frame(height: 6)
+
+                // Fill
+                Capsule()
+                    .fill(
+                        LinearGradient(colors: [blendedSecondary, blendedTint],
+                                       startPoint: .leading, endPoint: .trailing)
+                    )
+                    .frame(width: thumbX + 20, height: 6)
+
+                // Thumb
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 36, height: 36)
+                    .overlay(Circle().stroke(blendedTint, lineWidth: 1.5))
+                    .shadow(color: blendedTint.opacity(0.5), radius: 14)
+                    .scaleEffect(isDragging ? 1.18 : 1)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isDragging)
+                    .offset(x: thumbX - 2)
+            }
+            .padding(.horizontal, 28)
+            .frame(width: width)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isDragging = true
+                        let raw = Double((value.location.x - 28) / trackW) * Double(zones.count - 1)
+                        let newPos = max(0, min(Double(zones.count - 1), raw))
+                        let prevZone = activeZoneIndex
+                        position = newPos
+                        if Int(newPos.rounded()) != prevZone {
+                            ExperienceHaptics.selection()
+                            holdStart = Date()
+                            commitSeconds = 0
+                        }
+                        if holdStart == nil { holdStart = Date() }
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        // Snap to nearest zone
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            position = Double(activeZoneIndex)
+                        }
+                        if holdStart == nil { holdStart = Date() }
+                    }
+            )
+        }
+    }
+
+    // MARK: - CTA
+
+    @ViewBuilder
+    private var ctaArea: some View {
+        if committed {
+            ExperienceCTAButton(title: "Auswahl bestätigen", action: onNext)
+                .padding(.horizontal, 28)
+                .scaleEffect(ctaScale)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: ctaScale)
+                .onAppear {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { ctaScale = 1.0 }
+                }
+        } else {
+            Text(commitSeconds > 0.1 ? "Halte für Auswahl…" : "Wähle deinen Zustand")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(ExperiencePalette.textMuted)
+                .frame(height: 58)
+                .animation(.easeOut(duration: 0.3), value: commitSeconds > 0.1)
+        }
+    }
+
+    // MARK: - Tick
+
+    private func tick60() {
+        guard !committed else { return }
+        guard let start = holdStart else { return }
+        let held = Date().timeIntervalSince(start)
+        commitSeconds = min(commitThreshold, held)
+
+        if commitSeconds >= commitThreshold {
+            committed = true
+            holdStart = nil
+            ExperienceHaptics.impact(.medium, intensity: 1.0)
         }
     }
 }

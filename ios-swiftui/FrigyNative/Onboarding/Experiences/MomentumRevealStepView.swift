@@ -1,229 +1,336 @@
 import SwiftUI
 
-/// SCREEN 3 — "Momentum reveal" experience (placed shortly before finalization).
-/// Starts dark and minimal; UI materializes cinematically over a few seconds.
-/// Dragging accelerates the reveal — more drag means more light, color and depth.
-/// Everything converges into "Your experience is ready" with a clean CTA.
+/// SCREEN 3 — "Live Preview" experience.
+/// Shows a personalised preview assembled from onboarding context.
+/// Three small adjustable controls let the user tune their plan.
+/// After 1–2 adjustments OR 4 s idle → "Continue" fades in.
+/// Optional soft auto-advance after a further 4 s of no interaction.
 struct MomentumRevealStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    /// 0 = dark/minimal, 1 = fully revealed.
-    @State private var reveal: Double = 0
-    @State private var fingerBias: CGSize = .zero
-    @State private var lastDrag: CGFloat = 0
+    // Adjustable preview dials
+    @State private var mealCount: Int = 3        // 2–5
+    @State private var intensity: Int = 1        // 0 Sanft / 1 Ausgewogen / 2 Intensiv
+    @State private var focusArea: Int = 0        // 0 Ernährung / 1 Bewegung / 2 Beides
+
+    private let intensityLabels = ["Sanft", "Ausgewogen", "Intensiv"]
+    private let intensityColors: [Color] = [Color(hex: "#75FBB2"), Color(hex: "#36D1FF"), Color(hex: "#FF8A5B")]
+    private let focusLabels = ["Ernährung", "Bewegung", "Beides"]
+
+    // Completion logic
+    @State private var adjustmentCount: Int = 0
+    @State private var idleSeconds: Double = 0
+    @State private var ctaVisible: Bool = false
+    @State private var ctaOpacity: Double = 0
+    @State private var autoAdvanceSeconds: Double = 0
+    @State private var autoAdvancePending: Bool = false
+
+    private let adjustmentsNeeded = 2
+    private let idleThreshold: Double = 4.0
+    private let autoAdvanceDelay: Double = 4.0
+
     private let tick = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
 
-    private struct Feature {
-        let title: String
-        let subtitle: String
-        let symbol: String
-        let appearAt: Double
-    }
-
-    private let features: [Feature] = [
-        Feature(title: "KI-Coaching", subtitle: "Persönlich auf dich abgestimmt", symbol: "sparkles", appearAt: 0.18),
-        Feature(title: "Smarte Pläne", subtitle: "Jede Woche neu, automatisch", symbol: "calendar", appearAt: 0.40),
-        Feature(title: "Echte Insights", subtitle: "Sieh deinen Fortschritt klar", symbol: "chart.line.uptrend.xyaxis", appearAt: 0.62),
-    ]
-
-    private var converged: Bool { reveal >= 0.985 }
+    private var accentTint: Color { intensityColors[intensity] }
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                AmbientBackground(intensity: 0.15 + reveal * 1.0, motion: 0.6 + reveal * 0.8)
-                    .opacity(0.4 + reveal * 0.6)
+                AmbientBackground(tint: accentTint,
+                                  secondaryTint: ExperiencePalette.accentDeep,
+                                  intensity: 0.7, motion: 0.5)
 
-                ParticleField(count: 30, speed: 0.7 + reveal,
-                              intensity: 0.1 + reveal * 0.9, bias: fingerBias)
+                ParticleField(count: 18, color: accentTint, speed: 0.5, intensity: 0.5)
 
-                // Volumetric central light that intensifies with reveal.
-                RadialGradient(
-                    colors: [ExperiencePalette.accentGlow.opacity(0.5 * reveal),
-                             ExperiencePalette.accent.opacity(0)],
-                    center: .center, startRadius: 0, endRadius: 320
-                )
-                .scaleEffect(0.6 + reveal * 0.8)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+                VStack(spacing: 0) {
+                    navBar
 
-                content(in: geo)
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 28) {
+                            headerCard
+                            controlsCard
+                            previewCard
+                        }
+                        .padding(.horizontal, 22)
+                        .padding(.top, 12)
+                        .padding(.bottom, 24)
+                    }
 
-                if !converged {
-                    hintOverlay
+                    ctaSection
+                        .padding(.bottom, 28)
                 }
             }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        let dy = value.translation.height - lastDrag
-                        lastDrag = value.translation.height
-                        // Any motion (mostly upward) accelerates the reveal.
-                        let delta = abs(dy) / 900.0 + max(0, -dy) / 600.0
-                        bump(by: delta)
-                        fingerBias = CGSize(width: value.translation.width * 0.06,
-                                            height: value.translation.height * 0.05)
-                    }
-                    .onEnded { _ in
-                        lastDrag = 0
-                        withAnimation(.easeOut(duration: 1.2)) { fingerBias = .zero }
-                    }
-            )
         }
-        .onReceive(tick) { _ in autoReveal() }
+        .onReceive(tick) { _ in tick60() }
     }
 
-    @ViewBuilder
-    private func content(in geo: GeometryProxy) -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                if let onBack {
-                    ExperienceBackButton(action: onBack)
-                } else {
-                    Color.clear.frame(width: 42, height: 42)
+    // MARK: - Nav
+
+    private var navBar: some View {
+        HStack {
+            if let onBack {
+                ExperienceBackButton(action: onBack)
+            } else {
+                Color.clear.frame(width: 42, height: 42)
+            }
+            Spacer()
+            Text("Deine Vorschau")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(ExperiencePalette.textMuted)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+
+    // MARK: - Header card
+
+    private var headerCard: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(accentTint.opacity(0.18))
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(accentTint)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("KI-Plan erstellt")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(ExperiencePalette.textPrimary)
+                    Text("Passe es nach deinem Geschmack an")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(ExperiencePalette.textMuted)
                 }
                 Spacer()
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
-            Spacer()
-
-            // Floating glass feature cards that materialize as reveal grows.
-            VStack(spacing: 16) {
-                ForEach(Array(features.enumerated()), id: \.offset) { i, feature in
-                    featureCard(feature, depth: i)
-                }
-            }
-            .padding(.horizontal, 28)
-
-            Spacer().frame(height: 28)
-
-            // Converged message + CTA.
-            VStack(spacing: 18) {
-                Text("Your experience is ready")
-                    .font(.system(size: 26, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(ExperiencePalette.textPrimary)
-                    .padding(.horizontal, 28)
-                    .opacity(convergeProgress)
-                    .blur(radius: (1 - convergeProgress) * 10)
-                    .scaleEffect(0.9 + convergeProgress * 0.1)
-
-                ExperienceCTAButton(title: "Los geht's", action: onNext)
-                    .padding(.horizontal, 28)
-                    .opacity(convergeProgress)
-                    .scaleEffect(0.92 + convergeProgress * 0.08)
-                    .allowsHitTesting(converged)
-            }
-
-            Spacer()
         }
+        .padding(18)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.1), lineWidth: 1))
     }
 
-    /// Eased 0→1 for the final ~15% of reveal (the "convergence").
-    private var convergeProgress: Double {
-        let start = 0.82
-        guard reveal > start else { return 0 }
-        let t = (reveal - start) / (1 - start)
-        return min(1, t * t * (3 - 2 * t)) // smoothstep
+    // MARK: - Controls card
+
+    private var controlsCard: some View {
+        VStack(spacing: 20) {
+            // Mahlzeiten
+            controlRow(label: "Mahlzeiten pro Tag") {
+                HStack(spacing: 0) {
+                    ForEach(2...5, id: \.self) { v in
+                        Button {
+                            guard v != mealCount else { return }
+                            mealCount = v
+                            didAdjust()
+                        } label: {
+                            Text("\(v)")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(v == mealCount ? ExperiencePalette.base : ExperiencePalette.textMuted)
+                                .frame(width: 44, height: 36)
+                                .background(v == mealCount ? accentTint : Color.white.opacity(0.08),
+                                            in: RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: mealCount)
+                    }
+                }
+            }
+
+            Divider().background(Color.white.opacity(0.08))
+
+            // Intensität
+            controlRow(label: "Intensität") {
+                HStack(spacing: 6) {
+                    ForEach(intensityLabels.indices, id: \.self) { i in
+                        Button {
+                            guard i != intensity else { return }
+                            intensity = i
+                            didAdjust()
+                        } label: {
+                            Text(intensityLabels[i])
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(i == intensity ? ExperiencePalette.base : ExperiencePalette.textMuted)
+                                .padding(.horizontal, 10)
+                                .frame(height: 32)
+                                .background(i == intensity ? intensityColors[i] : Color.white.opacity(0.08),
+                                            in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: intensity)
+                    }
+                }
+            }
+
+            Divider().background(Color.white.opacity(0.08))
+
+            // Fokus
+            controlRow(label: "Fokus") {
+                HStack(spacing: 6) {
+                    ForEach(focusLabels.indices, id: \.self) { i in
+                        Button {
+                            guard i != focusArea else { return }
+                            focusArea = i
+                            didAdjust()
+                        } label: {
+                            Text(focusLabels[i])
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(i == focusArea ? ExperiencePalette.base : ExperiencePalette.textMuted)
+                                .padding(.horizontal, 10)
+                                .frame(height: 32)
+                                .background(i == focusArea ? accentTint : Color.white.opacity(0.08),
+                                            in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: focusArea)
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.1), lineWidth: 1))
     }
 
     @ViewBuilder
-    private func featureCard(_ feature: Feature, depth: Int) -> some View {
-        let local = revealAmount(for: feature.appearAt)
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(ExperiencePalette.accent.opacity(0.18))
-                    .frame(width: 50, height: 50)
-                Image(systemName: feature.symbol)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(ExperiencePalette.accent)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(feature.title)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(ExperiencePalette.textPrimary)
-                Text(feature.subtitle)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(ExperiencePalette.textMuted)
-            }
-            Spacer()
+    private func controlRow<C: View>(label: String, @ViewBuilder control: () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(ExperiencePalette.textMuted)
+            control()
         }
-        .padding(16)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(.white.opacity(0.12 + local * 0.12), lineWidth: 1)
-        )
-        .shadow(color: ExperiencePalette.accentGlow.opacity(0.25 * local), radius: 18, y: 8)
-        // Cinematic assembly: fade + blur + rise + slight parallax by depth.
-        .opacity(local)
-        .blur(radius: (1 - local) * 8)
-        .offset(y: CGFloat(1 - local) * (40 + CGFloat(depth) * 12))
-        .scaleEffect(0.96 + local * 0.04)
-        // Fade the cards back out as the final message converges.
-        .opacity(1 - convergeProgress * 0.85)
     }
 
-    private var hintOverlay: some View {
-        VStack {
-            Spacer()
+    // MARK: - Preview card
+
+    private var previewCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Dein Wochenplan")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(ExperiencePalette.textPrimary)
+
             VStack(spacing: 10) {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(ExperiencePalette.accent)
-                    .offset(y: reveal > 0.02 ? -6 : 4)
-                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: reveal > 0.02)
-                Text("Ziehen, um zu enthüllen")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(ExperiencePalette.textMuted)
+                ForEach(weekDays, id: \.self) { day in
+                    HStack(spacing: 12) {
+                        Text(day)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(ExperiencePalette.textMuted)
+                            .frame(width: 28, alignment: .leading)
+
+                        // Activity bar
+                        Capsule()
+                            .fill(accentTint.opacity(0.18))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 28)
+                            .overlay(alignment: .leading) {
+                                let w = barWidth(for: day)
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(colors: [accentTint, accentTint.opacity(0.6)],
+                                                       startPoint: .leading, endPoint: .trailing)
+                                    )
+                                    .frame(width: w, height: 28)
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.75), value: intensity)
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.75), value: focusArea)
+                            }
+
+                        Text(dayLabel(for: day))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(ExperiencePalette.textMuted)
+                            .frame(width: 62, alignment: .trailing)
+                    }
+                }
             }
-            .opacity(max(0, 0.9 - reveal * 1.6))
-            .padding(.bottom, 54)
         }
-        .allowsHitTesting(false)
+        .padding(18)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(.white.opacity(0.1), lineWidth: 1))
     }
 
-    // MARK: - Reveal engine
+    private let weekDays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
-    /// Local 0→1 reveal for a single element based on its appearance threshold.
-    private func revealAmount(for threshold: Double) -> Double {
-        let span = 0.22
-        let t = (reveal - threshold) / span
-        return min(1, max(0, t))
+    private func barWidth(for day: String) -> CGFloat {
+        let base: [String: Double] = [
+            "Mo": 0.72, "Di": 0.55, "Mi": 0.80, "Do": 0.50,
+            "Fr": 0.68, "Sa": 0.38, "So": 0.30,
+        ]
+        let intensityBoost = [0.0, 0.1, 0.2][intensity]
+        let focusBoost = focusArea == 1 ? 0.08 : 0.0
+        let raw = (base[day] ?? 0.5) + intensityBoost + focusBoost
+        return CGFloat(min(1, raw)) * 180
     }
 
-    private func bump(by amount: Double) {
-        guard !converged else { return }
-        let before = reveal
-        reveal = min(1, reveal + amount)
-        hapticAcross(before: before, after: reveal)
+    private func dayLabel(for day: String) -> String {
+        let isWorkout = focusArea != 0
+        let workoutDays: Set<String> = intensity == 2
+            ? ["Mo", "Di", "Mi", "Do", "Fr"] : ["Mo", "Mi", "Fr"]
+        if isWorkout && workoutDays.contains(day) { return "Training" }
+        return "\(mealCount)x Mahlzeit"
     }
 
-    /// Gentle baseline auto-reveal so the screen always breathes to life, even
-    /// without input — drag simply accelerates past it.
-    private func autoReveal() {
-        guard !converged else { return }
-        let ceiling = 0.55
-        if reveal < ceiling {
-            let before = reveal
-            reveal = min(ceiling, reveal + (1.0 / 60.0) / 3.2)
-            hapticAcross(before: before, after: reveal)
+    // MARK: - CTA
+
+    @ViewBuilder
+    private var ctaSection: some View {
+        VStack(spacing: 10) {
+            if autoAdvancePending {
+                // Tiny auto-advance hint
+                let fraction = min(1, autoAdvanceSeconds / autoAdvanceDelay)
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.06)).frame(height: 2)
+                    Capsule().fill(accentTint.opacity(0.5)).frame(width: max(0, CGFloat(fraction) * 160), height: 2)
+                }
+                .frame(width: 160)
+                .opacity(0.6)
+                .animation(.linear(duration: 1.0 / 60.0), value: fraction)
+            }
+
+            ExperienceCTAButton(title: "Plan übernehmen", action: onNext)
+                .padding(.horizontal, 28)
+                .opacity(ctaOpacity)
+                .scaleEffect(0.94 + ctaOpacity * 0.06)
+                .animation(.spring(response: 0.5, dampingFraction: 0.72), value: ctaOpacity)
         }
     }
 
-    /// Fires soft ticks as each feature crosses its appearance threshold, and a
-    /// success notification at full convergence.
-    private func hapticAcross(before: Double, after: Double) {
-        for feature in features where before < feature.appearAt && after >= feature.appearAt {
-            ExperienceHaptics.impact(.soft, intensity: 0.5)
+    // MARK: - Logic
+
+    private func didAdjust() {
+        ExperienceHaptics.selection()
+        adjustmentCount += 1
+        idleSeconds = 0
+        autoAdvanceSeconds = 0
+        autoAdvancePending = false
+
+        if !ctaVisible && adjustmentCount >= adjustmentsNeeded {
+            revealCTA()
         }
-        if before < 1 && after >= 1 {
-            ExperienceHaptics.success()
+    }
+
+    private func revealCTA() {
+        ctaVisible = true
+        withAnimation(.easeOut(duration: 0.6)) { ctaOpacity = 1 }
+        ExperienceHaptics.impact(.light, intensity: 0.6)
+    }
+
+    private func tick60() {
+        // Idle timer to reveal CTA even without adjustments
+        if !ctaVisible {
+            idleSeconds += 1.0 / 60.0
+            if idleSeconds >= idleThreshold { revealCTA() }
+        }
+
+        // Auto-advance after CTA is visible and user is idle
+        if ctaVisible && !autoAdvancePending {
+            autoAdvancePending = true
+        }
+        if autoAdvancePending {
+            autoAdvanceSeconds += 1.0 / 60.0
+            if autoAdvanceSeconds >= autoAdvanceDelay {
+                onNext()
+            }
         }
     }
 }
