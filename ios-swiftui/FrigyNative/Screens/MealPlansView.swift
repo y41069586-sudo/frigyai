@@ -30,7 +30,7 @@ struct MealPlansView: View {
     @State private var bannerMessage: String?
     @State private var bannerIsError = false
 
-    private let weekPlan: [DayPlan] = makeDemoWeek()
+    @State private var weekPlan: [DayPlan] = makeDemoWeek()
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -204,25 +204,38 @@ struct MealPlansView: View {
         isGenerating = true
         bannerMessage = nil
         let targets = MacroTargets.default
-        if let plan = await TrackerDataService.shared.generateMealPlan(
+        if let generatedDays = await TrackerDataService.shared.generateMealPlan(
             calories: targets.calories,
             protein: targets.protein,
             carbs: targets.carbs,
             fat: targets.fat
         ) {
+            weekPlan = weekPlan.enumerated().map { (i, existing) in
+                guard i < generatedDays.count else { return existing }
+                let genDay = generatedDays[i]
+                let meals = genDay.meals.map { m in
+                    PlannedMeal(
+                        category: MealCategory(mealTypeKey: m.type),
+                        name: m.name,
+                        calories: m.calories ?? 0,
+                        duration: m.prepTime ?? 0,
+                        tags: m.allergenTags ?? []
+                    )
+                }
+                return DayPlan(weekday: existing.weekday, shortDay: existing.shortDay,
+                               isToday: existing.isToday, meals: meals)
+            }
             bannerIsError = false
-            bannerMessage = plan.prefix(120).description
-        } else {
-            bannerIsError = true
-            bannerMessage = "Plan konnte nicht generiert werden. Bitte versuche es erneut."
-        }
-        isGenerating = false
-        if !bannerIsError {
+            bannerMessage = "Plan erfolgreich erstellt!"
             Task {
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
                 bannerMessage = nil
             }
+        } else {
+            bannerIsError = true
+            bannerMessage = "Plan konnte nicht erstellt werden. Premium erforderlich oder Verbindung prüfen."
         }
+        isGenerating = false
     }
 
     private func dayStat(_ label: String, value: String) -> some View {

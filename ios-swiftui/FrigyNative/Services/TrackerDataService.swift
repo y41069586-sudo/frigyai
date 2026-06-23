@@ -20,6 +20,24 @@ struct WeightPoint: Identifiable {
     let kg: Double
 }
 
+/// A single meal from a generated week plan.
+struct GeneratedMeal: Decodable {
+    let type: String
+    let name: String
+    let prepTime: Int?
+    let calories: Int?
+    let protein: Int?
+    let carbs: Int?
+    let fat: Int?
+    let allergenTags: [String]?
+}
+
+/// One day from a generated week plan.
+struct GeneratedDayPlan: Decodable {
+    let day: String
+    let meals: [GeneratedMeal]
+}
+
 /// A unique food previously logged by the user — drives the tracker's recent-foods list.
 struct RecentFood: Identifiable {
     let id: String   // Supabase food_entries.id of the most-recent logged occurrence
@@ -311,8 +329,8 @@ final class TrackerDataService {
 
     // MARK: - Meal plan generation
 
-    /// Calls the `generate-meal-plan` edge function. Returns raw JSON on success, nil on failure.
-    func generateMealPlan(calories: Int, protein: Int, carbs: Int, fat: Int) async -> String? {
+    /// Calls the `generate-meal-plan` edge function. Returns parsed 7-day plan on success, nil on failure.
+    func generateMealPlan(calories: Int, protein: Int, carbs: Int, fat: Int) async -> [GeneratedDayPlan]? {
         #if canImport(Supabase)
         guard SupabaseConfig.isConfigured,
               let base = SupabaseConfig.urlString,
@@ -326,13 +344,15 @@ final class TrackerDataService {
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try? JSONEncoder().encode(MealPlanRequest(
-            calories: calories, protein: protein, carbs: carbs, fat: fat, days: 7
+            dailyCalories: calories, dailyProtein: protein,
+            dailyCarbs: carbs, dailyFat: fat, mealsPerDay: 4
         ))
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-            return String(data: data, encoding: .utf8)
+            let decoded = try JSONDecoder().decode(MealPlanResponse.self, from: data)
+            return decoded.mealPlan
         } catch {
             return nil
         }
@@ -455,11 +475,15 @@ private struct WeightInsert: Encodable {
 }
 
 private struct MealPlanRequest: Encodable {
-    let calories: Int
-    let protein: Int
-    let carbs: Int
-    let fat: Int
-    let days: Int
+    let dailyCalories: Int
+    let dailyProtein: Int
+    let dailyCarbs: Int
+    let dailyFat: Int
+    let mealsPerDay: Int
+}
+
+private struct MealPlanResponse: Decodable {
+    let mealPlan: [GeneratedDayPlan]
 }
 
 private struct ChatRequest: Encodable {
