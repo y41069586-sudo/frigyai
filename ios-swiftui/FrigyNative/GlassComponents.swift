@@ -140,13 +140,10 @@ struct LiquidGlassSecondaryButton: View {
             .foregroundColor(FrigyBrand.primaryDark)
             .frame(maxWidth: .infinity)
             .frame(height: height)
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .stroke(FrigyBrand.primary.opacity(0.5), lineWidth: 1.5)
-                    )
+            .realGlass(
+                in: RoundedRectangle(cornerRadius: cornerRadius),
+                interactive: true,
+                fallbackBorder: FrigyBrand.primary.opacity(0.5)
             )
             .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
             .scaleEffect(isPressed ? 0.97 : 1.0)
@@ -173,16 +170,27 @@ struct LiquidGlassCircleButton: View {
 
     @State private var isPressed = false
 
+    @ViewBuilder
+    private var iconLabel: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: iconSize, weight: .semibold))
+            .foregroundColor(usePrimaryGradient ? .white : FrigyBrand.primaryDark)
+            .frame(width: size, height: size)
+    }
+
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundColor(usePrimaryGradient ? .white : FrigyBrand.primaryDark)
-                .frame(width: size, height: size)
-                .background(
-                    Group {
-                        if usePrimaryGradient {
-                            AnyView(
+            Group {
+                if usePrimaryGradient {
+                    if #available(iOS 26, *) {
+                        // Tinted REAL Apple glass.
+                        iconLabel
+                            .glassEffect(.regular.tint(FrigyBrand.primaryDeep).interactive(), in: .circle)
+                            .shadow(color: Color(hex: "#39D47F").opacity(0.25), radius: 8, y: 4)
+                    } else {
+                        // Mint gradient fill fallback.
+                        iconLabel
+                            .background(
                                 Circle()
                                     .fill(LinearGradient(
                                         colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
@@ -191,21 +199,16 @@ struct LiquidGlassCircleButton: View {
                                     ))
                                     .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                             )
-                        } else {
-                            AnyView(
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(Circle().stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1))
-                            )
-                        }
+                            .shadow(color: Color(hex: "#39D47F").opacity(0.25), radius: 8, y: 4)
                     }
-                )
-                .shadow(
-                    color: usePrimaryGradient ? Color(hex: "#39D47F").opacity(0.25) : .black.opacity(0.05),
-                    radius: 8, y: 4
-                )
-                .scaleEffect(isPressed ? 0.93 : 1.0)
-                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+                } else {
+                    iconLabel
+                        .realGlass(in: Circle(), interactive: true)
+                        .shadow(color: .black.opacity(0.05), radius: 8, y: 4)
+                }
+            }
+            .scaleEffect(isPressed ? 0.93 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
         }
         .buttonStyle(.plain)
         .simultaneousGesture(
@@ -231,15 +234,12 @@ struct LiquidGlassInputField: View {
             .keyboardType(keyboardType)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(
+            .realGlass(in: RoundedRectangle(cornerRadius: cornerRadius), interactive: false)
+            .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .stroke(
-                                focused ? FrigyBrand.primary.opacity(0.6) : Color.white.opacity(0.25),
-                                lineWidth: 1
-                            )
+                    .stroke(
+                        focused ? FrigyBrand.primary.opacity(0.6) : Color.clear,
+                        lineWidth: 1.5
                     )
             )
             .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
@@ -292,11 +292,7 @@ struct LiquidGlassSegmentedPicker<T: Hashable>: View {
             }
         }
         .padding(4)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay(Capsule().stroke(FrigyBrand.cardBorder.opacity(0.5), lineWidth: 1))
-        )
+        .realGlass(in: Capsule(), interactive: false, fallbackBorder: FrigyBrand.cardBorder.opacity(0.5))
     }
 }
 
@@ -387,6 +383,44 @@ extension View {
     /// Liquid Glass circle button on iOS 26+; mint fill circle on older OS.
     func frigyCircleButton() -> some View {
         modifier(FrigyCircleButtonModifier())
+    }
+
+    /// REAL Apple Liquid Glass (iOS 26 `.glassEffect`) with a graceful
+    /// `.ultraThinMaterial` fallback for iOS 17–25. `tint` adds a colored glass,
+    /// `interactive` enables Apple's built-in press refraction/scale feedback.
+    @ViewBuilder
+    func realGlass<S: Shape>(
+        in shape: S,
+        tint: Color? = nil,
+        interactive: Bool = true,
+        fallbackBorder: Color = FrigyBrand.primary.opacity(0.4)
+    ) -> some View {
+        if #available(iOS 26, *) {
+            modifier(RealGlassModifier(shape: shape, tint: tint, interactive: interactive))
+        } else {
+            background(.ultraThinMaterial, in: shape)
+                .overlay(shape.stroke(fallbackBorder, lineWidth: 1))
+        }
+    }
+}
+
+@available(iOS 26, *)
+private struct RealGlassModifier<S: Shape>: ViewModifier {
+    let shape: S
+    let tint: Color?
+    let interactive: Bool
+
+    func body(content: Content) -> some View {
+        switch (tint, interactive) {
+        case let (.some(color), true):
+            content.glassEffect(.regular.tint(color).interactive(), in: shape)
+        case let (.some(color), false):
+            content.glassEffect(.regular.tint(color), in: shape)
+        case (.none, true):
+            content.glassEffect(.regular.interactive(), in: shape)
+        case (.none, false):
+            content.glassEffect(.regular, in: shape)
+        }
     }
 }
 
