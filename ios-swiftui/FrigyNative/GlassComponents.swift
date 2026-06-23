@@ -55,6 +55,286 @@ private struct GlassButtonModifier: ViewModifier {
     }
 }
 
+// MARK: - LiquidGlassPrimaryButton
+
+/// Full-width or auto-width primary CTA with mint gradient, glass overlay stroke, and spring press animation.
+struct LiquidGlassPrimaryButton: View {
+    let title: String
+    var systemImage: String? = nil
+    var cornerRadius: CGFloat = 16
+    var height: CGFloat = 50
+    var isEnabled: Bool = true
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon = systemImage {
+                    Image(systemName: icon)
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(
+                        LinearGradient(
+                            colors: isEnabled
+                                ? [Color(hex: "#75FBB2"), Color(hex: "#39D47F")]
+                                : [Color(hex: "#BCFDDC"), Color(hex: "#BCFDDC")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                    .blendMode(.overlay)
+            )
+            .shadow(
+                color: isEnabled ? Color(hex: "#39D47F").opacity(0.28) : .clear,
+                radius: 12, y: 6
+            )
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+        }
+        .disabled(!isEnabled)
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in isPressed = true }
+                .onEnded { _ in isPressed = false }
+        )
+    }
+}
+
+// MARK: - LiquidGlassSecondaryButton
+
+/// Ghost / secondary button with ultraThinMaterial fill and mint border.
+struct LiquidGlassSecondaryButton: View {
+    let title: String
+    var systemImage: String? = nil
+    var cornerRadius: CGFloat = 14
+    var height: CGFloat = 44
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon = systemImage {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(FrigyBrand.primaryDark)
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(FrigyBrand.primary.opacity(0.5), lineWidth: 1.5)
+                    )
+            )
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in isPressed = true }
+                .onEnded { _ in isPressed = false }
+        )
+    }
+}
+
+// MARK: - LiquidGlassCircleButton
+
+/// Premium liquid glass circle button (e.g. FAB, header actions).
+struct LiquidGlassCircleButton: View {
+    let systemImage: String
+    var size: CGFloat = 44
+    var iconSize: CGFloat = 18
+    var usePrimaryGradient: Bool = false
+    let action: () -> Void
+
+    @State private var isPressed = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: iconSize, weight: .semibold))
+                .foregroundColor(usePrimaryGradient ? .white : FrigyBrand.primaryDark)
+                .frame(width: size, height: size)
+                .background(
+                    Group {
+                        if usePrimaryGradient {
+                            AnyView(
+                                Circle()
+                                    .fill(LinearGradient(
+                                        colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                                    .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
+                            )
+                        } else {
+                            AnyView(
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(Circle().stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1))
+                            )
+                        }
+                    }
+                )
+                .shadow(
+                    color: usePrimaryGradient ? Color(hex: "#39D47F").opacity(0.25) : .black.opacity(0.05),
+                    radius: 8, y: 4
+                )
+                .scaleEffect(isPressed ? 0.93 : 1.0)
+                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isPressed)
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in isPressed = true }
+                .onEnded { _ in isPressed = false }
+        )
+    }
+}
+
+// MARK: - LiquidGlassInputField
+
+/// Glass-styled text input field (for standalone use outside of Form).
+struct LiquidGlassInputField: View {
+    let placeholder: String
+    @Binding var text: String
+    var keyboardType: UIKeyboardType = .default
+    var cornerRadius: CGFloat = 14
+    @FocusState.Binding var focused: Bool
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .keyboardType(keyboardType)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(
+                                focused ? FrigyBrand.primary.opacity(0.6) : Color.white.opacity(0.25),
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+            .focused($focused)
+    }
+}
+
+// MARK: - LiquidGlassSegmentedPicker
+
+/// Custom segmented control using glass pills. Mint-filled active pill.
+struct LiquidGlassSegmentedPicker<T: Hashable>: View {
+    let options: [(label: String, icon: String?, value: T)]
+    @Binding var selection: T
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
+                let isSelected = selection == opt.value
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                        selection = opt.value
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        if let icon = opt.icon {
+                            Image(systemName: icon)
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        Text(opt.label)
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(isSelected ? .white : FrigyBrand.primaryDark)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(isSelected
+                                ? AnyShapeStyle(LinearGradient(
+                                    colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+                                : AnyShapeStyle(Color.clear))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(isSelected ? Color.white.opacity(0.35) : Color.clear, lineWidth: 1)
+                            .blendMode(.overlay)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(Capsule().stroke(FrigyBrand.cardBorder.opacity(0.5), lineWidth: 1))
+        )
+    }
+}
+
+// MARK: - LiquidGlassCheckbox
+
+/// Glass-styled checkbox with animated check fill using category accent color.
+struct LiquidGlassCheckbox: View {
+    let isChecked: Bool
+    var accentColor: Color = FrigyBrand.primaryDark
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            ZStack {
+                Circle()
+                    .fill(isChecked
+                        ? AnyShapeStyle(LinearGradient(
+                            colors: [accentColor.opacity(0.8), accentColor],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+                        : AnyShapeStyle(.ultraThinMaterial))
+                    .frame(width: 26, height: 26)
+                Circle()
+                    .stroke(isChecked ? accentColor : FrigyBrand.cardBorder, lineWidth: 1.5)
+                    .frame(width: 26, height: 26)
+                if isChecked {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            .shadow(color: isChecked ? accentColor.opacity(0.25) : .clear, radius: 4, y: 2)
+            .scaleEffect(isChecked ? 1.05 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.65), value: isChecked)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - GlassToolbar (iOS 26 only demo)
 
 @available(iOS 26, *)
@@ -92,20 +372,9 @@ struct GlassToolbar: View {
 
 // MARK: - App-wide Liquid Glass utilities
 
-/// Mint radial glow background that makes glass effects visible.
 struct FrigyGlassBackground: View {
     var body: some View {
-        ZStack {
-            Color(hex: "#FBFFFD")
-            VStack {
-                RadialGradient(
-                    colors: [Color(hex: "#75FBB2").opacity(0.18), .clear],
-                    center: .top, startRadius: 0, endRadius: 360
-                )
-                .frame(height: 360)
-                Spacer()
-            }
-        }
+        Color(hex: "#FBFFFD")
     }
 }
 
@@ -121,64 +390,41 @@ extension View {
     }
 }
 
-/// Glass (or mint fill) background for selection cards with selected-state tint.
 struct FrigySelectionCardBackground: ViewModifier {
     let isSelected: Bool
     var cornerRadius: CGFloat = 16
 
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content
-                .glassEffect(
-                    isSelected
-                        ? .regular.tint(FrigyBrand.primary.opacity(0.22))
-                        : .regular,
-                    in: .rect(cornerRadius: cornerRadius)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(isSelected ? FrigyBrand.primary : Color.clear, lineWidth: 1.5)
-                )
-        } else {
-            content
-                .background(
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(isSelected ? FrigyBrand.selectedBg : .white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: cornerRadius)
-                                .stroke(
-                                    isSelected ? FrigyBrand.primary : FrigyBrand.cardBorder,
-                                    lineWidth: isSelected ? 1.5 : 1
-                                )
-                        )
-                )
-        }
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(isSelected ? FrigyBrand.selectedBg : .white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(
+                                isSelected ? FrigyBrand.primary : FrigyBrand.cardBorder,
+                                lineWidth: isSelected ? 1.5 : 1
+                            )
+                    )
+            )
     }
 }
 
 private struct FrigyCardModifier: ViewModifier {
     let cornerRadius: CGFloat
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
-        }
+        content
+            .background(.white)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
     }
 }
 
 private struct FrigyCircleButtonModifier: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.glassEffect(.regular.interactive(), in: .circle)
-        } else {
-            content
-                .background(FrigyBrand.selectedBg)
-                .clipShape(Circle())
-        }
+        content
+            .background(FrigyBrand.selectedBg)
+            .clipShape(Circle())
     }
 }
 
