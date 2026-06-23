@@ -41,6 +41,24 @@ enum MealCategory: String, CaseIterable {
         case .snack:     "leaf.fill"
         }
     }
+
+    var emoji: String {
+        switch self {
+        case .breakfast: "🍳"
+        case .lunch:     "🥗"
+        case .dinner:    "🍝"
+        case .snack:     "🍎"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .breakfast: "Frühstück"
+        case .lunch:     "Mittag"
+        case .dinner:    "Abend"
+        case .snack:     "Snack"
+        }
+    }
 }
 
 // MARK: - Main View
@@ -53,26 +71,6 @@ struct HomeDashboardView: View {
     // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
     @State private var targets = MacroTargets.default
 
-    private var targetCalories: Int { targets.calories }
-    private var targetProtein:  Int { targets.protein }
-    private var targetCarbs:    Int { targets.carbs }
-    private var targetFat:      Int { targets.fat }
-
-    private func reload() async {
-        let result = await TrackerDataService.shared.loadToday()
-        meals = result.meals
-        targets = result.targets
-    }
-
-    private func deleteMeal(_ meal: LoggedMeal) {
-        guard !meal.entryId.isEmpty else { return }
-        withAnimation { meals.removeAll { $0.id == meal.id } }
-        Task {
-            await TrackerDataService.shared.deleteFoodEntry(id: meal.entryId)
-            await reload()
-        }
-    }
-
     private var consumed: (kcal: Int, protein: Int, carbs: Int, fat: Int) {
         (
             meals.reduce(0) { $0 + $1.calories },
@@ -82,116 +80,41 @@ struct HomeDashboardView: View {
         )
     }
 
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 5..<12:  return "Guten Morgen"
-        case 12..<17: return "Guten Tag"
-        case 17..<22: return "Guten Abend"
-        default:      return "Hallo"
-        }
+    private var remaining: Int { max(0, targets.calories - consumed.kcal) }
+    private var caloriePct: Int {
+        targets.calories > 0 ? min(100, Int(Double(consumed.kcal) / Double(targets.calories) * 100)) : 0
     }
 
-    private var dateText: String {
+    private var loggedCategories: Set<MealCategory> { Set(meals.map(\.category)) }
+
+    private var weekdayText: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "de_DE")
-        f.dateFormat = "EEEE, d. MMMM"
+        f.dateFormat = "EEEE"
         return f.string(from: Date())
+    }
+
+    private func reload() async {
+        let result = await TrackerDataService.shared.loadToday()
+        meals = result.meals
+        targets = result.targets
+    }
+
+    private func fmt(_ value: Int) -> String {
+        value.formatted(.number.grouping(.automatic).locale(Locale(identifier: "de_DE")))
     }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                // Header
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(greeting)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color(hex: "#6B7280"))
-                        Text("Frigy")
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundColor(Color(hex: "#1F2937"))
-                        Text(dateText)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
-                    }
-                    Spacer()
-                    LiquidGlassCircleButton(systemImage: "person.fill", size: 44, iconSize: 18) {
-                        tabCoordinator.pushHome(.profile)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-                // Calorie ring card
-                CalorieRingCard(
-                    consumed: consumed.kcal,
-                    target: targetCalories,
-                    protein: (consumed: consumed.protein, target: targetProtein),
-                    carbs: (consumed: consumed.carbs, target: targetCarbs),
-                    fat: (consumed: consumed.fat, target: targetFat)
-                )
-                .padding(.horizontal, 20)
-
-                // Quick actions
-                HStack(spacing: 12) {
-                    quickAction("Mahlzeit tracken", icon: "plus.circle.fill", color: Color(hex: "#75FBB2")) {
-                        tabCoordinator.openTracker()
-                    }
-                    quickAction("Gewicht", icon: "scalemass.fill", color: Color(hex: "#A5B4FC")) {
-                        tabCoordinator.pushHome(.weightProgress)
-                    }
-                    quickAction("KI-Coach", icon: "bubble.left.and.bubble.right.fill", color: Color(hex: "#FCA5A5")) {
-                        tabCoordinator.pushHome(.chatbot)
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                // Meals today
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Heute")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(Color(hex: "#1F2937"))
-                        Spacer()
-                        Button {
-                            tabCoordinator.openTracker()
-                        } label: {
-                            Label("Hinzufügen", systemImage: "plus")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(FrigyBrand.primaryDark)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(.ultraThinMaterial)
-                                        .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.5), lineWidth: 1.5))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if meals.isEmpty {
-                        EmptyMealsCard {
-                            tabCoordinator.openTracker()
-                        }
-                    } else {
-                        ForEach(MealCategory.allCases, id: \.self) { category in
-                            let categoryMeals = meals.filter { $0.category == category }
-                            if !categoryMeals.isEmpty {
-                                MealCategorySection(
-                                    category: category,
-                                    meals: categoryMeals,
-                                    onDelete: deleteMeal
-                                )
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-
-                Spacer().frame(height: 100)
+            VStack(spacing: 22) {
+                header
+                calorieCard
+                mealSlotsSection
+                weeklyPlanCard
+                Spacer().frame(height: 110)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -202,237 +125,231 @@ struct HomeDashboardView: View {
         }
     }
 
-    private func quickAction(_ label: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(color.opacity(0.35), lineWidth: 1)
-                        )
-                        .shadow(color: color.opacity(0.15), radius: 6, y: 3)
-                        .frame(width: 52, height: 52)
-                    Image(systemName: icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(color == Color(hex: "#75FBB2") ? FrigyBrand.primaryDark : color.opacity(0.9))
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 0) {
+            Text("Frigy")
+                .font(.system(size: 26, weight: .black, design: .rounded))
+                .foregroundColor(FrigyBrand.primaryDark)
+
+            Spacer()
+
+            HStack(spacing: 16) {
+                headerIcon("scalemass.fill", color: FrigyBrand.primaryDark) {
+                    tabCoordinator.pushHome(.weightProgress)
                 }
-                Text(label)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                Button { tabCoordinator.pushHome(.badges) } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color(hex: "#FB923C"))
+                        Text("\(loggedCategories.isEmpty ? 0 : 1)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(Color(hex: "#1F2937"))
+                    }
+                }
+                .buttonStyle(.plain)
+                headerIcon("bubble.left.and.bubble.right.fill", color: FrigyBrand.primaryDark) {
+                    tabCoordinator.pushHome(.chatbot)
+                }
+                headerIcon("gearshape.fill", color: Color(hex: "#9CA3AF")) {
+                    tabCoordinator.pushHome(.profile)
+                }
             }
-            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func headerIcon(_ icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(color)
         }
         .buttonStyle(.plain)
     }
-}
 
-// MARK: - Calorie Ring Card
+    // MARK: - Calorie card
 
-struct CalorieRingCard: View {
-    let consumed: Int
-    let target: Int
-    let protein: (consumed: Int, target: Int)
-    let carbs: (consumed: Int, target: Int)
-    let fat: (consumed: Int, target: Int)
+    private var calorieCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("HEUTE")
+                    .font(.system(size: 12, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundColor(FrigyBrand.primaryDark.opacity(0.75))
+                Spacer()
+                LiquidGlassCircleButton(systemImage: "pencil", size: 34, iconSize: 14) {
+                    tabCoordinator.openTracker()
+                }
+            }
 
-    private var fraction: Double {
-        target > 0 ? min(1, Double(consumed) / Double(target)) : 0
-    }
-
-    private var remaining: Int { max(0, target - consumed) }
-
-    var body: some View {
-        HStack(spacing: 20) {
-            // Ring
-            ZStack {
-                Circle()
-                    .stroke(Color(hex: "#BCFDDC").opacity(0.5), lineWidth: 10)
-                    .frame(width: 100, height: 100)
-                Circle()
-                    .trim(from: 0, to: fraction)
-                    .stroke(
-                        LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .topLeading, endPoint: .bottomTrailing),
-                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
-                    )
-                    .frame(width: 100, height: 100)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(duration: 0.6), value: fraction)
-
-                VStack(spacing: 1) {
-                    Text("\(consumed)")
-                        .font(.system(size: 22, weight: .black, design: .rounded))
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(fmt(remaining))
+                        .font(.system(size: 44, weight: .black, design: .rounded))
                         .foregroundColor(Color(hex: "#1F2937"))
                     Text("kcal")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color(hex: "#6B7280"))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(hex: "#1F2937"))
                 }
-            }
-
-            // Stats
-            VStack(alignment: .leading, spacing: 10) {
-                statRow("Ziel", value: "\(target) kcal", color: Color(hex: "#9CA3AF"))
-                statRow("Verbraucht", value: "\(consumed) kcal", color: Color(hex: "#39D47F"))
-                statRow("Verbleibend", value: "\(remaining) kcal", color: Color(hex: "#6B7280"))
-
-                HStack(spacing: 8) {
-                    macroChip("P", value: protein.consumed, target: protein.target, color: Color(hex: "#F87171"))
-                    macroChip("K", value: carbs.consumed, target: carbs.target, color: Color(hex: "#FBBF24"))
-                    macroChip("F", value: fat.consumed, target: fat.target, color: Color(hex: "#60A5FA"))
-                }
-            }
-        }
-        .padding(18)
-        .frigyCard(cornerRadius: 22)
-    }
-
-    private func statRow(_ label: String, value: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#9CA3AF"))
-            Spacer()
-            Text(value)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(color)
-        }
-    }
-
-    private func macroChip(_ letter: String, value: Int, target: Int, color: Color) -> some View {
-        VStack(spacing: 2) {
-            Text(letter)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(color)
-            Text("\(value)g")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(Color(hex: "#1F2937"))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 5)
-        .background(color.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-// MARK: - Empty state
-
-struct EmptyMealsCard: View {
-    let onAdd: () -> Void
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "fork.knife.circle")
-                .font(.system(size: 40))
-                .foregroundColor(Color(hex: "#BCFDDC"))
-
-            VStack(spacing: 4) {
-                Text("Noch keine Mahlzeiten")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Color(hex: "#1F2937"))
-                Text("Tippe auf + um deine erste Mahlzeit hinzuzufügen.")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .multilineTextAlignment(.center)
-            }
-
-            Button(action: onAdd) {
-                Label("Mahlzeit hinzufügen", systemImage: "plus")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(LinearGradient(
-                                colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ))
-                            .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
-                    )
-                    .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 10, y: 5)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(24)
-        .frigyCard(cornerRadius: 20)
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(hex: "#BCFDDC").opacity(0.6), lineWidth: 1))
-    }
-}
-
-// MARK: - Meal category section
-
-struct MealCategorySection: View {
-    let category: MealCategory
-    let meals: [LoggedMeal]
-    var onDelete: ((LoggedMeal) -> Void)? = nil
-
-    private var totalCal: Int { meals.reduce(0) { $0 + $1.calories } }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label(category.rawValue, systemImage: category.icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                Spacer()
-                Text("\(totalCal) kcal")
-                    .font(.system(size: 13, weight: .medium))
+                Text("übrig von \(fmt(targets.calories)) kcal")
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(Color(hex: "#9CA3AF"))
             }
 
-            VStack(spacing: 6) {
-                ForEach(meals) { meal in
-                    MealRow(meal: meal, onDelete: onDelete != nil ? { onDelete?(meal) } : nil)
+            // Progress bar
+            VStack(spacing: 8) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(FrigyBrand.primary.opacity(0.18)).frame(height: 8)
+                        Capsule()
+                            .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                                 startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(8, geo.size.width * Double(caloriePct) / 100), height: 8)
+                            .animation(.spring(duration: 0.6), value: caloriePct)
+                    }
+                }
+                .frame(height: 8)
+
+                HStack {
+                    Text("\(fmt(consumed.kcal)) Gegessen")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                    Spacer()
+                    Text("\(caloriePct)%")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(FrigyBrand.primaryDark)
+                }
+            }
+
+            // Macro cards
+            HStack(spacing: 10) {
+                macroCard("Protein", icon: "fork.knife", eaten: consumed.protein, target: targets.protein, color: Color(hex: "#FB7185"))
+                macroCard("Carbs", icon: "leaf.fill", eaten: consumed.carbs, target: targets.carbs, color: Color(hex: "#FBBF24"))
+                macroCard("Fat", icon: "drop.fill", eaten: consumed.fat, target: targets.fat, color: Color(hex: "#38BDF8"))
+            }
+        }
+        .padding(20)
+        .frigyCard(cornerRadius: 28)
+    }
+
+    private func macroCard(_ label: String, icon: String, eaten: Int, target: Int, color: Color) -> some View {
+        let pct = target > 0 ? min(1.0, Double(eaten) / Double(target)) : 0
+        return ZStack(alignment: .topLeading) {
+            GeometryReader { geo in
+                ZStack(alignment: .trailing) {
+                    Color(hex: "#EEF1F3")
+                    color.opacity(0.9)
+                        .frame(width: geo.size.width * pct)
+                }
+            }
+            VStack(alignment: .leading, spacing: 0) {
+                ZStack {
+                    Circle().fill(.white).frame(width: 30, height: 30)
+                    Image(systemName: icon)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(color)
+                }
+                Spacer(minLength: 6)
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color(hex: "#6B7280"))
+                Text(target > 0 ? "\(eaten) / \(target)g" : "\(eaten)g")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Color(hex: "#1F2937"))
+            }
+            .padding(11)
+        }
+        .frame(height: 96)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    // MARK: - Meal slots
+
+    private var mealSlotsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .lastTextBaseline) {
+                Text("Heute")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color(hex: "#1F2937"))
+                Spacer()
+                Button { tabCoordinator.openTracker() } label: {
+                    Text("Schnell hinzufügen")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 10) {
+                ForEach(MealCategory.allCases, id: \.self) { slot in
+                    mealSlot(slot, logged: loggedCategories.contains(slot))
                 }
             }
         }
     }
-}
 
-struct MealRow: View {
-    let meal: LoggedMeal
-    var onDelete: (() -> Void)? = nil
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: "#F2FFF8"))
-                    .frame(width: 40, height: 40)
-                Image(systemName: meal.category.icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#39D47F"))
+    private func mealSlot(_ slot: MealCategory, logged: Bool) -> some View {
+        Button { tabCoordinator.openTracker() } label: {
+            VStack(spacing: 6) {
+                Text(slot.emoji)
+                    .font(.system(size: 26))
+                Text(slot.shortLabel)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(logged ? FrigyBrand.primaryDeep : Color(hex: "#1F2937"))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                ZStack {
+                    Circle()
+                        .fill(logged ? FrigyBrand.primary : Color(hex: "#6B7280").opacity(0.15))
+                        .frame(width: 18, height: 18)
+                    Image(systemName: logged ? "checkmark" : "plus")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(logged ? .white : Color(hex: "#6B7280"))
+                }
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 92)
+            .realGlass(
+                in: RoundedRectangle(cornerRadius: 20),
+                tint: logged ? FrigyBrand.primary : nil,
+                interactive: true
+            )
+            .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+        }
+        .buttonStyle(.plain)
+    }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(meal.name)
+    // MARK: - Weekly plan card
+
+    private var weeklyPlanCard: some View {
+        Button { tabCoordinator.selectedTab = .plans } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(FrigyBrand.selectedBg)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "calendar")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundColor(FrigyBrand.primaryDeep)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Wochenplan")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(Color(hex: "#1F2937"))
+                    Text(weekdayText)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(FrigyBrand.primaryDark)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "#1F2937"))
-                if meal.protein > 0 || meal.carbs > 0 || meal.fat > 0 {
-                    Text("P \(meal.protein)g · K \(meal.carbs)g · F \(meal.fat)g")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
-                }
+                    .foregroundColor(Color(hex: "#C4C9D0"))
             }
-
-            Spacer()
-
-            Text("\(meal.calories) kcal")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(hex: "#6B7280"))
+            .padding(18)
+            .frigyCard(cornerRadius: 22)
         }
-        .padding(12)
-        .frigyCard(cornerRadius: 14)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            if let onDelete {
-                Button(role: .destructive, action: onDelete) {
-                    Label("Löschen", systemImage: "trash")
-                }
-            }
-        }
+        .buttonStyle(.plain)
     }
 }
