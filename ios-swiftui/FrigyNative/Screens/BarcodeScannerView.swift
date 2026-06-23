@@ -170,22 +170,16 @@ struct BarcodeScannerView: View {
     }
 
     private func lookupBarcode(_ barcode: String) async -> ScannedFood? {
-        guard let url = URL(string: "https://world.openfoodfacts.org/api/v0/product/\(barcode).json") else { return nil }
-        guard let (data, _) = try? await URLSession.shared.data(from: url) else { return nil }
-        guard let resp = try? JSONDecoder().decode(OFFFoodResponse.self, from: data),
-              resp.status == 1,
-              let product = resp.product else { return nil }
-
-        let rawName = product.product_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !rawName.isEmpty else { return nil }
-
+        // Resolve via the app's own analyze-food edge function (OpenAI + OFF),
+        // not a direct Open Food Facts call.
+        guard let food = await TrackerDataService.shared.analyzeFood(query: barcode) else { return nil }
         return ScannedFood(
             barcode: barcode,
-            name: rawName,
-            calories: Int((product.nutriments?.energyKcal100g ?? 0).rounded()),
-            protein:  Int((product.nutriments?.proteins100g ?? 0).rounded()),
-            carbs:    Int((product.nutriments?.carbohydrates100g ?? 0).rounded()),
-            fat:      Int((product.nutriments?.fat100g ?? 0).rounded())
+            name: food.name,
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fat: food.fat
         )
     }
 }
@@ -268,28 +262,3 @@ private struct CameraPreviewView: UIViewRepresentable {
     }
 }
 
-// MARK: - OpenFoodFacts models
-
-private struct OFFFoodResponse: Decodable {
-    let status: Int
-    let product: OFFProduct?
-}
-
-private struct OFFProduct: Decodable {
-    let product_name: String?
-    let nutriments: OFFNutriments?
-}
-
-private struct OFFNutriments: Decodable {
-    let energyKcal100g: Double?
-    let proteins100g: Double?
-    let carbohydrates100g: Double?
-    let fat100g: Double?
-
-    enum CodingKeys: String, CodingKey {
-        case energyKcal100g      = "energy-kcal_100g"
-        case proteins100g        = "proteins_100g"
-        case carbohydrates100g   = "carbohydrates_100g"
-        case fat100g             = "fat_100g"
-    }
-}

@@ -8,25 +8,25 @@ struct GlassTabBar: View {
     @Binding var selection: AppTab
     var onTrackerTap: () -> Void
 
-    private let trackerSize: CGFloat = 54
+    private let trackerSize: CGFloat = 60
 
     var body: some View {
         HStack(spacing: 4) {
             tabButton(.home)
             tabButton(.plans)
             tabButton(.shopping)
-            // Reserve horizontal room for the raised "+" button so tabs don't
-            // slide underneath it. The button itself is an overlay (below) so it
-            // can pop above the pill without stretching the pill's height.
-            Color.clear.frame(width: trackerSize - 6, height: 48)
+            // Reserve enough horizontal room for the raised "+" button so the
+            // Shopping tab never gets squeezed under it. The button itself is a
+            // trailing overlay so it can pop above the pill without stretching it.
+            Color.clear.frame(width: trackerSize + 6, height: 48)
         }
-        .padding(.leading, 8)
-        .padding(.trailing, 6)
+        .padding(.leading, 10)
+        .padding(.trailing, 8)
         .padding(.vertical, 6)
-        .frame(maxWidth: 440)
+        .frame(maxWidth: 460)
         .background(pillBackground)
         .overlay(alignment: .trailing) {
-            trackerButton.offset(x: -2, y: -12)
+            trackerButton.offset(x: 0, y: -14)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
@@ -84,13 +84,13 @@ struct GlassTabBar: View {
     private var trackerButton: some View {
         Button(action: onTrackerTap) {
             Image(systemName: "plus")
-                .font(.system(size: 26, weight: .heavy))
+                .font(.system(size: 30, weight: .heavy))
                 .foregroundStyle(.white)
                 .frame(width: trackerSize, height: trackerSize)
                 .modifier(TrackerButtonStyle())
-                .padding(4)
+                .padding(5)
                 .background(Circle().fill(.white))
-                .shadow(color: FrigyBrand.primaryDeep.opacity(0.35), radius: 10, y: 5)
+                .shadow(color: FrigyBrand.primaryDeep.opacity(0.38), radius: 12, y: 6)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Mahlzeit tracken")

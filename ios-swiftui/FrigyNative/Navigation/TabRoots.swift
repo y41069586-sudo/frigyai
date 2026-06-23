@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import Charts
 
 // MARK: - Route Views
 
@@ -571,26 +572,9 @@ struct WeightProgressView: View {
                                 .foregroundColor(FrigyBrand.text)
                                 .padding(.horizontal, 20)
 
-                            HStack(alignment: .bottom, spacing: 6) {
-                                ForEach(Array(entries.enumerated()), id: \.offset) { _, e in
-                                    VStack(spacing: 4) {
-                                        let frac = maxKg > minKg ? (e.kg - minKg) / (maxKg - minKg) : 0.5
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(LinearGradient(
-                                                colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                                startPoint: .top, endPoint: .bottom
-                                            ))
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: max(8, CGFloat(frac) * 80))
-                                        Text(e.date)
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundColor(FrigyBrand.textMuted)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .frame(height: 100, alignment: .bottom)
-                            .padding(.horizontal, 20)
+                            weightLineChart
+                                .frame(height: 200)
+                                .padding(.horizontal, 16)
                         }
                         .padding(.vertical, 16)
                         .frigyCard(cornerRadius: 18)
@@ -613,6 +597,64 @@ struct WeightProgressView: View {
             })
         }
         .task { await load() }
+    }
+
+    // Smooth, gradient-filled line chart (Swift Charts, Catmull-Rom interpolation).
+    @ViewBuilder private var weightLineChart: some View {
+        Chart(Array(entries.enumerated()), id: \.offset) { index, e in
+            AreaMark(
+                x: .value("Tag", index),
+                yStart: .value("min", minKg),
+                yEnd: .value("Gewicht", e.kg)
+            )
+            .interpolationMethod(.catmullRom)
+            .foregroundStyle(
+                LinearGradient(colors: [FrigyBrand.primary.opacity(0.35), FrigyBrand.primary.opacity(0.02)],
+                               startPoint: .top, endPoint: .bottom)
+            )
+
+            LineMark(
+                x: .value("Tag", index),
+                y: .value("Gewicht", e.kg)
+            )
+            .interpolationMethod(.catmullRom)
+            .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            .foregroundStyle(
+                LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                               startPoint: .leading, endPoint: .trailing)
+            )
+
+            PointMark(
+                x: .value("Tag", index),
+                y: .value("Gewicht", e.kg)
+            )
+            .symbolSize(60)
+            .foregroundStyle(FrigyBrand.primaryDark)
+        }
+        .chartYScale(domain: minKg...maxKg)
+        .chartXAxis {
+            AxisMarks(values: Array(entries.indices)) { value in
+                if let i = value.as(Int.self), i < entries.count {
+                    AxisValueLabel {
+                        Text(entries[i].date)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(FrigyBrand.textMuted)
+                    }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisGridLine().foregroundStyle(FrigyBrand.cardBorder.opacity(0.4))
+                AxisValueLabel {
+                    if let kg = value.as(Double.self) {
+                        Text(String(format: "%.0f", kg))
+                            .font(.system(size: 10))
+                            .foregroundColor(FrigyBrand.textMuted)
+                    }
+                }
+            }
+        }
     }
 
     private func load() async {

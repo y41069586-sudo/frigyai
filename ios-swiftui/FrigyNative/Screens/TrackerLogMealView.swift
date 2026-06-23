@@ -1,24 +1,5 @@
 import SwiftUI
-
-private struct OFFSearchResponse: Decodable {
-    let products: [OFFSearchProduct]
-}
-private struct OFFSearchProduct: Decodable {
-    let product_name: String?
-    let nutriments: OFFNutriments?
-}
-private struct OFFNutriments: Decodable {
-    let energyKcal100g: Double?
-    let proteins100g: Double?
-    let carbohydrates100g: Double?
-    let fat100g: Double?
-    enum CodingKeys: String, CodingKey {
-        case energyKcal100g    = "energy-kcal_100g"
-        case proteins100g      = "proteins_100g"
-        case carbohydrates100g = "carbohydrates_100g"
-        case fat100g           = "fat_100g"
-    }
-}
+import UIKit
 
 struct TrackerLogMealView: View {
     @Environment(\.dismiss) private var dismiss
@@ -41,6 +22,8 @@ struct TrackerLogMealView: View {
     @State private var prefillFood: ScannedFood?
     @State private var showManualEntry = false
     @State private var searchTask: Task<Void, Never>? = nil
+    @State private var showCamera = false
+    @State private var isAnalyzingPhoto = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -99,38 +82,19 @@ struct TrackerLogMealView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    // Barcode scan button
-                    Button { showBarcodeScanner = true } label: {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color(hex: "#A5B4FC").opacity(0.35), lineWidth: 1)
-                                    )
-                                    .frame(width: 48, height: 48)
-                                Image(systemName: "barcode.viewfinder")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(Color(hex: "#A5B4FC"))
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Barcode scannen")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundColor(FrigyBrand.text)
-                                Text("Kamera öffnen und Barcode einlesen")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Color(hex: "#9CA3AF"))
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13))
-                                .foregroundColor(FrigyBrand.cardBorder)
+                    // Scan options: photo (OpenAI) + barcode
+                    HStack(spacing: 12) {
+                        scanCard(icon: "camera.fill", title: "Essen scannen",
+                                 subtitle: isAnalyzingPhoto ? "Analysiere…" : "Foto mit KI",
+                                 tint: "#39D47F", busy: isAnalyzingPhoto) {
+                            showCamera = true
                         }
-                        .padding(14)
-                        .frigyCard(cornerRadius: 16)
+                        scanCard(icon: "barcode.viewfinder", title: "Barcode",
+                                 subtitle: "Scannen",
+                                 tint: "#A5B4FC", busy: false) {
+                            showBarcodeScanner = true
+                        }
                     }
-                    .buttonStyle(.plain)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
@@ -156,9 +120,9 @@ struct TrackerLogMealView: View {
             if newVal.count >= 2 {
                 searchTask = Task {
                     isSearching = true
-                    try? await Task.sleep(nanoseconds: 350_000_000)
+                    try? await Task.sleep(nanoseconds: 600_000_000)
                     guard !Task.isCancelled else { return }
-                    let results = await searchOpenFoodFacts(query: newVal)
+                    let results = await searchFood(query: newVal)
                     guard !Task.isCancelled else { return }
                     searchResults = results
                     isSearching = false
@@ -174,6 +138,13 @@ struct TrackerLogMealView: View {
                 prefillFood = scanned
                 showManualEntry = true
             }
+        }
+        .sheet(isPresented: $showCamera) {
+            FoodCameraView { image in
+                showCamera = false
+                if let image { Task { await analyzePhoto(image) } }
+            }
+            .ignoresSafeArea()
         }
         .sheet(isPresented: $showManualEntry) {
             ManualFoodEntrySheet(
@@ -349,22 +320,63 @@ struct TrackerLogMealView: View {
         isLoading = false
     }
 
-    private func searchOpenFoodFacts(query: String) async -> [RecentFood] {
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        guard let url = URL(string: "https://world.openfoodfacts.org/cgi/search.pl?search_terms=\(encoded)&json=1&page_size=15&fields=product_name,nutriments&lc=de") else { return [] }
-        guard let (data, _) = try? await URLSession.shared.data(from: url) else { return [] }
-        guard let resp = try? JSONDecoder().decode(OFFSearchResponse.self, from: data) else { return [] }
-        return resp.products.compactMap { p in
-            guard let name = p.product_name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
-            return RecentFood(
-                id: UUID().uuidString,
-                name: name,
-                calories: Int((p.nutriments?.energyKcal100g ?? 0).rounded()),
-                protein: Int((p.nutriments?.proteins100g ?? 0).rounded()),
-                carbs: Int((p.nutriments?.carbohydrates100g ?? 0).rounded()),
-                fat: Int((p.nutriments?.fat100g ?? 0).rounded())
-            )
+    /// Search via the app's own analyze-food edge function (OpenAI), not Open Food Facts.
+    private func searchFood(query: String) async -> [RecentFood] {
+        if let food = await TrackerDataService.shared.analyzeFood(query: query) {
+            return [food]
         }
+        return []
+    }
+
+    // Scan option card (photo / barcode)
+    private func scanCard(icon: String, title: String, subtitle: String, tint: String, busy: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: tint).opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    if busy {
+                        ProgressView().tint(Color(hex: tint))
+                    } else {
+                        Image(systemName: icon)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(Color(hex: tint))
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(FrigyBrand.text)
+                    Text(subtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .frigyCard(cornerRadius: 16)
+        }
+        .buttonStyle(.plain)
+        .disabled(busy)
+    }
+
+    // Analyze a captured food photo via the analyze-food edge function (OpenAI vision).
+    private func analyzePhoto(_ image: UIImage) async {
+        isAnalyzingPhoto = true
+        defer { isAnalyzingPhoto = false }
+        guard let jpeg = image.jpegData(compressionQuality: 0.6) else { return }
+        let base64 = jpeg.base64EncodedString()
+        guard let food = await TrackerDataService.shared.analyzeFood(imageBase64: base64) else { return }
+        prefillFood = ScannedFood(
+            barcode: "",
+            name: food.name,
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fat: food.fat
+        )
+        showManualEntry = true
     }
 
     private static func defaultCategoryByTime() -> MealCategory {
@@ -548,5 +560,39 @@ struct ManualFoodEntrySheet: View {
         isSaving = false
         dismiss()
         onSaved()
+    }
+}
+
+// MARK: - Food camera (UIImagePickerController wrapper)
+
+/// Opens the device camera to capture a single food photo. Returns the image
+/// (or nil if cancelled). Falls back to the photo library when no camera exists
+/// (e.g. simulator).
+struct FoodCameraView: UIViewControllerRepresentable {
+    let onCapture: (UIImage?) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onCapture: onCapture) }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onCapture: (UIImage?) -> Void
+        init(onCapture: @escaping (UIImage?) -> Void) { self.onCapture = onCapture }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            onCapture(info[.originalImage] as? UIImage)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCapture(nil)
+        }
     }
 }

@@ -361,6 +361,55 @@ final class TrackerDataService {
         #endif
     }
 
+    // MARK: - Food analysis (analyze-food edge function — OpenAI + Open Food Facts)
+
+    /// Analyze a food by text query, barcode, or photo via the `analyze-food`
+    /// Supabase edge function (the app's own OpenAI-backed API). Returns a
+    /// `RecentFood` with per-portion macros, or nil on failure.
+    func analyzeFood(query: String? = nil, imageBase64: String? = nil) async -> RecentFood? {
+        #if canImport(Supabase)
+        guard SupabaseConfig.isConfigured,
+              let base = SupabaseConfig.urlString,
+              let anonKey = SupabaseConfig.anonKey,
+              let url = URL(string: "\(base)/functions/v1/analyze-food") else { return nil }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 25
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        if let session = try? await SupabaseAuthService.shared.client.auth.session {
+            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        } else {
+            request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        }
+
+        // Send only the provided field (the edge function's schema rejects nulls).
+        var body: [String: String] = [:]
+        if let query, !query.isEmpty { body["food"] = query }
+        if let imageBase64, !imageBase64.isEmpty { body["imageBase64"] = imageBase64 }
+        guard !body.isEmpty,
+              let payload = try? JSONSerialization.data(withJSONObject: body) else { return nil }
+        request.httpBody = payload
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let decoded = try? JSONDecoder().decode(AnalyzeFoodResponse.self, from: data),
+              !decoded.name.isEmpty else { return nil }
+
+        return RecentFood(
+            id: UUID().uuidString,
+            name: decoded.name,
+            calories: Int((decoded.calories ?? 0).rounded()),
+            protein: Int((decoded.protein ?? 0).rounded()),
+            carbs: Int((decoded.carbs ?? 0).rounded()),
+            fat: Int((decoded.fat ?? 0).rounded())
+        )
+        #else
+        return nil
+        #endif
+    }
+
     // MARK: - User settings
 
     func loadUserEmail() async -> String? {
@@ -484,6 +533,14 @@ private struct MealPlanRequest: Encodable {
 
 private struct MealPlanResponse: Decodable {
     let mealPlan: [GeneratedDayPlan]
+}
+
+private struct AnalyzeFoodResponse: Decodable {
+    let name: String
+    let calories: Double?
+    let protein: Double?
+    let carbs: Double?
+    let fat: Double?
 }
 
 private struct ChatRequest: Encodable {

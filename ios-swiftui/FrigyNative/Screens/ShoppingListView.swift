@@ -8,13 +8,15 @@ struct ShoppingItem: Identifiable, Codable, Equatable {
     var amount: String
     var category: ShoppingCategory
     var isChecked: Bool
+    var price: Double
 
-    init(id: UUID = UUID(), name: String, amount: String = "", category: ShoppingCategory, isChecked: Bool = false) {
+    init(id: UUID = UUID(), name: String, amount: String = "", category: ShoppingCategory, isChecked: Bool = false, price: Double = 0) {
         self.id = id
         self.name = name
         self.amount = amount
         self.category = category
         self.isChecked = isChecked
+        self.price = price
     }
 }
 
@@ -51,7 +53,7 @@ enum ShoppingCategory: String, CaseIterable, Codable {
 
 // MARK: - View
 
-private let shoppingItemsKey = "frigy.shoppingItems.v1"
+private let shoppingItemsKey = "frigy.shoppingItems.v2"
 
 struct ShoppingListView: View {
     @State private var items: [ShoppingItem] = Self.loadItems()
@@ -74,6 +76,7 @@ struct ShoppingListView: View {
 
     private var unchecked: [ShoppingItem] { items.filter { !$0.isChecked } }
     private var checked: [ShoppingItem] { items.filter { $0.isChecked } }
+    private var totalPrice: Double { items.reduce(0) { $0 + $1.price } }
     private var progress: Double {
         items.isEmpty ? 0 : Double(checked.count) / Double(items.count)
     }
@@ -82,7 +85,7 @@ struct ShoppingListView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
                 // Header
-                HStack {
+                HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Einkaufsliste")
                             .font(.system(size: 28, weight: .black, design: .rounded))
@@ -90,6 +93,17 @@ struct ShoppingListView: View {
                         Text("\(unchecked.count) von \(items.count) Artikeln übrig")
                             .font(.system(size: 13))
                             .foregroundColor(Color(hex: "#9CA3AF"))
+                    }
+                    Spacer()
+                    if totalPrice > 0 {
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(String(format: "%.2f €", totalPrice))
+                                .font(.system(size: 20, weight: .black, design: .rounded))
+                                .foregroundColor(Color(hex: "#39D47F"))
+                            Text("geschätzt")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(hex: "#9CA3AF"))
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -253,10 +267,17 @@ struct ShoppingItemRow: View {
 
             Spacer()
 
-            if !item.amount.isEmpty {
-                Text(item.amount)
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+            VStack(alignment: .trailing, spacing: 2) {
+                if item.price > 0 {
+                    Text(String(format: "%.2f €", item.price))
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(Color(hex: "#39D47F"))
+                }
+                if !item.amount.isEmpty {
+                    Text(item.amount)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "#9CA3AF"))
+                }
             }
         }
         .padding(12)
@@ -423,17 +444,17 @@ struct AddShoppingItemSheet: View {
 
 private func demoItems() -> [ShoppingItem] {
     [
-        ShoppingItem(name: "Haferflocken", amount: "500g", category: .grains),
-        ShoppingItem(name: "Blaubeeren", amount: "200g", category: .produce),
-        ShoppingItem(name: "Bananen", amount: "6 Stück", category: .produce),
-        ShoppingItem(name: "Spinat", amount: "300g", category: .produce),
-        ShoppingItem(name: "Hähnchenbrust", amount: "800g", category: .protein),
-        ShoppingItem(name: "Lachs", amount: "400g", category: .protein),
-        ShoppingItem(name: "Eier", amount: "10 Stück", category: .protein),
-        ShoppingItem(name: "Griechischer Joghurt", amount: "500g", category: .dairy),
-        ShoppingItem(name: "Mozzarella", amount: "125g", category: .dairy),
-        ShoppingItem(name: "Quinoa", amount: "300g", category: .grains),
-        ShoppingItem(name: "Olivenöl", amount: "1 Flasche", category: .pantry),
-        ShoppingItem(name: "Mandeln", amount: "200g", category: .pantry),
+        ShoppingItem(name: "Haferflocken", amount: "500g", category: .grains, price: 1.49),
+        ShoppingItem(name: "Blaubeeren", amount: "200g", category: .produce, price: 2.99),
+        ShoppingItem(name: "Bananen", amount: "6 Stück", category: .produce, price: 1.39),
+        ShoppingItem(name: "Spinat", amount: "300g", category: .produce, price: 1.99),
+        ShoppingItem(name: "Hähnchenbrust", amount: "800g", category: .protein, price: 7.49),
+        ShoppingItem(name: "Lachs", amount: "400g", category: .protein, price: 6.99),
+        ShoppingItem(name: "Eier", amount: "10 Stück", category: .protein, price: 2.79),
+        ShoppingItem(name: "Griechischer Joghurt", amount: "500g", category: .dairy, price: 1.89),
+        ShoppingItem(name: "Mozzarella", amount: "125g", category: .dairy, price: 0.99),
+        ShoppingItem(name: "Quinoa", amount: "300g", category: .grains, price: 2.49),
+        ShoppingItem(name: "Olivenöl", amount: "1 Flasche", category: .pantry, price: 4.99),
+        ShoppingItem(name: "Mandeln", amount: "200g", category: .pantry, price: 3.29),
     ]
 }

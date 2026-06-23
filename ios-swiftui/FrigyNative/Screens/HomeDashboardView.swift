@@ -73,9 +73,14 @@ struct HomeDashboardView: View {
     @State private var aiPrompt = ""
     @FocusState private var aiFocused: Bool
     @State private var waterGlasses: Int = 0
-    private let waterGoal = 8
+    // Goal is adjustable; default 8 glasses × 0.25 L = 2.0 L.
+    @AppStorage("frigy.water.goal") private var waterGoal: Int = 8
     private let waterKey = "frigy.water.glasses"
     private let waterDateKey = "frigy.water.date"
+    private let mlPerGlass = 250
+    private func liters(_ glasses: Int) -> String {
+        String(format: "%.1f", Double(glasses * mlPerGlass) / 1000.0)
+    }
 
     private var consumed: (kcal: Int, protein: Int, carbs: Int, fat: Int) {
         (
@@ -492,11 +497,26 @@ struct HomeDashboardView: View {
                     Text("WASSER")
                         .font(.system(size: 9, weight: .bold)).tracking(1.5)
                         .foregroundColor(FrigyBrand.textMuted)
-                    Text("\(waterGlasses) / \(waterGoal) Gläser")
+                    Text("\(liters(waterGlasses)) / \(liters(waterGoal)) L")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                 }
                 Spacer()
+                // Adjustable daily goal
+                Menu {
+                    ForEach([6, 8, 10, 12], id: \.self) { g in
+                        Button("\(liters(g)) L (\(g) Gläser)") {
+                            waterGoal = g
+                            if waterGlasses > g { setWater(g) }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "target")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "#3B82F6"))
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color(hex: "#EFF6FF")))
+                }
                 HStack(spacing: 6) {
                     Button { setWater(waterGlasses - 1) } label: {
                         Image(systemName: "minus")
@@ -517,7 +537,7 @@ struct HomeDashboardView: View {
                 }
             }
             HStack(spacing: 6) {
-                ForEach(0..<waterGoal, id: \.self) { i in
+                ForEach(Array(0..<waterGoal), id: \.self) { i in
                     Image(systemName: i < waterGlasses ? "drop.fill" : "drop")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(i < waterGlasses ? Color(hex: "#3B82F6") : Color(hex: "#BFDBFE"))
@@ -543,7 +563,7 @@ struct HomeDashboardView: View {
                         .font(.system(size: 13, weight: .semibold)).foregroundColor(Color(hex: "#3B82F6"))
                 }
             } else {
-                Text("\(waterGoal - waterGlasses) Gläser bis zum Tagesziel")
+                Text("Noch \(liters(waterGoal - waterGlasses)) L bis zum Tagesziel")
                     .font(.system(size: 12, weight: .medium)).foregroundColor(FrigyBrand.textMuted)
             }
         }
