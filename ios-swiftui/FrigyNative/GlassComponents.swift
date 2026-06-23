@@ -331,41 +331,6 @@ struct LiquidGlassCheckbox: View {
     }
 }
 
-// MARK: - GlassToolbar (iOS 26 only demo)
-
-@available(iOS 26, *)
-struct GlassToolbar: View {
-    @Namespace private var glassNamespace
-    @State private var expanded = false
-
-    var body: some View {
-        GlassEffectContainer(spacing: 20) {
-            HStack(spacing: 20) {
-                Image(systemName: "heart.fill")
-                    .frame(width: 56, height: 56)
-                    .glassEffect()
-                    .glassEffectID("heart", in: glassNamespace)
-
-                if expanded {
-                    Image(systemName: "bookmark.fill")
-                        .frame(width: 56, height: 56)
-                        .glassEffect()
-                        .glassEffectID("bookmark", in: glassNamespace)
-                }
-
-                Image(systemName: expanded ? "xmark" : "ellipsis")
-                    .frame(width: 56, height: 56)
-                    .glassEffect(.regular.interactive())
-                    .glassEffectID("more", in: glassNamespace)
-                    .onTapGesture {
-                        withAnimation(.bouncy) { expanded.toggle() }
-                    }
-            }
-            .font(.system(size: 22))
-        }
-    }
-}
-
 // MARK: - App-wide Liquid Glass utilities
 
 struct FrigyGlassBackground: View {
@@ -521,6 +486,39 @@ private struct FrigyCircleButtonModifier: ViewModifier {
 // MARK: - Demo
 
 #if DEBUG
+@available(iOS 26, *)
+private struct GlassToolbar: View {
+    @Namespace private var glassNamespace
+    @State private var expanded = false
+
+    var body: some View {
+        GlassEffectContainer {
+            HStack(spacing: 20) {
+                Image(systemName: "heart.fill")
+                    .frame(width: 56, height: 56)
+                    .glassEffect(.regular)
+                    .glassEffectID("heart", in: glassNamespace)
+
+                if expanded {
+                    Image(systemName: "bookmark.fill")
+                        .frame(width: 56, height: 56)
+                        .glassEffect(.regular)
+                        .glassEffectID("bookmark", in: glassNamespace)
+                }
+
+                Image(systemName: expanded ? "xmark" : "ellipsis")
+                    .frame(width: 56, height: 56)
+                    .glassEffect(.regular.interactive())
+                    .glassEffectID("more", in: glassNamespace)
+                    .onTapGesture {
+                        withAnimation(.bouncy) { expanded.toggle() }
+                    }
+            }
+            .font(.system(size: 22))
+        }
+    }
+}
+
 @available(iOS 26, *)
 struct GlassDemoView: View {
     var body: some View {
