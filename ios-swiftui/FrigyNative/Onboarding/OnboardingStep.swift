@@ -44,6 +44,10 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case planningSetup = "planning-setup"
     case analyzing
     case macroPreview = "macro-preview"
+    // Native-only immersive "experience" screens woven through the flow.
+    case holdExperience = "hold-experience"
+    case energySwipe = "energy-swipe"
+    case momentumReveal = "momentum-reveal"
     case appModeChoice = "app-mode-choice"
     case spontanMode1 = "spontan-mode-1"
     case spontanMode2 = "spontan-mode-2"
@@ -74,11 +78,13 @@ enum OnboardingFlow {
         .weight,
         .height,
         .activity,
+        .holdExperience,        // ~25% — immersive "hold to continue" moment
         .mainGoal,
         .targetWeight,
         .goalPreview,
         .speedSelect,
         .healthGoals,
+        .energySwipe,           // ~50% — interactive energy swipe world
         .dietaryPreferences,
         .allergies,
         .weeklyPlanPreview,
@@ -86,6 +92,7 @@ enum OnboardingFlow {
         .shoppingList,
         .notificationPrefs,
         .referralCode,
+        .momentumReveal,        // ~85% — cinematic reveal before finalization
         .analyzing,
         .macroPreview,
     ]

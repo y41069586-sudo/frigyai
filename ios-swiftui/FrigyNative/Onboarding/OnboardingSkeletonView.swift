@@ -280,6 +280,15 @@ struct OnboardingSkeletonView: View {
                     }
                 )
 
+            case .holdExperience:
+                HoldToContinueStepView(onBack: canGoBack ? back : nil, onNext: next)
+
+            case .energySwipe:
+                EnergySwipeStepView(onBack: canGoBack ? back : nil, onNext: next)
+
+            case .momentumReveal:
+                MomentumRevealStepView(onBack: canGoBack ? back : nil, onNext: next)
+
             case .goalSelection:
                 GoalSelectionStepView(
                     progress: progress,
