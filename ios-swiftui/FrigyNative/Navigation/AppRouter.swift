@@ -38,11 +38,19 @@ final class AppRouter {
         authStatusMessage = nil
 
         do {
-            _ = try await authService.restoreSession()
+            let session = try await authService.restoreSession()
 
-            guard !onboardingCoordinator.isComplete else {
+            // Returning user with active session who already completed onboarding → main app
+            if session != nil, onboardingCoordinator.isComplete {
                 try await routeAfterOnboarding()
                 return
+            }
+
+            // All other cases: show onboarding.
+            // If previously marked complete but no active session (expired, signed out,
+            // or reinstalled), reset so the user can sign back in at AccountCreation.
+            if onboardingCoordinator.isComplete {
+                onboardingCoordinator.resetForFreshOnboarding()
             }
 
             onboardingCoordinator.resumeFromLastStep()
@@ -50,7 +58,6 @@ final class AppRouter {
             applyQueuedReferralIfNeeded()
             rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
             flushPendingDeepLinkWhileOnboarding()
-            return
         } catch {
             authStatusMessage = error.localizedDescription
             rootRoute = .auth

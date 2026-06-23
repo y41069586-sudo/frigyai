@@ -279,6 +279,15 @@ final class OnboardingCoordinator {
         )
     }
 
+    /// Clears all persisted onboarding state and restarts from the first step.
+    /// Used when a returning user has no active session — they go through onboarding
+    /// again and can sign in via the AccountCreation step.
+    func resetForFreshOnboarding() {
+        persistence.clear()
+        context = .initial
+        currentStep = OnboardingFlow.macroEntryStep
+    }
+
     func markComplete() {
         let from = currentStep
         currentStep = .done
