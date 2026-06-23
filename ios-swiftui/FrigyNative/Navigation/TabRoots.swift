@@ -84,6 +84,13 @@ struct ShoppingTabRoot: View {
 struct ProfileView: View {
     @Environment(AppRouter.self) private var router
     @State private var userEmail: String = ""
+    @State private var isRestoring = false
+
+    private var appVersion: String {
+        let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let b = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        return "Version \(v) (\(b))"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -104,6 +111,17 @@ struct ProfileView: View {
                             .font(.system(size: userEmail.isEmpty ? 20 : 15, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                             .lineLimit(1)
+
+                        HStack(spacing: 5) {
+                            Image(systemName: router.isPremium ? "crown.fill" : "leaf.fill")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(router.isPremium ? "Premium aktiv" : "Kostenloser Plan")
+                                .font(.system(size: 12, weight: .bold))
+                        }
+                        .foregroundColor(router.isPremium ? Color(hex: "#F59E0B") : FrigyBrand.primaryDark)
+                        .padding(.horizontal, 12).padding(.vertical, 5)
+                        .background(Capsule().fill(router.isPremium ? Color(hex: "#FFFBEB") : FrigyBrand.selectedBg))
+                        .overlay(Capsule().stroke(router.isPremium ? Color(hex: "#FCD34D") : FrigyBrand.borderMint, lineWidth: 1))
                     }
                     .padding(.top, 8)
 
@@ -132,6 +150,37 @@ struct ProfileView: View {
                             profileRow("Hilfe & Support", icon: "questionmark.circle.fill", color: FrigyBrand.textMuted)
                         }
                         .buttonStyle(.plain)
+                        Divider().padding(.leading, 52)
+                        Button {
+                            isRestoring = true
+                            Task {
+                                let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
+                                if ok { router.isPremium = true }
+                                isRestoring = false
+                            }
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color(hex: "#34D399").opacity(0.15))
+                                        .frame(width: 32, height: 32)
+                                    if isRestoring {
+                                        ProgressView().scaleEffect(0.7)
+                                    } else {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(Color(hex: "#34D399"))
+                                    }
+                                }
+                                Text("Käufe wiederherstellen")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(FrigyBrand.text)
+                                Spacer()
+                            }
+                            .padding(14)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isRestoring)
                     }
                     .frigyCard(cornerRadius: 16)
                     .padding(.horizontal, 20)
@@ -155,13 +204,23 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
 
+                    Text(appVersion)
+                        .font(.system(size: 11))
+                        .foregroundColor(FrigyBrand.textMuted.opacity(0.7))
+                        .padding(.top, 4)
+
                     Spacer().frame(height: 32)
                 }
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .task { userEmail = await TrackerDataService.shared.loadUserEmail() ?? "" }
+        .task {
+            userEmail = await TrackerDataService.shared.loadUserEmail() ?? ""
+            if let premium = try? await router.subscriptionService.refreshPremiumState() {
+                router.isPremium = premium
+            }
+        }
     }
 
     private func profileRow(_ label: String, icon: String, color: Color) -> some View {

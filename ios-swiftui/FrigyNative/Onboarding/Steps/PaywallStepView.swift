@@ -6,6 +6,20 @@ struct PaywallStepView: View {
     @Environment(AppRouter.self) private var router
 
     @State private var isLoadingRestore = false
+    @State private var packages: [SubscriptionPackage] = []
+    @State private var selectedPackageId: String?
+    @State private var isPurchasing = false
+
+    private var selectedPackage: SubscriptionPackage? {
+        packages.first { $0.id == selectedPackageId } ?? packages.first
+    }
+
+    private var legalText: String {
+        if let pkg = selectedPackage {
+            return "Das Abo verlängert sich automatisch um 1 \(pkg.period) zum Preis von \(pkg.priceString), bis du es mindestens 24 Stunden vor Ende des jeweiligen Abozeitraums im App Store kündigst."
+        }
+        return "Das Abo verlängert sich automatisch, bis du es mindestens 24 Stunden vor Ende des jeweiligen Abozeitraums im App Store kündigst."
+    }
 
     private let features = [
         ("waveform.path.ecg", "Unbegrenzte KI-Mahlzeiten-Analyse"),
@@ -72,34 +86,43 @@ struct PaywallStepView: View {
                     }
                     .padding(.horizontal, 24)
 
-                    // Pricing card
-                    VStack(spacing: 6) {
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("€4,99")
-                                .font(.system(size: 32, weight: .black, design: .rounded))
-                                .foregroundColor(FrigyBrand.text)
-                            Text("/ Monat")
-                                .font(.system(size: 16))
-                                .foregroundColor(FrigyBrand.textMuted)
+                    // Pricing options (store-localized via RevenueCat)
+                    VStack(spacing: 10) {
+                        ForEach(packages) { pkg in
+                            packageCard(pkg)
                         }
-                        Text("7 Tage gratis testen")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(FrigyBrand.primaryDark)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .background(FrigyBrand.selectedBg)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(FrigyBrand.borderMint, lineWidth: 1.5))
                     .padding(.horizontal, 24)
 
-                    // Subscribe CTA
-                    OnboardingContinueButton("Jetzt 7 Tage gratis testen", action: onNext)
-                        .padding(.horizontal, 24)
+                    // Subscribe CTA — purchases the selected package
+                    Button {
+                        guard let pkg = selectedPackage else { return }
+                        isPurchasing = true
+                        Task {
+                            let ok = (try? await router.subscriptionService.purchase(pkg)) ?? false
+                            if ok { router.isPremium = true }
+                            isPurchasing = false
+                            if ok { onNext() }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isPurchasing { ProgressView().tint(.white) }
+                            Text(isPurchasing ? "Wird verarbeitet…" : "Premium freischalten")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(FrigyBrand.buttonGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isPurchasing || selectedPackage == nil)
+                    .padding(.horizontal, 24)
 
                     // Legal
                     VStack(spacing: 4) {
-                        Text("Das Abo verlängert sich automatisch um 1 Monat zum Preis von €4,99 / Monat, bis du es mindestens 24 Stunden vor dem Ende des jeweiligen Abozeitraums im App Store kündigst.")
+                        Text(legalText)
                             .font(.system(size: 11))
                             .foregroundColor(FrigyBrand.textMuted.opacity(0.8))
                             .multilineTextAlignment(.center)
@@ -137,5 +160,57 @@ struct PaywallStepView: View {
                 }
             }
         }
+        .task {
+            packages = await router.subscriptionService.availablePackages()
+            // Default to the yearly plan when available (best value).
+            selectedPackageId = (packages.first { $0.isYearly } ?? packages.first)?.id
+        }
+    }
+
+    // MARK: - Package card
+
+    @ViewBuilder private func packageCard(_ pkg: SubscriptionPackage) -> some View {
+        let selected = (selectedPackageId ?? selectedPackage?.id) == pkg.id
+        Button {
+            selectedPackageId = pkg.id
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .stroke(selected ? FrigyBrand.primaryDark : FrigyBrand.cardBorder, lineWidth: 2)
+                        .frame(width: 22, height: 22)
+                    if selected {
+                        Circle().fill(FrigyBrand.primaryDark).frame(width: 12, height: 12)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(pkg.title)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(FrigyBrand.text)
+                        if pkg.isYearly {
+                            Text("Beliebt")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Capsule().fill(FrigyBrand.primaryDark))
+                        }
+                    }
+                    Text("\(pkg.priceString) / \(pkg.period)")
+                        .font(.system(size: 13))
+                        .foregroundColor(FrigyBrand.textMuted)
+                }
+                Spacer()
+            }
+            .padding(16)
+            .background(selected ? FrigyBrand.selectedBg : Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(selected ? FrigyBrand.borderMint : FrigyBrand.cardBorder.opacity(0.6),
+                            lineWidth: selected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

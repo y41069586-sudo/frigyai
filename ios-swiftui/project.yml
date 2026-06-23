@@ -21,6 +21,9 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.29.0
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios
+    from: 5.0.0
 
 settings:
   base:
@@ -75,6 +78,8 @@ targets:
         product: Supabase
       - package: Supabase
         product: Auth
+      - package: RevenueCat
+        product: RevenueCat
     info:
       path: FrigyNative/Info.plist
       properties:
@@ -98,6 +103,8 @@ targets:
         APP_WEB_HOST: "$(APP_WEB_HOST)"
         OAUTH_REDIRECT_SCHEME: "$(OAUTH_REDIRECT_SCHEME)"
         OAUTH_CALLBACK_HOST: "$(OAUTH_CALLBACK_HOST)"
+        REVENUECAT_API_KEY: "$(REVENUECAT_API_KEY)"
+        REVENUECAT_ENTITLEMENT_ID: "$(REVENUECAT_ENTITLEMENT_ID)"
         # Usage descriptions — required by App Store Review (German: app primary language)
         NSCameraUsageDescription: "Frigy braucht die Kamera, um Barcodes zu scannen und Fotos deiner Mahlzeiten für die KI-Analyse aufzunehmen."
         NSPhotoLibraryUsageDescription: "Wähle Fotos deiner Mahlzeiten aus der Bibliothek aus, damit Frigy die Nährwerte per KI berechnen kann."

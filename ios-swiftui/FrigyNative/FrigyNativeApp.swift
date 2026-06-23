@@ -4,6 +4,11 @@ import SwiftUI
 struct FrigyNativeApp: App {
     @State private var router = AppRouter()
 
+    init() {
+        // Configure the RevenueCat SDK before any paywall/purchase access.
+        RevenueCatBootstrap.configureIfNeeded()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

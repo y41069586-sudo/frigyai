@@ -29,7 +29,12 @@ final class AppRouter {
         #else
         self.authService = authService ?? MockAuthService()
         #endif
+        #if canImport(RevenueCat)
+        self.subscriptionService = subscriptionService
+            ?? (RevenueCatConfig.isConfigured ? RevenueCatSubscriptionService.shared : MockSubscriptionService())
+        #else
         self.subscriptionService = subscriptionService ?? MockSubscriptionService()
+        #endif
         self.onboardingCoordinator = onboardingCoordinator ?? OnboardingCoordinator()
     }
 
