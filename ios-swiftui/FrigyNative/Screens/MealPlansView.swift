@@ -16,190 +16,232 @@ struct PlannedMeal: Identifiable {
     let category: MealCategory
     let name: String
     let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
     let duration: Int // minutes
     let tags: [String]
 }
 
 // MARK: - View
+//
+// Faithful native port of the web `MealPlansPage.tsx` (Plan tab):
+//   - light mint page background (#F2FFF8)
+//   - sticky "Frigy" header with back arrow
+//   - stacked day cards, each with a green weekday header and its meals
+//   - each meal: type label + kcal (right), name, P/K/F macros, "Gegessen" button
+// Web tokens: --primary = #75FBB2, macros = red-400/amber-400/blue-400.
 
 struct MealPlansView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
-    @State private var selectedDayIndex = 0
+    @State private var weekPlan: [DayPlan] = makeDemoWeek()
     @State private var isGenerating = false
     @State private var bannerMessage: String?
     @State private var bannerIsError = false
+    @State private var eatenMealIDs: Set<UUID> = []
 
-    @State private var weekPlan: [DayPlan] = makeDemoWeek()
+    // Web tokens
+    private let pageBg     = Color(hex: "#F2FFF8")
+    private let primary    = Color(hex: "#75FBB2")
+    private let foreground = Color(hex: "#1F2937")
+    private let muted      = Color(hex: "#6B7280")
+    private let proteinClr = Color(hex: "#F87171") // red-400
+    private let carbsClr   = Color(hex: "#FBBF24") // amber-400
+    private let fatClr     = Color(hex: "#60A5FA") // blue-400
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Wochenplan")
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundColor(Color(hex: "#1F2937"))
-                        Text("KI-generierter Ernährungsplan")
-                            .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
-                    }
-                    Spacer()
-                    if isGenerating {
-                        HStack(spacing: 8) {
-                            ProgressView().tint(.white)
-                            Text("Generiert…")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                        .padding(.horizontal, 14).padding(.vertical, 10)
-                        .background(Capsule().fill(FrigyBrand.primaryDark))
-                    } else {
-                        Button {
-                            Task { await generatePlan() }
-                        } label: {
-                            Label("Plan erstellen", systemImage: "sparkles")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14).padding(.vertical, 10)
-                                .background(
-                                    Capsule()
-                                        .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                                             startPoint: .topLeading, endPoint: .bottomTrailing))
-                                        .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1).blendMode(.overlay))
-                                )
-                                .shadow(color: FrigyBrand.primaryDeep.opacity(0.3), radius: 8, y: 4)
-                                .opacity(isGenerating ? 0.6 : 1)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isGenerating)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+        VStack(spacing: 0) {
+            header
 
-                if let msg = bannerMessage {
-                    Text(msg)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(bannerIsError ? Color(hex: "#EF4444") : Color(hex: "#39D47F"))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(bannerIsError ? Color(hex: "#FEF2F2") : Color(hex: "#DCFEEF"))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal, 20)
-                }
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    generateButton
 
-                // Day selector
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(weekPlan.indices, id: \.self) { i in
-                                let day = weekPlan[i]
-                                Button {
-                                    withAnimation(.spring(duration: 0.3)) {
-                                        selectedDayIndex = i
-                                    }
-                                } label: {
-                                    VStack(spacing: 4) {
-                                        Text(day.shortDay)
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundColor(selectedDayIndex == i ? .white : Color(hex: "#9CA3AF"))
-                                        Text(day.weekday.prefix(2).uppercased())
-                                            .font(.system(size: 17, weight: .bold))
-                                            .foregroundColor(selectedDayIndex == i ? .white : Color(hex: "#1F2937"))
-                                        if day.isToday {
-                                            Circle()
-                                                .fill(selectedDayIndex == i ? .white : Color(hex: "#75FBB2"))
-                                                .frame(width: 5, height: 5)
-                                        }
-                                    }
-                                    .frame(width: 52, height: 70)
-                                    .background(
-                                        Group {
-                                            if selectedDayIndex == i {
-                                                AnyView(
-                                                    RoundedRectangle(cornerRadius: 16)
-                                                        .fill(LinearGradient(
-                                                            colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                                                            startPoint: .top, endPoint: .bottom
-                                                        ))
-                                                        .overlay(
-                                                            RoundedRectangle(cornerRadius: 16)
-                                                                .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                                                                .blendMode(.overlay)
-                                                        )
-                                                )
-                                            } else {
-                                                AnyView(
-                                                    RoundedRectangle(cornerRadius: 16)
-                                                        .fill(.ultraThinMaterial)
-                                                        .overlay(
-                                                            RoundedRectangle(cornerRadius: 16)
-                                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                                        )
-                                                )
-                                            }
-                                        }
-                                    )
-                                    .shadow(
-                                        color: selectedDayIndex == i ? Color(hex: "#39D47F").opacity(0.28) : .black.opacity(0.04),
-                                        radius: selectedDayIndex == i ? 10 : 4,
-                                        y: selectedDayIndex == i ? 5 : 2
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .id(i)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 4)
+                    if let msg = bannerMessage {
+                        Text(msg)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(bannerIsError ? Color(hex: "#B91C1C") : Color(hex: "#39D47F"))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(bannerIsError ? Color(hex: "#FEF2F2") : Color(hex: "#DCFEEF"))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .onAppear {
-                        proxy.scrollTo(selectedDayIndex, anchor: .center)
+
+                    ForEach(weekPlan) { day in
+                        dayCard(day)
                     }
-                }
 
-                // Day stats strip
-                let day = weekPlan[selectedDayIndex]
-                HStack(spacing: 0) {
-                    dayStat("Kalorien", value: "\(day.totalCal) kcal")
-                    Divider().frame(height: 28)
-                    dayStat("Mahlzeiten", value: "\(day.meals.count)")
-                    Divider().frame(height: 28)
-                    dayStat("Ø Zeit", value: "\(day.meals.map(\.duration).reduce(0, +) / max(1, day.meals.count)) min")
+                    Spacer().frame(height: 100)
                 }
-                .padding(.vertical, 12)
-                .frigyCard(cornerRadius: 16)
-                .padding(.horizontal, 20)
-
-                // Meals of selected day
-                VStack(spacing: 12) {
-                    if day.meals.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "calendar.badge.plus")
-                                .font(.system(size: 40))
-                                .foregroundColor(Color(hex: "#BCFDDC"))
-                            Text("Noch kein Plan für diesen Tag")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Color(hex: "#6B7280"))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(32)
-                    } else {
-                        ForEach(day.meals) { meal in
-                            PlannedMealCard(meal: meal)
-                                .padding(.horizontal, 20)
-                        }
-                    }
-                }
-
-                Spacer().frame(height: 100)
+                .padding(.horizontal, 12)
+                .padding(.top, 16)
             }
         }
-        .background(FrigyGlassBackground().ignoresSafeArea())
+        .background(pageBg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    // MARK: - Header (web sticky top bar: back arrow + "Frigy")
+
+    private var header: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 4) {
+                Button {
+                    tabCoordinator.selectedTab = .home
+                } label: {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(foreground)
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+
+                Text("Frigy")
+                    .font(.system(size: 19, weight: .black))
+                    .tracking(-0.8)
+                    .foregroundColor(foreground)
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+
+            Divider().overlay(primary.opacity(0.15))
+        }
+        .background(.regularMaterial)
+    }
+
+    // MARK: - Generate button (web gradient pill, dark text)
+
+    private var generateButton: some View {
+        Button {
+            Task { await generatePlan() }
+        } label: {
+            HStack(spacing: 8) {
+                if isGenerating {
+                    ProgressView().tint(Color(hex: "#082013"))
+                    Text("Wird erstellt…")
+                } else {
+                    Image(systemName: "sparkles")
+                    Text("Wochenplan erstellen")
+                }
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(Color(hex: "#082013"))
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(
+                LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .disabled(isGenerating)
+        .opacity(isGenerating ? 0.7 : 1)
+    }
+
+    // MARK: - Day card (web Card: weekday header + stacked meals)
+
+    private func dayCard(_ day: DayPlan) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(day.weekday)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(primary)
+
+            if day.meals.isEmpty {
+                Text("Noch kein Plan für diesen Tag")
+                    .font(.system(size: 13))
+                    .foregroundColor(muted)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(day.meals) { meal in
+                    mealTile(meal)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(primary.opacity(day.isToday ? 0.35 : 0.2), lineWidth: day.isToday ? 2 : 1)
+        )
+        .shadow(color: .black.opacity(0.03), radius: 6, y: 2)
+    }
+
+    // MARK: - Meal tile (web inner meal: type+kcal, name, P/K/F, Gegessen)
+
+    private func mealTile(_ meal: PlannedMeal) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(meal.category.rawValue)
+                    .font(.system(size: 11))
+                    .foregroundColor(muted)
+                    .lineLimit(1)
+                Spacer()
+                Text("\(meal.calories)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(primary)
+            }
+
+            Text(meal.name)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(foreground)
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                Text("\(meal.protein)P").foregroundColor(proteinClr)
+                Text("\(meal.carbs)K").foregroundColor(carbsClr)
+                Text("\(meal.fat)F").foregroundColor(fatClr)
+            }
+            .font(.system(size: 11))
+
+            // "Gegessen" button — logs the meal to today's tracker
+            Button {
+                Task { await markEaten(meal) }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: eatenMealIDs.contains(meal.id) ? "checkmark.circle.fill" : "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                    Text(eatenMealIDs.contains(meal.id) ? "Gegessen ✓" : "Gegessen")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(eatenMealIDs.contains(meal.id) ? Color(hex: "#39D47F") : foreground)
+                .frame(maxWidth: .infinity)
+                .frame(height: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(eatenMealIDs.contains(meal.id) ? primary.opacity(0.15) : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(primary.opacity(0.3), lineWidth: 1))
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(pageBg.opacity(0.6)))
+    }
+
+    // MARK: - Actions
+
+    private func markEaten(_ meal: PlannedMeal) async {
+        let ok = await TrackerDataService.shared.addFoodEntry(
+            name: meal.name,
+            calories: meal.calories,
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat,
+            portion: nil,
+            category: meal.category
+        )
+        if ok {
+            eatenMealIDs.insert(meal.id)
+        }
     }
 
     private func generatePlan() async {
@@ -220,6 +262,9 @@ struct MealPlansView: View {
                         category: MealCategory(mealTypeKey: m.type),
                         name: m.name,
                         calories: m.calories ?? 0,
+                        protein: m.protein ?? 0,
+                        carbs: m.carbs ?? 0,
+                        fat: m.fat ?? 0,
                         duration: m.prepTime ?? 0,
                         tags: m.allergenTags ?? []
                     )
@@ -227,6 +272,7 @@ struct MealPlansView: View {
                 return DayPlan(weekday: existing.weekday, shortDay: existing.shortDay,
                                isToday: existing.isToday, meals: meals)
             }
+            eatenMealIDs = []
             bannerIsError = false
             bannerMessage = "Plan erfolgreich erstellt!"
             Task {
@@ -238,72 +284,6 @@ struct MealPlansView: View {
             bannerMessage = "Plan konnte nicht erstellt werden. Premium erforderlich oder Verbindung prüfen."
         }
         isGenerating = false
-    }
-
-    private func dayStat(_ label: String, value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(Color(hex: "#1F2937"))
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundColor(Color(hex: "#9CA3AF"))
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-// MARK: - Planned Meal Card
-
-struct PlannedMealCard: View {
-    let meal: PlannedMeal
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(hex: "#F2FFF8"))
-                    .frame(width: 52, height: 52)
-                Image(systemName: meal.category.icon)
-                    .font(.system(size: 22))
-                    .foregroundColor(Color(hex: "#39D47F"))
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(meal.category.rawValue)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
-                Text(meal.name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Color(hex: "#1F2937"))
-                HStack(spacing: 8) {
-                    Label("\(meal.calories) kcal", systemImage: "flame.fill")
-                    Label("\(meal.duration) min", systemImage: "clock.fill")
-                }
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#6B7280"))
-                if !meal.tags.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(meal.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(FrigyBrand.primaryDark)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(.ultraThinMaterial)
-                                        .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.45), lineWidth: 1))
-                                )
-                        }
-                    }
-                }
-            }
-
-            Spacer()
-        }
-        .padding(14)
-        .frigyCard(cornerRadius: 18)
     }
 }
 
@@ -321,15 +301,14 @@ private func makeDemoWeek() -> [DayPlan] {
     return (0..<7).map { i in
         let date = calendar.date(byAdding: .day, value: i, to: startOfWeek) ?? today
         let isToday = calendar.isDateInToday(date)
-        let dayNum = calendar.component(.day, from: date)
 
         let meals: [PlannedMeal] = i < 5 ? [
-            PlannedMeal(category: .breakfast, name: "Haferflocken mit Beeren", calories: 320, duration: 5, tags: ["Vegan", "High Protein"]),
-            PlannedMeal(category: .lunch, name: "Hähnchen-Quinoa Bowl", calories: 520, duration: 20, tags: ["High Protein"]),
-            PlannedMeal(category: .snack, name: "Griechischer Joghurt", calories: 130, duration: 0, tags: ["Proteinreich"]),
-            PlannedMeal(category: .dinner, name: "Lachs mit Gemüse", calories: 480, duration: 25, tags: ["Omega-3"]),
+            PlannedMeal(category: .breakfast, name: "Haferflocken mit Beeren", calories: 320, protein: 12, carbs: 52, fat: 8, duration: 5, tags: ["Vegan"]),
+            PlannedMeal(category: .lunch, name: "Hähnchen-Quinoa Bowl", calories: 520, protein: 42, carbs: 48, fat: 16, duration: 20, tags: ["High Protein"]),
+            PlannedMeal(category: .snack, name: "Griechischer Joghurt", calories: 130, protein: 15, carbs: 9, fat: 4, duration: 0, tags: ["Proteinreich"]),
+            PlannedMeal(category: .dinner, name: "Lachs mit Gemüse", calories: 480, protein: 38, carbs: 22, fat: 26, duration: 25, tags: ["Omega-3"]),
         ] : []
 
-        return DayPlan(weekday: dayNames[i], shortDay: "\(shortNames[i]) \(dayNum)", isToday: isToday, meals: meals)
+        return DayPlan(weekday: dayNames[i], shortDay: shortNames[i], isToday: isToday, meals: meals)
     }
 }
