@@ -18,7 +18,6 @@ struct HoldToContinueStepView: View {
     @State private var interactionSeconds: Double = 0  // accumulated engagement
     @State private var ctaVisible: Bool = false
     @State private var ctaScale: Double = 0.86
-    @State private var autoAdvanceTask: Task<Void, Never>? = nil
 
     private let targetSeconds: Double = 3.5
     private let tick = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
