@@ -116,12 +116,8 @@ struct HomeDashboardView: View {
                             .foregroundColor(Color(hex: "#9CA3AF"))
                     }
                     Spacer()
-                    Button { tabCoordinator.pushHome(.profile) } label: {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(Color(hex: "#39D47F"))
-                            .frame(width: 44, height: 44)
-                            .frigyCircleButton()
+                    LiquidGlassCircleButton(systemImage: "person.fill", size: 44, iconSize: 18) {
+                        tabCoordinator.pushHome(.profile)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -163,8 +159,16 @@ struct HomeDashboardView: View {
                         } label: {
                             Label("Hinzufügen", systemImage: "plus")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(hex: "#39D47F"))
+                                .foregroundColor(FrigyBrand.primaryDark)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.5), lineWidth: 1.5))
+                                )
                         }
+                        .buttonStyle(.plain)
                     }
 
                     if meals.isEmpty {
@@ -203,11 +207,16 @@ struct HomeDashboardView: View {
             VStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(color.opacity(0.18))
-                        .frame(width: 50, height: 50)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(color.opacity(0.35), lineWidth: 1)
+                        )
+                        .shadow(color: color.opacity(0.15), radius: 6, y: 3)
+                        .frame(width: 52, height: 52)
                     Image(systemName: icon)
                         .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(color.opacity(0.9))
+                        .foregroundColor(color == Color(hex: "#75FBB2") ? FrigyBrand.primaryDark : color.opacity(0.9))
                 }
                 Text(label)
                     .font(.system(size: 11, weight: .semibold))
@@ -335,9 +344,17 @@ struct EmptyMealsCard: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
-                    .background(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .leading, endPoint: .trailing))
-                    .clipShape(Capsule())
+                    .background(
+                        Capsule()
+                            .fill(LinearGradient(
+                                colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            ))
+                            .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
+                    )
+                    .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 10, y: 5)
             }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
         .padding(24)

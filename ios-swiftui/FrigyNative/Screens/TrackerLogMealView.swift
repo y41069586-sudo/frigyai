@@ -76,17 +76,46 @@ struct TrackerLogMealView: View {
             HStack(spacing: 8) {
                 ForEach(MealCategory.allCases, id: \.self) { cat in
                     Button {
-                        selectedCategory = cat
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            selectedCategory = cat
+                        }
                     } label: {
                         Label(cat.rawValue, systemImage: cat.icon)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(selectedCategory == cat ? .white : Color(hex: "#39D47F"))
+                            .foregroundColor(selectedCategory == cat ? .white : FrigyBrand.primaryDark)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(selectedCategory == cat
-                                ? LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .leading, endPoint: .trailing)
-                                : LinearGradient(colors: [Color(hex: "#DCFEEF"), Color(hex: "#DCFEEF")], startPoint: .leading, endPoint: .trailing))
-                            .clipShape(Capsule())
+                            .background(
+                                Group {
+                                    if selectedCategory == cat {
+                                        AnyView(
+                                            Capsule()
+                                                .fill(LinearGradient(
+                                                    colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                                ))
+                                                .overlay(
+                                                    Capsule()
+                                                        .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                                                        .blendMode(.overlay)
+                                                )
+                                        )
+                                    } else {
+                                        AnyView(
+                                            Capsule()
+                                                .fill(.ultraThinMaterial)
+                                                .overlay(
+                                                    Capsule()
+                                                        .stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1)
+                                                )
+                                        )
+                                    }
+                                }
+                            )
+                            .shadow(
+                                color: selectedCategory == cat ? Color(hex: "#39D47F").opacity(0.2) : .clear,
+                                radius: 6, y: 3
+                            )
                     }
                     .buttonStyle(.plain)
                 }
@@ -174,11 +203,16 @@ struct TrackerLogMealView: View {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(color.opacity(0.2))
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(color.opacity(0.35), lineWidth: 1)
+                        )
+                        .shadow(color: color.opacity(0.1), radius: 4, y: 2)
                         .frame(width: 48, height: 48)
                     Image(systemName: icon)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(color == Color(hex: "#75FBB2") ? Color(hex: "#2EB56D") : color)
+                        .foregroundColor(color == Color(hex: "#75FBB2") ? FrigyBrand.primaryDark : color)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
@@ -191,7 +225,7 @@ struct TrackerLogMealView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#BCFDDC"))
+                    .foregroundColor(FrigyBrand.cardBorder)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -238,10 +272,21 @@ struct TrackerLogMealView: View {
                     dismiss()
                 }
             } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundColor(Color(hex: "#75FBB2"))
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .shadow(color: Color(hex: "#39D47F").opacity(0.25), radius: 6, y: 3)
             }
+            .buttonStyle(.plain)
         }
         .padding(12)
         .frigyCard(cornerRadius: 14)

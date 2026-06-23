@@ -93,15 +93,13 @@ struct ShoppingListView: View {
                             .foregroundColor(Color(hex: "#9CA3AF"))
                     }
                     Spacer()
-                    Button {
+                    LiquidGlassCircleButton(
+                        systemImage: "plus",
+                        size: 44,
+                        iconSize: 18,
+                        usePrimaryGradient: true
+                    ) {
                         showAddItem = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
-                            .background(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .clipShape(Circle())
                     }
                 }
                 .padding(.horizontal, 20)
@@ -166,9 +164,20 @@ struct ShoppingListView: View {
                             save()
                         } label: {
                             Label("Erledigte entfernen", systemImage: "trash")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(hex: "#EF4444"))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color(hex: "#EF4444").opacity(0.3), lineWidth: 1)
+                                        )
+                                )
                         }
+                        .buttonStyle(.plain)
                         .padding(.horizontal, 20)
                     }
                 }
@@ -249,18 +258,9 @@ struct ShoppingItemRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Button { onToggle(item) } label: {
-                ZStack {
-                    Circle()
-                        .stroke(item.isChecked ? accentColor : Color(hex: "#BCFDDC"), lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                    if item.isChecked {
-                        Circle().fill(accentColor).frame(width: 24, height: 24)
-                        Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundColor(.white)
-                    }
-                }
+            LiquidGlassCheckbox(isChecked: item.isChecked, accentColor: accentColor) {
+                onToggle(item)
             }
-            .buttonStyle(.plain)
 
             Text(item.name)
                 .font(.system(size: 15, weight: .medium))
@@ -286,13 +286,9 @@ struct CheckedItemRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Button { onToggle(item) } label: {
-                ZStack {
-                    Circle().fill(Color(hex: "#D1FAE5")).frame(width: 24, height: 24)
-                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: "#6EE7B7"))
-                }
+            LiquidGlassCheckbox(isChecked: true, accentColor: Color(hex: "#6EE7B7")) {
+                onToggle(item)
             }
-            .buttonStyle(.plain)
             Text(item.name)
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: "#9CA3AF"))

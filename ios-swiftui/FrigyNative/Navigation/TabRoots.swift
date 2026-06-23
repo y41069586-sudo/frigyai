@@ -151,9 +151,17 @@ struct ProfileView: View {
                         .foregroundColor(Color(hex: "#EF4444"))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color(hex: "#FEF2F2"))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color(hex: "#EF4444").opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
                 }
+                .buttonStyle(.plain)
                 .padding(.horizontal, 20)
 
                 Spacer().frame(height: 32)
@@ -323,10 +331,21 @@ struct SubscriptionView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54)
-                            .background(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .leading, endPoint: .trailing))
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .shadow(color: Color(hex: "#39D47F").opacity(0.25), radius: 10, y: 5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(LinearGradient(
+                                        colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    ))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                                            .blendMode(.overlay)
+                                    )
+                            )
+                            .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 12, y: 6)
                     }
+                    .buttonStyle(.plain)
                     .padding(.horizontal, 20)
                 }
 
@@ -596,8 +615,18 @@ struct AddWeightSheet: View {
                         .foregroundColor(Color(hex: "#9CA3AF"))
                 }
                 .padding(20)
-                .background(Color(hex: "#F3F4F6"))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    focused ? FrigyBrand.primary.opacity(0.6) : Color.white.opacity(0.25),
+                                    lineWidth: 1
+                                )
+                        )
+                )
+                .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
                 .padding(.horizontal, 40)
 
                 Button {
@@ -613,17 +642,27 @@ struct AddWeightSheet: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
                         .background(
-                            LinearGradient(
-                                colors: text.isEmpty
-                                    ? [Color(hex: "#BCFDDC"), Color(hex: "#BCFDDC")]
-                                    : [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(LinearGradient(
+                                    colors: text.isEmpty
+                                        ? [Color(hex: "#BCFDDC"), Color(hex: "#BCFDDC")]
+                                        : [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(text.isEmpty ? 0 : 0.35), lineWidth: 1)
+                                        .blendMode(.overlay)
+                                )
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(
+                            color: text.isEmpty ? .clear : Color(hex: "#39D47F").opacity(0.28),
+                            radius: 12, y: 6
+                        )
                 }
                 .disabled(text.isEmpty || isSaving)
+                .buttonStyle(.plain)
                 .padding(.horizontal, 24)
 
                 Spacer()
@@ -676,22 +715,45 @@ struct ChatbotView: View {
                     .lineLimit(1...4)
                     .font(.system(size: 15))
                     .padding(10)
-                    .background(Color(hex: "#F3F4F6"))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        inputFocused ? FrigyBrand.primary.opacity(0.5) : Color.white.opacity(0.2),
+                                        lineWidth: 1
+                                    )
+                            )
+                    )
+                    .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
                     .focused($inputFocused)
 
                 Button {
                     sendMessage()
                 } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(inputText.isEmpty ? Color(hex: "#D1FAE5") : Color(hex: "#39D47F"))
+                    ZStack {
+                        Circle()
+                            .fill(inputText.isEmpty
+                                ? AnyShapeStyle(Color(hex: "#BCFDDC").opacity(0.4))
+                                : AnyShapeStyle(LinearGradient(
+                                    colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                )))
+                            .overlay(Circle().stroke(Color.white.opacity(inputText.isEmpty ? 0 : 0.35), lineWidth: 1).blendMode(.overlay))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(inputText.isEmpty ? Color(hex: "#9CA3AF") : .white)
+                    }
+                    .shadow(color: inputText.isEmpty ? .clear : Color(hex: "#39D47F").opacity(0.25), radius: 6, y: 3)
                 }
+                .buttonStyle(.plain)
                 .disabled(inputText.isEmpty)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(.white)
+            .background(.ultraThinMaterial)
             .overlay(Divider(), alignment: .top)
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
@@ -728,10 +790,33 @@ struct ChatBubble: View {
                 .foregroundColor(isUser ? .white : Color(hex: "#1F2937"))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(isUser
-                    ? LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    : LinearGradient(colors: [.white, .white], startPoint: .leading, endPoint: .trailing))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .background(
+                    Group {
+                        if isUser {
+                            AnyView(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .fill(LinearGradient(
+                                        colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    ))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                                            .blendMode(.overlay)
+                                    )
+                            )
+                        } else {
+                            AnyView(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                    )
+                            )
+                        }
+                    }
+                )
                 .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
                 .containerRelativeFrame(.horizontal) { width, _ in width * 0.75 }
             if !isUser { Spacer() }
@@ -934,8 +1019,19 @@ struct RemindersView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
-                                .background(Color(hex: "#39D47F"))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(LinearGradient(
+                                            colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing
+                                        ))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                                                .blendMode(.overlay)
+                                        )
+                                )
+                                .shadow(color: Color(hex: "#39D47F").opacity(0.25), radius: 8, y: 4)
                         }
                         .buttonStyle(.plain)
                     }

@@ -46,22 +46,14 @@ struct MealPlansView: View {
                             .foregroundColor(Color(hex: "#9CA3AF"))
                     }
                     Spacer()
-                    Button {
-                        Task { await generatePlan() }
-                    } label: {
-                        if isGenerating {
-                            ProgressView()
-                                .frame(width: 40, height: 40)
-                        } else {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(Color(hex: "#39D47F"))
-                                .frame(width: 40, height: 40)
-                                .background(Color(hex: "#DCFEEF"))
-                                .clipShape(Circle())
+                    if isGenerating {
+                        ProgressView()
+                            .frame(width: 44, height: 44)
+                    } else {
+                        LiquidGlassCircleButton(systemImage: "sparkles", size: 44, iconSize: 18) {
+                            Task { await generatePlan() }
                         }
                     }
-                    .disabled(isGenerating)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -104,12 +96,37 @@ struct MealPlansView: View {
                                     }
                                     .frame(width: 52, height: 70)
                                     .background(
-                                        selectedDayIndex == i
-                                        ? LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .top, endPoint: .bottom)
-                                        : LinearGradient(colors: [.white, .white], startPoint: .top, endPoint: .bottom)
+                                        Group {
+                                            if selectedDayIndex == i {
+                                                AnyView(
+                                                    RoundedRectangle(cornerRadius: 16)
+                                                        .fill(LinearGradient(
+                                                            colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                                            startPoint: .top, endPoint: .bottom
+                                                        ))
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 16)
+                                                                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                                                                .blendMode(.overlay)
+                                                        )
+                                                )
+                                            } else {
+                                                AnyView(
+                                                    RoundedRectangle(cornerRadius: 16)
+                                                        .fill(.ultraThinMaterial)
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 16)
+                                                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                                        )
+                                                )
+                                            }
+                                        }
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .shadow(color: selectedDayIndex == i ? Color(hex: "#39D47F").opacity(0.3) : .black.opacity(0.04), radius: 6, y: 3)
+                                    .shadow(
+                                        color: selectedDayIndex == i ? Color(hex: "#39D47F").opacity(0.28) : .black.opacity(0.04),
+                                        radius: selectedDayIndex == i ? 10 : 4,
+                                        y: selectedDayIndex == i ? 5 : 2
+                                    )
                                 }
                                 .buttonStyle(.plain)
                                 .id(i)
@@ -240,11 +257,14 @@ struct PlannedMealCard: View {
                         ForEach(meal.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(Color(hex: "#39D47F"))
+                                .foregroundColor(FrigyBrand.primaryDark)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Color(hex: "#DCFEEF"))
-                                .clipShape(Capsule())
+                                .background(
+                                    Capsule()
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.45), lineWidth: 1))
+                                )
                         }
                     }
                 }
