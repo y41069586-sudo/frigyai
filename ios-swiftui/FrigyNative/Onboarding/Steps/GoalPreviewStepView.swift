@@ -111,7 +111,7 @@ struct GoalPreviewStepView: View {
 
                 // "Without Frigy" line (dashed, goes up then comes back down)
                 let peakY = max(yTop + 16, yStart - 34)
-                let angle = tan(38 * .pi / 180)
+                let angle = tan(38 * Double.pi / 180)
                 let rise = yStart - peakY
                 let peakX = min(x0 + rise / angle, x0 + (x1 - x0) * 0.5)
                 let endBadY = min(yBot - 6, yStart + 14)

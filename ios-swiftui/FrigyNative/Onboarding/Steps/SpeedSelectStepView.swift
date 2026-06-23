@@ -77,7 +77,7 @@ struct SpeedSelectStepView: View {
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .scaleEffect(sliderActive ? 1.06 : 1)
-                        .animation(.spring(stiffness: 380, damping: 22), value: sliderActive)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: sliderActive)
                     Text(unitLabel)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(FrigyBrand.primaryDeep)

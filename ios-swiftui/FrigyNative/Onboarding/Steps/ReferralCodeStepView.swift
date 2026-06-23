@@ -125,7 +125,7 @@ struct ReferralCodeStepView: View {
                         }
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(FrigyBrand.text)
-                        .frame(maxWidth: .infinity, height: 54)
+                        .frame(maxWidth: .infinity).frame(height: 54)
                         .disabled(isDisabled)
 
                         // Continue
@@ -134,7 +134,7 @@ struct ReferralCodeStepView: View {
                         }
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, height: 54)
+                        .frame(maxWidth: .infinity).frame(height: 54)
                         .background(FrigyBrand.primary)
                         .disabled(isDisabled)
                     }
