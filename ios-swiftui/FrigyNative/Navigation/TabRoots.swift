@@ -298,6 +298,7 @@ struct NutritionGoalsView: View {
 
 struct SubscriptionView: View {
     @Environment(AppRouter.self) private var router
+    @State private var showPaywall = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -337,7 +338,7 @@ struct SubscriptionView: View {
                         }
                         .padding(.horizontal, 20)
 
-                        Button {} label: {
+                        Button { showPaywall = true } label: {
                             Text("Jetzt upgraden – 4,99 € / Monat")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
@@ -364,6 +365,9 @@ struct SubscriptionView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showPaywall) {
+            PaywallStepView(onNext: { showPaywall = false })
+        }
     }
 
     private func featureRow(_ text: String, icon: String) -> some View {

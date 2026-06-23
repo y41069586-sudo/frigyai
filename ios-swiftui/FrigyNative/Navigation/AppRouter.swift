@@ -59,8 +59,9 @@ final class AppRouter {
             rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
             flushPendingDeepLinkWhileOnboarding()
         } catch {
-            authStatusMessage = error.localizedDescription
-            rootRoute = .auth
+            // Supabase unavailable — show onboarding (splash with mascot) instead of auth screen
+            onboardingCoordinator.resumeFromLastStep()
+            rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
         }
     }
 

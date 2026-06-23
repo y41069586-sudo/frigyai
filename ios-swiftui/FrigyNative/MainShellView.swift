@@ -27,7 +27,7 @@ struct MainShellView: View {
             }
         }
         .sheet(isPresented: $coordinator.showTrackerSheet) {
-            TrackerLogMealView()
+            TrackerLogMealView(preselectedCategory: coordinator.trackerPreselectedCategory)
         }
     }
 }

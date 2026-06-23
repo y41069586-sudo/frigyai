@@ -299,7 +299,7 @@ struct HomeDashboardView: View {
     }
 
     private func mealSlot(_ slot: MealCategory, logged: Bool) -> some View {
-        Button { tabCoordinator.openTracker() } label: {
+        Button { tabCoordinator.openTracker(category: slot) } label: {
             VStack(spacing: 6) {
                 Text(slot.emoji)
                     .font(.system(size: 26))

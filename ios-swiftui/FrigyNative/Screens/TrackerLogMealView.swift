@@ -1,19 +1,50 @@
 import SwiftUI
 
+private struct OFFSearchResponse: Decodable {
+    let products: [OFFSearchProduct]
+}
+private struct OFFSearchProduct: Decodable {
+    let product_name: String?
+    let nutriments: OFFNutriments?
+}
+private struct OFFNutriments: Decodable {
+    let energyKcal100g: Double?
+    let proteins100g: Double?
+    let carbohydrates100g: Double?
+    let fat100g: Double?
+    enum CodingKeys: String, CodingKey {
+        case energyKcal100g    = "energy-kcal_100g"
+        case proteins100g      = "proteins_100g"
+        case carbohydrates100g = "carbohydrates_100g"
+        case fat100g           = "fat_100g"
+    }
+}
+
 struct TrackerLogMealView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let preselectedCategory: MealCategory?
+
+    init(preselectedCategory: MealCategory? = nil) {
+        self.preselectedCategory = preselectedCategory
+        let cat = preselectedCategory ?? Self.defaultCategoryByTime()
+        _selectedCategory = State(initialValue: cat)
+    }
+
     @State private var searchText = ""
-    @State private var selectedCategory: MealCategory = .lunch
+    @State private var selectedCategory: MealCategory
     @State private var recentFoods: [RecentFood] = []
     @State private var isLoading = true
+    @State private var searchResults: [RecentFood] = []
+    @State private var isSearching = false
     @State private var showBarcodeScanner = false
-    @State private var showManualEntry = false
     @State private var prefillFood: ScannedFood?
+    @State private var showManualEntry = false
+    @State private var searchTask: Task<Void, Never>? = nil
 
     var body: some View {
         VStack(spacing: 0) {
-            // Custom header
+            // Header
             HStack(spacing: 0) {
                 Button { dismiss() } label: {
                     HStack(spacing: 4) {
@@ -38,7 +69,7 @@ struct TrackerLogMealView: View {
 
             // Search bar
             HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
+                Image(systemName: isSearching ? "hourglass" : "magnifyingglass")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(FrigyBrand.textMuted)
                 TextField("Lebensmittel suchen...", text: $searchText)
@@ -64,21 +95,51 @@ struct TrackerLogMealView: View {
             .padding(.bottom, 4)
 
             categoryPicker
-
             Divider()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    scanOptions
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                    // Barcode scan button
+                    Button { showBarcodeScanner = true } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color(hex: "#A5B4FC").opacity(0.35), lineWidth: 1)
+                                    )
+                                    .frame(width: 48, height: 48)
+                                Image(systemName: "barcode.viewfinder")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(Color(hex: "#A5B4FC"))
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Barcode scannen")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(FrigyBrand.text)
+                                Text("Kamera öffnen und Barcode einlesen")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Color(hex: "#9CA3AF"))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13))
+                                .foregroundColor(FrigyBrand.cardBorder)
+                        }
+                        .padding(14)
+                        .frigyCard(cornerRadius: 16)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
                     if isLoading {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
                     } else if !searchText.isEmpty {
-                        searchResults
+                        liveSearchSection
                             .padding(.horizontal, 16)
                     } else {
                         recentFoodsSection
@@ -90,6 +151,21 @@ struct TrackerLogMealView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .task { await loadFoods() }
+        .onChange(of: searchText) { _, newVal in
+            searchTask?.cancel()
+            if newVal.count >= 2 {
+                searchTask = Task {
+                    isSearching = true
+                    try? await Task.sleep(nanoseconds: 350_000_000)
+                    guard !Task.isCancelled else { return }
+                    searchResults = await searchOpenFoodFacts(query: newVal)
+                    isSearching = false
+                }
+            } else {
+                searchResults = []
+                isSearching = false
+            }
+        }
         .sheet(isPresented: $showBarcodeScanner) {
             BarcodeScannerView { scanned in
                 showBarcodeScanner = false
@@ -101,14 +177,12 @@ struct TrackerLogMealView: View {
             ManualFoodEntrySheet(
                 prefill: prefillFood,
                 selectedCategory: selectedCategory
-            ) {
-                dismiss()
-            }
+            ) { dismiss() }
             .onDisappear { prefillFood = nil }
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Category picker
 
     private var categoryPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -127,34 +201,18 @@ struct TrackerLogMealView: View {
                             .background(
                                 Group {
                                     if selectedCategory == cat {
-                                        AnyView(
-                                            Capsule()
-                                                .fill(LinearGradient(
-                                                    colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                                                    startPoint: .topLeading, endPoint: .bottomTrailing
-                                                ))
-                                                .overlay(
-                                                    Capsule()
-                                                        .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                                                        .blendMode(.overlay)
-                                                )
-                                        )
+                                        AnyView(Capsule()
+                                            .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                                            .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay)))
                                     } else {
-                                        AnyView(
-                                            Capsule()
-                                                .fill(.ultraThinMaterial)
-                                                .overlay(
-                                                    Capsule()
-                                                        .stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1)
-                                                )
-                                        )
+                                        AnyView(Capsule()
+                                            .fill(.ultraThinMaterial)
+                                            .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1)))
                                     }
                                 }
                             )
-                            .shadow(
-                                color: selectedCategory == cat ? Color(hex: "#39D47F").opacity(0.2) : .clear,
-                                radius: 6, y: 3
-                            )
+                            .shadow(color: selectedCategory == cat ? Color(hex: "#39D47F").opacity(0.2) : .clear, radius: 6, y: 3)
                     }
                     .buttonStyle(.plain)
                 }
@@ -164,42 +222,35 @@ struct TrackerLogMealView: View {
         }
     }
 
-    private var scanOptions: some View {
-        HStack(spacing: 12) {
-            scanOption(
-                icon: "barcode.viewfinder",
-                label: "Barcode",
-                subtitle: "Produkt einlesen",
-                color: Color(hex: "#A5B4FC")
-            ) {
-                showBarcodeScanner = true
+    // MARK: - Live search results
+
+    @ViewBuilder private var liveSearchSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Suchergebnisse")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(FrigyBrand.textMuted)
+                Spacer()
+                if isSearching {
+                    ProgressView().scaleEffect(0.7)
+                }
             }
-            scanOption(
-                icon: "square.and.pencil",
-                label: "Manuell",
-                subtitle: "Selbst eingeben",
-                color: Color(hex: "#75FBB2")
-            ) {
-                prefillFood = nil
-                showManualEntry = true
+            if searchResults.isEmpty && !isSearching {
+                Text("Keine Ergebnisse für „\(searchText)"")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "#9CA3AF"))
+                    .padding(.top, 4)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(searchResults) { food in
+                        foodRow(food)
+                    }
+                }
             }
         }
     }
 
-    @ViewBuilder private var searchResults: some View {
-        let filtered = recentFoods.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-        VStack(spacing: 8) {
-            ForEach(filtered) { food in
-                recentFoodRow(food)
-            }
-            if filtered.isEmpty {
-                Text("Keine Treffer für \"\(searchText)\"")
-                    .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
-                    .padding(.top, 8)
-            }
-        }
-    }
+    // MARK: - Recent foods
 
     @ViewBuilder private var recentFoodsSection: some View {
         if recentFoods.isEmpty {
@@ -210,7 +261,7 @@ struct TrackerLogMealView: View {
                 Text("Noch nichts geloggt")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(Color(hex: "#6B7280"))
-                Text("Scanne einen Barcode oder gib ein Lebensmittel manuell ein.")
+                Text("Scanne einen Barcode oder suche nach einem Lebensmittel.")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#9CA3AF"))
                     .multilineTextAlignment(.center)
@@ -224,56 +275,19 @@ struct TrackerLogMealView: View {
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(Color(hex: "#1F2937"))
                     .padding(.horizontal, 16)
-
                 VStack(spacing: 6) {
                     ForEach(recentFoods) { food in
-                        recentFoodRow(food)
+                        foodRow(food)
+                            .padding(.horizontal, 16)
                     }
                 }
-                .padding(.horizontal, 16)
             }
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Row
 
-    private func scanOption(icon: String, label: String, subtitle: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(color.opacity(0.35), lineWidth: 1)
-                        )
-                        .shadow(color: color.opacity(0.1), radius: 4, y: 2)
-                        .frame(width: 48, height: 48)
-                    Image(systemName: icon)
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(color == Color(hex: "#75FBB2") ? FrigyBrand.primaryDark : color)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(label)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Color(hex: "#1F2937"))
-                    Text(subtitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13))
-                    .foregroundColor(FrigyBrand.cardBorder)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frigyCard(cornerRadius: 16)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func recentFoodRow(_ food: RecentFood) -> some View {
+    private func foodRow(_ food: RecentFood) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
@@ -300,23 +314,17 @@ struct TrackerLogMealView: View {
             Button {
                 Task {
                     await TrackerDataService.shared.addFoodEntry(
-                        name: food.name,
-                        calories: food.calories,
-                        protein: food.protein,
-                        carbs: food.carbs,
-                        fat: food.fat,
-                        portion: "100g",
-                        category: selectedCategory
+                        name: food.name, calories: food.calories,
+                        protein: food.protein, carbs: food.carbs, fat: food.fat,
+                        portion: "100g", category: selectedCategory
                     )
                     dismiss()
                 }
             } label: {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(
-                            colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ))
+                        .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
                         .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                         .frame(width: 32, height: 32)
                     Image(systemName: "plus")
@@ -331,14 +339,44 @@ struct TrackerLogMealView: View {
         .frigyCard(cornerRadius: 14)
     }
 
+    // MARK: - Helpers
+
     private func loadFoods() async {
         isLoading = true
         recentFoods = await TrackerDataService.shared.loadRecentFoods()
         isLoading = false
     }
+
+    private func searchOpenFoodFacts(query: String) async -> [RecentFood] {
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        guard let url = URL(string: "https://world.openfoodfacts.org/cgi/search.pl?search_terms=\(encoded)&json=1&page_size=15&fields=product_name,nutriments&lc=de") else { return [] }
+        guard let (data, _) = try? await URLSession.shared.data(from: url) else { return [] }
+        guard let resp = try? JSONDecoder().decode(OFFSearchResponse.self, from: data) else { return [] }
+        return resp.products.compactMap { p in
+            guard let name = p.product_name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else { return nil }
+            return RecentFood(
+                id: UUID().uuidString,
+                name: name,
+                calories: Int((p.nutriments?.energyKcal100g ?? 0).rounded()),
+                protein: Int((p.nutriments?.proteins100g ?? 0).rounded()),
+                carbs: Int((p.nutriments?.carbohydrates100g ?? 0).rounded()),
+                fat: Int((p.nutriments?.fat100g ?? 0).rounded())
+            )
+        }
+    }
+
+    private static func defaultCategoryByTime() -> MealCategory {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<10:  return .breakfast
+        case 10..<15: return .lunch
+        case 15..<18: return .snack
+        default:      return .dinner
+        }
+    }
 }
 
-// MARK: - Manual food entry sheet
+// MARK: - Manual food entry sheet (used for barcode prefill only)
 
 struct ManualFoodEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -381,7 +419,7 @@ struct ManualFoodEntrySheet: View {
                     .foregroundColor(FrigyBrand.primaryDark)
                     .frame(width: 100, alignment: .leading)
                 Spacer()
-                Text(prefill != nil ? "Produkt hinzufügen" : "Manuell eingeben")
+                Text("Produkt hinzufügen")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
@@ -407,40 +445,32 @@ struct ManualFoodEntrySheet: View {
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("LEBENSMITTEL")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.5)
-                            .foregroundColor(FrigyBrand.textMuted)
-                            .padding(.bottom, 10)
+                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 10)
                         TextField("Name eingeben", text: $name)
-                            .font(.system(size: 16))
-                            .foregroundColor(FrigyBrand.text)
+                            .font(.system(size: 16)).foregroundColor(FrigyBrand.text)
                     }
-                    .padding(16)
-                    .frigyCard(cornerRadius: 16)
+                    .padding(16).frigyCard(cornerRadius: 16)
 
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("NÄHRWERTE (PRO PORTION)")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.5)
-                            .foregroundColor(FrigyBrand.textMuted)
-                            .padding(.bottom, 4)
+                        Text("NÄHRWERTE (PRO 100g)")
+                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                            .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 4)
                         VStack(spacing: 0) {
                             macroRow("Kalorien", unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
                             Divider().padding(.leading, 8)
-                            macroRow("Protein",  unit: "g",    text: $proteinText,  color: Color(hex: "#60A5FA"))
+                            macroRow("Protein",  unit: "g", text: $proteinText,  color: Color(hex: "#60A5FA"))
                             Divider().padding(.leading, 8)
-                            macroRow("Kohlenhydrate", unit: "g", text: $carbsText,  color: Color(hex: "#FBBF24"))
+                            macroRow("Kohlenhydrate", unit: "g", text: $carbsText, color: Color(hex: "#FBBF24"))
                             Divider().padding(.leading, 8)
-                            macroRow("Fett",     unit: "g",    text: $fatText,      color: Color(hex: "#F87171"))
+                            macroRow("Fett", unit: "g", text: $fatText, color: Color(hex: "#F87171"))
                         }
                     }
-                    .padding(16)
-                    .frigyCard(cornerRadius: 16)
+                    .padding(16).frigyCard(cornerRadius: 16)
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("MAHLZEIT")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.5)
+                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -451,14 +481,11 @@ struct ManualFoodEntrySheet: View {
                                         Label(cat.rawValue, systemImage: cat.icon)
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(category == cat ? .white : FrigyBrand.primaryDark)
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 9)
+                                            .padding(.horizontal, 14).padding(.vertical, 9)
                                             .background(
                                                 Capsule()
                                                     .fill(category == cat
-                                                          ? AnyShapeStyle(LinearGradient(
-                                                              colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
+                                                          ? AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark], startPoint: .topLeading, endPoint: .bottomTrailing))
                                                           : AnyShapeStyle(.ultraThinMaterial))
                                                     .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.4), lineWidth: 1))
                                             )
@@ -468,36 +495,26 @@ struct ManualFoodEntrySheet: View {
                             }
                         }
                     }
-                    .padding(16)
-                    .frigyCard(cornerRadius: 16)
+                    .padding(16).frigyCard(cornerRadius: 16)
 
-                    Button {
-                        Task { await save() }
-                    } label: {
+                    Button { Task { await save() } } label: {
                         Text(isSaving ? "Wird gespeichert..." : "Hinzufügen")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
+                            .font(.system(size: 17, weight: .semibold)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity).frame(height: 54)
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(canSave
-                                          ? AnyShapeStyle(LinearGradient(
-                                              colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                              startPoint: .topLeading, endPoint: .bottomTrailing))
+                                          ? AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark], startPoint: .topLeading, endPoint: .bottomTrailing))
                                           : AnyShapeStyle(FrigyBrand.cardBorder))
-                                    .overlay(RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.white.opacity(canSave ? 0.35 : 0), lineWidth: 1).blendMode(.overlay))
+                                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(canSave ? 0.35 : 0), lineWidth: 1).blendMode(.overlay))
                             )
                             .shadow(color: canSave ? FrigyBrand.primaryDeep.opacity(0.28) : .clear, radius: 12, y: 6)
                     }
-                    .disabled(!canSave || isSaving)
-                    .buttonStyle(.plain)
+                    .disabled(!canSave || isSaving).buttonStyle(.plain)
 
                     Spacer().frame(height: 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
+                .padding(.horizontal, 20).padding(.top, 4)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
@@ -505,20 +522,11 @@ struct ManualFoodEntrySheet: View {
 
     private func macroRow(_ label: String, unit: String, text: Binding<String>, color: Color) -> some View {
         HStack {
-            Text(label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(FrigyBrand.text)
+            Text(label).font(.system(size: 14, weight: .medium)).foregroundColor(FrigyBrand.text)
             Spacer()
-            TextField("0", text: text)
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.trailing)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(color)
-                .frame(width: 70)
-            Text(unit)
-                .font(.system(size: 12))
-                .foregroundColor(FrigyBrand.textMuted)
-                .frame(width: 28, alignment: .leading)
+            TextField("0", text: text).keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                .font(.system(size: 14, weight: .bold)).foregroundColor(color).frame(width: 70)
+            Text(unit).font(.system(size: 12)).foregroundColor(FrigyBrand.textMuted).frame(width: 28, alignment: .leading)
         }
         .padding(.vertical, 10)
     }

@@ -56,7 +56,6 @@ private let shoppingItemsKey = "frigy.shoppingItems.v1"
 struct ShoppingListView: View {
     @State private var items: [ShoppingItem] = Self.loadItems()
     @State private var newItemName = ""
-    @State private var showAddItem = false
 
     private static func loadItems() -> [ShoppingItem] {
         guard let data = UserDefaults.standard.data(forKey: shoppingItemsKey),
@@ -91,15 +90,6 @@ struct ShoppingListView: View {
                         Text("\(unchecked.count) von \(items.count) Artikeln übrig")
                             .font(.system(size: 13))
                             .foregroundColor(Color(hex: "#9CA3AF"))
-                    }
-                    Spacer()
-                    LiquidGlassCircleButton(
-                        systemImage: "plus",
-                        size: 44,
-                        iconSize: 18,
-                        usePrimaryGradient: true
-                    ) {
-                        showAddItem = true
                     }
                 }
                 .padding(.horizontal, 20)
@@ -204,12 +194,6 @@ struct ShoppingListView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showAddItem) {
-            AddShoppingItemSheet { name, cat in
-                items.append(ShoppingItem(name: name, category: cat))
-                save()
-            }
-        }
         .onChange(of: items) { save() }
     }
 

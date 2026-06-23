@@ -47,12 +47,31 @@ struct MealPlansView: View {
                     }
                     Spacer()
                     if isGenerating {
-                        ProgressView()
-                            .frame(width: 44, height: 44)
-                    } else {
-                        LiquidGlassCircleButton(systemImage: "sparkles", size: 44, iconSize: 18) {
-                            Task { await generatePlan() }
+                        HStack(spacing: 8) {
+                            ProgressView().tint(.white)
+                            Text("Generiert…")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
                         }
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(Capsule().fill(FrigyBrand.primaryDark))
+                    } else {
+                        Button {
+                            Task { await generatePlan() }
+                        } label: {
+                            Label("Plan erstellen", systemImage: "sparkles")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14).padding(.vertical, 10)
+                                .background(
+                                    Capsule()
+                                        .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1).blendMode(.overlay))
+                                )
+                                .shadow(color: FrigyBrand.primaryDeep.opacity(0.3), radius: 8, y: 4)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -174,10 +193,6 @@ struct MealPlansView: View {
                     }
                 }
 
-                // Weekly nutrition summary
-                WeeklySummaryCard(week: weekPlan)
-                    .padding(.horizontal, 20)
-
                 Spacer().frame(height: 100)
             }
         }
@@ -273,54 +288,6 @@ struct PlannedMealCard: View {
             Spacer()
         }
         .padding(14)
-        .frigyCard(cornerRadius: 18)
-    }
-}
-
-// MARK: - Weekly summary
-
-struct WeeklySummaryCard: View {
-    let week: [DayPlan]
-    private var avgCal: Int {
-        let total = week.reduce(0) { $0 + $1.totalCal }
-        return total / max(1, week.count)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Wochenübersicht")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(Color(hex: "#1F2937"))
-
-            HStack(spacing: 4) {
-                ForEach(week) { day in
-                    VStack(spacing: 4) {
-                        let frac = avgCal > 0 ? min(1.0, Double(day.totalCal) / Double(avgCal + 200)) : 0
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .bottom, endPoint: .top))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: max(8, CGFloat(frac) * 48))
-                            .frame(maxHeight: 48, alignment: .bottom)
-                        Text(day.shortDay.prefix(2))
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(height: 60, alignment: .bottom)
-
-            HStack {
-                Text("Ø \(avgCal) kcal / Tag")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(hex: "#39D47F"))
-                Spacer()
-                Text("Ziel: \(avgCal + 50) kcal")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
-            }
-        }
-        .padding(16)
         .frigyCard(cornerRadius: 18)
     }
 }
