@@ -76,7 +76,11 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func restoreSession() async throws -> UserSession? {
-        _ = try await client.auth.session
+        // Do NOT force-propagate the error from `client.auth.session`: the Supabase
+        // SDK throws `sessionMissing` whenever there is no stored session (i.e. every
+        // fresh install / logged-out launch). `currentSession()` already swallows that
+        // case via `try?` and returns nil, so a new user proceeds into onboarding
+        // instead of being wrongly bounced straight to the auth screen.
         return try await currentSession()
     }
 
