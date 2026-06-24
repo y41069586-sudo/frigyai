@@ -428,45 +428,42 @@ struct PaywallStepView: View {
     /// Schedules a local notification for day 2 of the monthly trial reminding the user
     /// that they will be charged tomorrow unless they cancel.
     private func scheduleTrialReminderNotification() {
-        let center = UNUserNotificationCenter.current()
+        Task {
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
 
-        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            guard granted else { return }
-
-            let content = UNMutableNotificationContent()
-            content.title = "Testphase endet morgen!"
-            content.body = "Deine kostenlose Testphase endet morgen. Kündige jetzt in den App-Store-Einstellungen, wenn du nicht abgerechnet werden möchtest."
-            content.sound = .default
-
-            // Fire 48 hours after trial start (morning of day 2, ~9:00)
-            var fireComponents = Calendar.current.dateComponents(
-                [.year, .month, .day], from: Date()
-            )
-            fireComponents.day = (fireComponents.day ?? 0) + 2
-            fireComponents.hour = 9
-            fireComponents.minute = 0
-            fireComponents.second = 0
-
-            let trigger: UNNotificationTrigger
-            if let fireDate = Calendar.current.date(from: fireComponents) {
-                trigger = UNTimeIntervalNotificationTrigger(
-                    timeInterval: max(60, fireDate.timeIntervalSinceNow),
-                    repeats: false
-                )
-            } else {
-                trigger = UNTimeIntervalNotificationTrigger(
-                    timeInterval: 48 * 60 * 60,
-                    repeats: false
-                )
+            switch settings.authorizationStatus {
+            case .authorized, .provisional:
+                addTrialReminderRequest(to: center)
+            case .notDetermined:
+                let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+                if granted { addTrialReminderRequest(to: center) }
+            default:
+                break  // denied — iOS silently ignores further requests, skip
             }
-
-            let request = UNNotificationRequest(
-                identifier: "frigy.trial.day2",
-                content: content,
-                trigger: trigger
-            )
-            center.add(request)
         }
+    }
+
+    private func addTrialReminderRequest(to center: UNUserNotificationCenter) {
+        center.removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
+        let content = UNMutableNotificationContent()
+        content.title = "⏰ Testphase endet morgen!"
+        content.body = "Deine kostenlose Testphase endet morgen. Kündige jetzt in den App-Store-Einstellungen, wenn du nicht abgerechnet werden möchtest."
+        content.sound = .default
+
+        var fireComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        fireComponents.day = (fireComponents.day ?? 0) + 2
+        fireComponents.hour = 9; fireComponents.minute = 0; fireComponents.second = 0
+
+        let trigger: UNNotificationTrigger
+        if let fireDate = Calendar.current.date(from: fireComponents) {
+            trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: max(60, fireDate.timeIntervalSinceNow), repeats: false)
+        } else {
+            trigger = UNTimeIntervalNotificationTrigger(timeInterval: 48 * 3600, repeats: false)
+        }
+
+        center.add(UNNotificationRequest(identifier: "frigy.trial.day2", content: content, trigger: trigger))
     }
 }
 

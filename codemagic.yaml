@@ -235,7 +235,7 @@ workflows:
         # Minimum build number — CM_BUILD_NUMBER wins when it exceeds this value.
         # Uses floor 200+ so it never collides with ios-build (floor 100+).
         # Only this workflow submits to TestFlight (ios-build does not).
-        IOS_BUILD_NUMBER: "237"
+        IOS_BUILD_NUMBER: "238"
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-native-env.sh

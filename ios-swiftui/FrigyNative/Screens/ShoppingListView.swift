@@ -69,8 +69,11 @@ struct ShoppingListView: View {
     }
 
     private func save() {
-        if let data = try? JSONEncoder().encode(items) {
+        do {
+            let data = try JSONEncoder().encode(items)
             UserDefaults.standard.set(data, forKey: shoppingItemsKey)
+        } catch {
+            assertionFailure("ShoppingList encode failed: \(error)")
         }
     }
 
