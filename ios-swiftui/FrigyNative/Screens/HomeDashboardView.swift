@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 // MARK: - Model
 
@@ -70,9 +71,12 @@ struct HomeDashboardView: View {
     @State private var meals: [LoggedMeal] = []
     // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
     @State private var targets = MacroTargets.default
+    @State private var streak: Int = 0
+    @State private var loadError = false
     @State private var aiPrompt = ""
     @FocusState private var aiFocused: Bool
     @State private var waterGlasses: Int = 0
+    @State private var showEditTargets = false
     // Goal is adjustable; default 8 glasses × 0.25 L = 2.0 L.
     @AppStorage("frigy.water.goal") private var waterGoal: Int = 8
     private let waterKey = "frigy.water.glasses"
@@ -91,24 +95,65 @@ struct HomeDashboardView: View {
         )
     }
 
+    private var isOverBudget: Bool { consumed.kcal > targets.calories && targets.calories > 0 }
     private var remaining: Int { max(0, targets.calories - consumed.kcal) }
+    private var surplus: Int { max(0, consumed.kcal - targets.calories) }
     private var caloriePct: Int {
         targets.calories > 0 ? min(100, Int(Double(consumed.kcal) / Double(targets.calories) * 100)) : 0
     }
 
     private var loggedCategories: Set<MealCategory> { Set(meals.map(\.category)) }
 
-    private var weekdayText: String {
+    // Cached once — building a DateFormatter on every body pass is expensive.
+    private static let weekdayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "de_DE")
         f.dateFormat = "EEEE"
-        return f.string(from: Date())
+        return f
+    }()
+
+    private var weekdayText: String {
+        Self.weekdayFormatter.string(from: Date())
     }
 
     private func reload() async {
-        let result = await TrackerDataService.shared.loadToday()
+        loadError = false
+        async let sessionCheck = TrackerDataService.shared.hasActiveSession()
+        async let dataFetch = TrackerDataService.shared.loadToday()
+        let (hasSession, result) = await (sessionCheck, dataFetch)
+        guard hasSession else {
+            loadError = true
+            return
+        }
         meals = result.meals
         targets = result.targets
+        tabCoordinator.todayMealCount = result.meals.count
+        scheduleOverageNotification()
+        streak = await TrackerDataService.shared.loadStreak()
+    }
+
+    private func scheduleOverageNotification() {
+        let over = surplus
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["frigy.calorie.overage"])
+        guard over > 0 else { return }
+        Task {
+            let settings = await center.notificationSettings()
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "⚠️ Gestern warst du im Kalorienüberschuss"
+            content.body = "Du hast gestern \(over) kcal zu viel gegessen. Passe deinen heutigen Plan an!"
+            content.sound = .default
+            var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+            comps.day = (comps.day ?? 0) + 1
+            comps.hour = 8; comps.minute = 0; comps.second = 0
+            if let fireDate = Calendar.current.date(from: comps) {
+                let trigger = UNTimeIntervalNotificationTrigger(
+                    timeInterval: max(60, fireDate.timeIntervalSinceNow), repeats: false)
+                await center.add(UNNotificationRequest(
+                    identifier: "frigy.calorie.overage", content: content, trigger: trigger))
+            }
+        }
     }
 
     private func fmt(_ value: Int) -> String {
