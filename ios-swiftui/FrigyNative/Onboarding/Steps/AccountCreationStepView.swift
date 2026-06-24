@@ -69,8 +69,10 @@ struct AccountCreationStepView: View {
                             if isLoadingGoogle {
                                 ProgressView().progressViewStyle(.circular).tint(FrigyBrand.text)
                             } else {
-                                Image(systemName: "globe")
-                                    .font(.system(size: 18, weight: .semibold))
+                                Image("GoogleLogo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
                                 Text("Mit Google fortfahren")
                                     .font(.system(size: 16, weight: .semibold))
                             }

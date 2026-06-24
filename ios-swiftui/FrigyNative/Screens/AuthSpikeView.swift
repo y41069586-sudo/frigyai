@@ -83,8 +83,10 @@ struct AuthSpikeView: View {
                         Task { await signInGoogle() }
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: "globe")
-                                .font(.system(size: 19, weight: .semibold))
+                            Image("GoogleLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20, height: 20)
                             Text("Mit Google anmelden")
                                 .font(.system(size: 17, weight: .semibold))
                         }

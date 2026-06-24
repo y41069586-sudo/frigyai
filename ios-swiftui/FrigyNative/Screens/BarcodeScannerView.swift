@@ -19,11 +19,18 @@ struct BarcodeScannerView: View {
     let onResult: (ScannedFood) -> Void
 
     @State private var isLookingUp = false
+    @State private var lookupPhase = 0
     @State private var statusMessage: String?
     @State private var lastScanned: String?
     @State private var cameraStatus = CameraStatus.checking
 
     enum CameraStatus { case checking, ready, denied }
+
+    private let lookupPhases = [
+        "🔍 Barcode erkannt",
+        "🤖 KI analysiert Produkt…",
+        "📊 Nährwerte werden geladen…",
+    ]
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -77,13 +84,14 @@ struct BarcodeScannerView: View {
                 if isLookingUp {
                     ZStack {
                         RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.black.opacity(0.6))
+                            .fill(Color.black.opacity(0.72))
                             .frame(width: 278, height: 128)
-                        VStack(spacing: 8) {
+                        VStack(spacing: 10) {
                             ProgressView().tint(.white)
-                            Text("Produkt wird gesucht…")
+                            Text(lookupPhases[lookupPhase])
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.white)
+                                .animation(.easeInOut(duration: 0.25), value: lookupPhase)
                         }
                     }
                 }
@@ -152,11 +160,23 @@ struct BarcodeScannerView: View {
         guard !isLookingUp, lastScanned != barcode else { return }
         lastScanned = barcode
         isLookingUp = true
+        lookupPhase = 0
         statusMessage = nil
 
         Task {
+            // Step animation — runs concurrently with the actual lookup
+            Task {
+                for i in 1..<lookupPhases.count {
+                    try? await Task.sleep(nanoseconds: 900_000_000)
+                    guard isLookingUp else { return }
+                    lookupPhase = i
+                }
+            }
+
             let result = await lookupBarcode(barcode)
             isLookingUp = false
+            lookupPhase = 0
+
             if let result {
                 onResult(result)
                 dismiss()
@@ -170,59 +190,15 @@ struct BarcodeScannerView: View {
     }
 
     private func lookupBarcode(_ barcode: String) async -> ScannedFood? {
-        // 1. Try Open Food Facts directly — fast, no AI cost, works offline.
-        if let food = await lookupOpenFoodFacts(barcode) { return food }
-        // 2. Fall back to AI edge function (OpenAI vision + OFF hybrid).
         guard let food = await TrackerDataService.shared.analyzeFood(query: barcode) else { return nil }
-        return ScannedFood(barcode: barcode, name: food.name, calories: food.calories,
-                           protein: food.protein, carbs: food.carbs, fat: food.fat)
-    }
-
-    private func lookupOpenFoodFacts(_ barcode: String) async -> ScannedFood? {
-        let urlStr = "https://world.openfoodfacts.org/api/v2/product/\(barcode)?fields=product_name,nutriments"
-        guard let url = URL(string: urlStr) else { return nil }
-        guard let (data, _) = try? await URLSession.shared.data(from: url) else { return nil }
-        guard let resp = try? JSONDecoder().decode(OFFResponse.self, from: data),
-              resp.status == 1, let p = resp.product,
-              let name = p.productName, !name.isEmpty else { return nil }
-        let n = p.nutriments
         return ScannedFood(
             barcode: barcode,
-            name: name,
-            calories: Int(n?.energyKcal100g ?? 0),
-            protein:  Int(n?.proteins100g ?? 0),
-            carbs:    Int(n?.carbohydrates100g ?? 0),
-            fat:      Int(n?.fat100g ?? 0)
+            name: food.name,
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fat: food.fat
         )
-    }
-}
-
-// MARK: - Open Food Facts decodable models
-
-private struct OFFResponse: Decodable {
-    let status: Int
-    let product: OFFProduct?
-}
-
-private struct OFFProduct: Decodable {
-    let productName: String?
-    let nutriments: OFFNutriments?
-    enum CodingKeys: String, CodingKey {
-        case productName = "product_name"
-        case nutriments
-    }
-}
-
-private struct OFFNutriments: Decodable {
-    let energyKcal100g: Double?
-    let proteins100g: Double?
-    let carbohydrates100g: Double?
-    let fat100g: Double?
-    enum CodingKeys: String, CodingKey {
-        case energyKcal100g     = "energy-kcal_100g"
-        case proteins100g       = "proteins_100g"
-        case carbohydrates100g  = "carbohydrates_100g"
-        case fat100g            = "fat_100g"
     }
 }
 
@@ -303,4 +279,3 @@ private struct CameraPreviewView: UIViewRepresentable {
         }
     }
 }
-
