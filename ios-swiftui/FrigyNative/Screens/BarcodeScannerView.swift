@@ -170,17 +170,59 @@ struct BarcodeScannerView: View {
     }
 
     private func lookupBarcode(_ barcode: String) async -> ScannedFood? {
-        // Resolve via the app's own analyze-food edge function (OpenAI + OFF),
-        // not a direct Open Food Facts call.
+        // 1. Try Open Food Facts directly — fast, no AI cost, works offline.
+        if let food = await lookupOpenFoodFacts(barcode) { return food }
+        // 2. Fall back to AI edge function (OpenAI vision + OFF hybrid).
         guard let food = await TrackerDataService.shared.analyzeFood(query: barcode) else { return nil }
+        return ScannedFood(barcode: barcode, name: food.name, calories: food.calories,
+                           protein: food.protein, carbs: food.carbs, fat: food.fat)
+    }
+
+    private func lookupOpenFoodFacts(_ barcode: String) async -> ScannedFood? {
+        let urlStr = "https://world.openfoodfacts.org/api/v2/product/\(barcode)?fields=product_name,nutriments"
+        guard let url = URL(string: urlStr) else { return nil }
+        guard let (data, _) = try? await URLSession.shared.data(from: url) else { return nil }
+        guard let resp = try? JSONDecoder().decode(OFFResponse.self, from: data),
+              resp.status == 1, let p = resp.product,
+              let name = p.productName, !name.isEmpty else { return nil }
+        let n = p.nutriments
         return ScannedFood(
             barcode: barcode,
-            name: food.name,
-            calories: food.calories,
-            protein: food.protein,
-            carbs: food.carbs,
-            fat: food.fat
+            name: name,
+            calories: Int(n?.energyKcal100g ?? 0),
+            protein:  Int(n?.proteins100g ?? 0),
+            carbs:    Int(n?.carbohydrates100g ?? 0),
+            fat:      Int(n?.fat100g ?? 0)
         )
+    }
+}
+
+// MARK: - Open Food Facts decodable models
+
+private struct OFFResponse: Decodable {
+    let status: Int
+    let product: OFFProduct?
+}
+
+private struct OFFProduct: Decodable {
+    let productName: String?
+    let nutriments: OFFNutriments?
+    enum CodingKeys: String, CodingKey {
+        case productName = "product_name"
+        case nutriments
+    }
+}
+
+private struct OFFNutriments: Decodable {
+    let energyKcal100g: Double?
+    let proteins100g: Double?
+    let carbohydrates100g: Double?
+    let fat100g: Double?
+    enum CodingKeys: String, CodingKey {
+        case energyKcal100g     = "energy-kcal_100g"
+        case proteins100g       = "proteins_100g"
+        case carbohydrates100g  = "carbohydrates_100g"
+        case fat100g            = "fat_100g"
     }
 }
 

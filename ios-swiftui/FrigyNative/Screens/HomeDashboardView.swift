@@ -74,6 +74,8 @@ struct HomeDashboardView: View {
     @State private var aiPrompt = ""
     @FocusState private var aiFocused: Bool
     @State private var waterGlasses: Int = 0
+    @State private var showEditTargets = false
+    @Environment(\.horizontalSizeClass) private var hSizeClass
     // Goal is adjustable; default 8 glasses × 0.25 L = 2.0 L.
     @AppStorage("frigy.water.goal") private var waterGoal: Int = 8
     private let waterKey = "frigy.water.glasses"
@@ -146,6 +148,7 @@ struct HomeDashboardView: View {
                 header
                 calorieCard
                 mealSlotsSection
+                loggedMealsSection
                 waterWidget
                 weeklyPlanWidget
                 aiChatWidget
@@ -153,6 +156,8 @@ struct HomeDashboardView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
+            .frame(maxWidth: 700)
+            .frame(maxWidth: .infinity)
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -161,6 +166,7 @@ struct HomeDashboardView: View {
         .onChange(of: tabCoordinator.showTrackerSheet) { _, isShowing in
             if !isShowing { Task { await reload() } }
         }
+        .sheet(isPresented: $showEditTargets) { NutritionGoalsView() }
     }
 
     // MARK: - Header
@@ -218,7 +224,7 @@ struct HomeDashboardView: View {
                     .foregroundColor(FrigyBrand.primaryDark.opacity(0.75))
                 Spacer()
                 LiquidGlassCircleButton(systemImage: "pencil", size: 34, iconSize: 14) {
-                    tabCoordinator.openTracker()
+                    showEditTargets = true
                 }
             }
 
@@ -365,6 +371,73 @@ struct HomeDashboardView: View {
             .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Logged meals list (with delete)
+
+    private var loggedMealsSection: some View {
+        Group {
+            if !meals.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Geloggte Mahlzeiten")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(Color(hex: "#1F2937"))
+
+                    VStack(spacing: 8) {
+                        ForEach(meals) { meal in
+                            HStack(spacing: 12) {
+                                Text(meal.category.emoji)
+                                    .font(.system(size: 22))
+                                    .frame(width: 36, height: 36)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(meal.name)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(Color(hex: "#1F2937"))
+                                        .lineLimit(1)
+                                    Text("\(meal.calories) kcal · P\(meal.protein)g · K\(meal.carbs)g · F\(meal.fat)g")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(Color(hex: "#9CA3AF"))
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    Task { await deleteMeal(meal) }
+                                } label: {
+                                    Image(systemName: "trash.fill")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(Color(hex: "#EF4444"))
+                                        .frame(width: 32, height: 32)
+                                        .background(Circle().fill(Color(hex: "#FEF2F2")))
+                                        .contentShape(Circle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14)
+                                .stroke(FrigyBrand.cardBorder, lineWidth: 1))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func deleteMeal(_ meal: LoggedMeal) async {
+        guard !meal.entryId.isEmpty else {
+            meals.removeAll { $0.id == meal.id }
+            tabCoordinator.todayMealCount = meals.count
+            return
+        }
+        let ok = await TrackerDataService.shared.deleteFoodEntry(id: meal.entryId)
+        if ok {
+            meals.removeAll { $0.id == meal.id }
+            tabCoordinator.todayMealCount = meals.count
+        }
     }
 
     // MARK: - Weekly plan widget (port of WeeklyPlanWidget.tsx)

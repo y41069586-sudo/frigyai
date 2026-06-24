@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import AVFoundation
 
 struct PermissionsStepView: View {
     let step: OnboardingStep
@@ -37,6 +38,7 @@ struct PermissionsStepView: View {
                 VStack(spacing: 10) {
                     permissionRow("Mahlzeit-Erinnerungen", icon: "fork.knife")
                     permissionRow("Fortschritts-Updates", icon: "chart.line.uptrend.xyaxis")
+                    permissionRow("Kamera & Barcode-Scan", icon: "camera.fill")
                     permissionRow("Wöchentliche Berichte", icon: "chart.bar.fill")
                 }
                 .padding(.horizontal, 24)
@@ -79,8 +81,11 @@ struct PermissionsStepView: View {
     }
 
     private func requestAndContinue() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in
-            DispatchQueue.main.async { onNext() }
+        Task {
+            _ = try? await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .badge, .sound])
+            _ = await AVCaptureDevice.requestAccess(for: .video)
+            await MainActor.run { onNext() }
         }
     }
 }

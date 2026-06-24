@@ -146,6 +146,16 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
+                        NavigationLink(destination: ImpressumView()) {
+                            profileRow("Impressum", icon: "doc.text.fill", color: Color(hex: "#6366F1"))
+                        }
+                        .buttonStyle(.plain)
+                        Divider().padding(.leading, 52)
+                        NavigationLink(destination: AGBView()) {
+                            profileRow("AGB", icon: "doc.badge.gearshape.fill", color: Color(hex: "#3B82F6"))
+                        }
+                        .buttonStyle(.plain)
+                        Divider().padding(.leading, 52)
                         NavigationLink(destination: HelpView()) {
                             profileRow("Hilfe & Support", icon: "questionmark.circle.fill", color: FrigyBrand.textMuted)
                         }
@@ -1729,6 +1739,86 @@ struct MealPlanPreferencesView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+// MARK: - Impressum
+
+struct ImpressumView: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            FrigyNavBar(title: "Impressum")
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    legalSection("Anbieter", text: "Frigy\nDeutschland")
+                    legalSection("Kontakt", text: "E-Mail: support@frigy.app\nWebsite: app.frigy.app")
+                    legalSection("Haftungsausschluss", text: "Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität können wir keine Gewähr übernehmen. Als Diensteanbieter sind wir für eigene Inhalte nach den allgemeinen Gesetzen verantwortlich.")
+                    legalSection("Urheberrecht", text: "Die durch die Seitenbetreiber erstellten Inhalte und Werke in dieser App unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.")
+                    Spacer().frame(height: 32)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func legalSection(_ title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(FrigyBrand.text)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(FrigyBrand.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frigyCard(cornerRadius: 14)
+    }
+}
+
+// MARK: - AGB
+
+struct AGBView: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            FrigyNavBar(title: "AGB")
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    agbSection("§1 Geltungsbereich", text: "Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der Frigy App und aller zugehörigen Dienste.")
+                    agbSection("§2 Leistungsumfang", text: "Frigy bietet eine Ernährungs-Tracking-App mit KI-gestützten Funktionen. Der genaue Leistungsumfang richtet sich nach dem gewählten Abonnement.")
+                    agbSection("§3 Abonnement & Zahlung", text: "Premium-Abonnements werden über den Apple App Store abgewickelt. Das Abonnement verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ablauf der aktuellen Periode über die App-Store-Einstellungen gekündigt wird.")
+                    agbSection("§4 Widerrufsrecht", text: "Bei digitalen Inhalten erlischt das Widerrufsrecht, sobald die Ausführung begonnen hat und du ausdrücklich zugestimmt hast, dass der Vertrag vor Ablauf der Widerrufsfrist erfüllt wird.")
+                    agbSection("§5 Haftungsbeschränkung", text: "Frigy haftet nicht für Schäden, die durch die Nutzung der App entstehen, soweit diese nicht auf Vorsatz oder grober Fahrlässigkeit beruhen. Die Nährwertangaben sind informativ und ersetzen keine medizinische Beratung.")
+                    agbSection("§6 Änderungen der AGB", text: "Frigy behält sich das Recht vor, diese AGB jederzeit zu ändern. Wesentliche Änderungen werden 30 Tage vor Inkrafttreten mitgeteilt.")
+                    Spacer().frame(height: 32)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func agbSection(_ title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(FrigyBrand.text)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(FrigyBrand.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frigyCard(cornerRadius: 14)
     }
 }
 

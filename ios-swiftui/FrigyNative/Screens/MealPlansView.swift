@@ -83,6 +83,8 @@ struct MealPlansView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 16)
+                .frame(maxWidth: 700)
+                .frame(maxWidth: .infinity)
             }
         }
         .background(pageBg.ignoresSafeArea())
@@ -287,6 +289,7 @@ struct MealPlansView: View {
                         .fill(eatenMealIDs.contains(meal.id) ? primary.opacity(0.15) : Color.clear)
                         .overlay(RoundedRectangle(cornerRadius: 8).stroke(primary.opacity(0.3), lineWidth: 1))
                 )
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(.top, 2)
