@@ -126,12 +126,17 @@ struct TrackerLogMealView: View {
                     guard !Task.isCancelled else { return }
                     let results = await searchFood(query: newVal)
                     guard !Task.isCancelled else { return }
-                    searchResults = results
-                    isSearching = false
+                    // Smooth iOS blur-in as results materialize.
+                    withAnimation(.smooth(duration: 0.45)) {
+                        searchResults = results
+                        isSearching = false
+                    }
                 }
             } else {
-                searchResults = []
-                isSearching = false
+                withAnimation(.smooth(duration: 0.3)) {
+                    searchResults = []
+                    isSearching = false
+                }
             }
         }
         .sheet(isPresented: $showBarcodeScanner) {
@@ -222,6 +227,7 @@ struct TrackerLogMealView: View {
                 VStack(spacing: 6) {
                     ForEach(searchResults) { food in
                         foodRow(food)
+                            .transition(.blurReplace)
                     }
                 }
             }
