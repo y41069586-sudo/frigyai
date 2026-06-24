@@ -70,6 +70,26 @@ final class TrackerDataService {
     static let shared = TrackerDataService()
     private init() {}
 
+    // MARK: - Macro targets cache
+
+    private let targetsKey = "frigy.cachedTargets.v1"
+
+    private struct CachedTargets: Codable {
+        let calories: Int; let protein: Int; let carbs: Int; let fat: Int
+    }
+
+    private func cachedTargets() -> MacroTargets? {
+        guard let data = UserDefaults.standard.data(forKey: targetsKey),
+              let c = try? JSONDecoder().decode(CachedTargets.self, from: data) else { return nil }
+        return MacroTargets(calories: c.calories, protein: c.protein, carbs: c.carbs, fat: c.fat)
+    }
+
+    private func persistTargets(_ t: MacroTargets) {
+        if let data = try? JSONEncoder().encode(CachedTargets(calories: t.calories, protein: t.protein, carbs: t.carbs, fat: t.fat)) {
+            UserDefaults.standard.set(data, forKey: targetsKey)
+        }
+    }
+
     /// Local calendar date as `yyyy-MM-dd` — matches how the web app stores `food_entries.date`.
     static func todayString() -> String {
         let formatter = DateFormatter()
@@ -109,7 +129,7 @@ final class TrackerDataService {
             }
         }
 
-        var targets = MacroTargets.default
+        var targets = cachedTargets() ?? MacroTargets.default
         if let settings: [TrackerSettingsRow] = try? await ctx.client
             .from("user_tracker_settings")
             .select()
@@ -123,6 +143,7 @@ final class TrackerDataService {
                 carbs: Int((row.daily_carbs ?? Double(MacroTargets.default.carbs)).rounded()),
                 fat: Int((row.daily_fat ?? Double(MacroTargets.default.fat)).rounded())
             )
+            persistTargets(targets)
         }
 
         return (meals, targets)
@@ -436,6 +457,7 @@ final class TrackerDataService {
                 .from("user_tracker_settings")
                 .upsert(payload, onConflict: "user_id")
                 .execute()
+            persistTargets(targets)
             return true
         } catch {
             return false

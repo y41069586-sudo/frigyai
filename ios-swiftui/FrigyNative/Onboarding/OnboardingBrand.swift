@@ -209,6 +209,7 @@ struct OnboardingSelectionCard: View {
 struct OnboardingStepScaffold<Content: View>: View {
     let progress: Double
     let onBack: (() -> Void)?
+    var showProgress: Bool = true
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -226,9 +227,11 @@ struct OnboardingStepScaffold<Content: View>: View {
             .padding(.top, 8)
 
             // Progress
-            OnboardingProgressBar(fraction: progress)
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
+            if showProgress {
+                OnboardingProgressBar(fraction: progress)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+            }
 
             content
         }

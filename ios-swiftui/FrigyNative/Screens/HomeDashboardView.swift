@@ -127,22 +127,26 @@ struct HomeDashboardView: View {
     }
 
     private func scheduleOverageNotification() {
+        let over = surplus
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["frigy.calorie.overage"])
-        let over = surplus
         guard over > 0 else { return }
-        let content = UNMutableNotificationContent()
-        content.title = "Gestern warst du im Kalorienüberschuss"
-        content.body = "Du hast gestern \(over) kcal zu viel gegessen. Passe deinen heutigen Plan an!"
-        content.sound = .default
-        var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        comps.day = (comps.day ?? 0) + 1
-        comps.hour = 8; comps.minute = 0; comps.second = 0
-        if let fireDate = Calendar.current.date(from: comps) {
-            let trigger = UNTimeIntervalNotificationTrigger(
-                timeInterval: max(60, fireDate.timeIntervalSinceNow), repeats: false)
-            center.add(UNNotificationRequest(
-                identifier: "frigy.calorie.overage", content: content, trigger: trigger))
+        Task {
+            let settings = await center.notificationSettings()
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "⚠️ Gestern warst du im Kalorienüberschuss"
+            content.body = "Du hast gestern \(over) kcal zu viel gegessen. Passe deinen heutigen Plan an!"
+            content.sound = .default
+            var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+            comps.day = (comps.day ?? 0) + 1
+            comps.hour = 8; comps.minute = 0; comps.second = 0
+            if let fireDate = Calendar.current.date(from: comps) {
+                let trigger = UNTimeIntervalNotificationTrigger(
+                    timeInterval: max(60, fireDate.timeIntervalSinceNow), repeats: false)
+                center.add(UNNotificationRequest(
+                    identifier: "frigy.calorie.overage", content: content, trigger: trigger))
+            }
         }
     }
 
@@ -172,7 +176,13 @@ struct HomeDashboardView: View {
         .task { await reload(); loadWater() }
         .refreshable { await reload() }
         .onChange(of: tabCoordinator.showTrackerSheet) { _, isShowing in
-            if !isShowing { Task { await reload() } }
+            if !isShowing {
+                Task {
+                    // Brief pause to let the Supabase write commit before re-querying.
+                    try? await Task.sleep(for: .milliseconds(700))
+                    await reload()
+                }
+            }
         }
         .sheet(isPresented: $showEditTargets) { NutritionGoalsView() }
         .overlay(alignment: .top) {

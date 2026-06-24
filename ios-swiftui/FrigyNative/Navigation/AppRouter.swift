@@ -165,7 +165,10 @@ final class AppRouter {
 
     func signOut() async {
         try? await authService.signOut()
+        UserDefaults.standard.removeObject(forKey: "pendingReferralCode")
+        UserDefaults.standard.removeObject(forKey: "frigy.cachedTargets.v1")
         tabCoordinator.popToRootAllTabs()
+        onboardingCoordinator.resetForFreshOnboarding()
         rootRoute = .auth
     }
 

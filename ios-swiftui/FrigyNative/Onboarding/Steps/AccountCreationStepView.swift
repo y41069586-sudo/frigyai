@@ -12,7 +12,7 @@ struct AccountCreationStepView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        OnboardingStepScaffold(progress: progress, onBack: onBack) {
+        OnboardingStepScaffold(progress: progress, onBack: onBack, showProgress: false) {
             Spacer()
 
             VStack(spacing: 32) {
