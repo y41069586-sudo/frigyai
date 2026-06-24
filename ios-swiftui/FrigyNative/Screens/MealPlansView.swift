@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Model
 
@@ -42,6 +43,7 @@ struct MealPlansView: View {
     @State private var eatenMealIDs: Set<UUID> = []
     @State private var toastMessage: String?
     @State private var selectedTemplate: FoodTemplate?
+    @State private var showFridgeScan = false
 
     // Web tokens
     private let pageBg     = Color(hex: "#F2FFF8")
@@ -105,6 +107,9 @@ struct MealPlansView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toastMessage)
         .sheet(item: $selectedTemplate) { tpl in
             FoodTemplateDetailSheet(template: tpl, category: .lunch) { }
+        }
+        .sheet(isPresented: $showFridgeScan) {
+            FridgeScanSheet(weekMeals: weekPlan.flatMap { $0.meals })
         }
     }
 
@@ -175,6 +180,18 @@ struct MealPlansView: View {
                     .foregroundColor(foreground)
 
                 Spacer()
+
+                Button { showFridgeScan = true } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(primary.opacity(0.15))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "refrigerator.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "#39D47F"))
+                    }
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -393,5 +410,259 @@ private func makeDemoWeek() -> [DayPlan] {
         ] : []
 
         return DayPlan(weekday: dayNames[i], shortDay: shortNames[i], isToday: isToday, meals: meals)
+    }
+}
+
+// MARK: - Fridge Scan Sheet
+
+struct FridgeScanSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let weekMeals: [PlannedMeal]
+
+    @State private var selectedImage: UIImage?
+    @State private var showCamera = false
+    @State private var showGallery = false
+    @State private var isAnalyzing = false
+    @State private var detectedItems: [String] = []
+    @State private var missingItems: [String] = []
+    @State private var analysisError: String?
+
+    private let primary = Color(hex: "#75FBB2")
+    private let foreground = Color(hex: "#1F2937")
+    private let muted = Color(hex: "#6B7280")
+
+    // Keywords extracted from meal plan meal names
+    private var requiredIngredients: [String] {
+        let stopWords = Set(["mit", "und", "auf", "von", "zum", "der", "die", "das", "für",
+                             "nach", "bowl", "salad", "aus", "beim", "oder"])
+        let words = weekMeals.flatMap {
+            $0.name.components(separatedBy: CharacterSet(charactersIn: " -"))
+        }
+        return Array(Set(
+            words.filter { $0.count > 3 && !stopWords.contains($0.lowercased()) }
+        )).sorted()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Schließen") { dismiss() }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Color(hex: "#39D47F"))
+                Spacer()
+                Text("Kühlschrank scannen")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(foreground)
+                Spacer()
+                Color.clear.frame(width: 80, height: 1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+
+                    // Image preview
+                    if let img = selectedImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 220)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .padding(.horizontal, 20)
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(Color(hex: "#F2FFF8"))
+                                .frame(height: 180)
+                            VStack(spacing: 10) {
+                                Image(systemName: "refrigerator.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(primary)
+                                Text("Foto deines Kühlschranks")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(muted)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+
+                        Text("Mache ein Foto deines Kühlschranks oder wähle eines aus der Galerie. Die KI erkennt automatisch vorhandene Zutaten und zeigt, was für deinen Wochenplan noch fehlt.")
+                            .font(.system(size: 13))
+                            .foregroundColor(muted)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+
+                    // Camera / Gallery buttons
+                    HStack(spacing: 12) {
+                        Button { showCamera = true } label: {
+                            Label("Kamera", systemImage: "camera.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color(hex: "#082013"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 13))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button { showGallery = true } label: {
+                            Label("Galerie", systemImage: "photo.on.rectangle")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color(hex: "#39D47F"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 46)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 13)
+                                        .stroke(Color(hex: "#39D47F"), lineWidth: 1.5)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Analysis state
+                    if isAnalyzing {
+                        VStack(spacing: 8) {
+                            ProgressView().scaleEffect(1.3)
+                            Text("Zutaten werden erkannt…")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(muted)
+                        }
+                        .padding(.vertical, 24)
+
+                    } else if !detectedItems.isEmpty || !missingItems.isEmpty {
+                        // Available ingredients
+                        if !detectedItems.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Vorhanden", systemImage: "checkmark.circle.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(hex: "#39D47F"))
+                                ForEach(detectedItems, id: \.self) { item in
+                                    HStack(spacing: 8) {
+                                        Circle().fill(Color(hex: "#39D47F")).frame(width: 6, height: 6)
+                                        Text(item.prefix(1).uppercased() + item.dropFirst())
+                                            .font(.system(size: 14))
+                                            .foregroundColor(foreground)
+                                    }
+                                }
+                            }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(hex: "#DCFEEF"))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .padding(.horizontal, 20)
+                        }
+
+                        // Missing ingredients
+                        if !missingItems.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Fehlend – kaufen", systemImage: "cart.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(Color(hex: "#EF4444"))
+                                ForEach(missingItems, id: \.self) { item in
+                                    HStack(spacing: 8) {
+                                        Circle().fill(Color(hex: "#EF4444")).frame(width: 6, height: 6)
+                                        Text(item.prefix(1).uppercased() + item.dropFirst())
+                                            .font(.system(size: 14))
+                                            .foregroundColor(foreground)
+                                    }
+                                }
+                                Button {
+                                    dismiss()
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "cart.badge.plus")
+                                        Text("Zur Einkaufsliste hinzufügen")
+                                    }
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 44)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color(hex: "#EF4444"))
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, 4)
+                            }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(hex: "#FEE2E2"))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .padding(.horizontal, 20)
+                        }
+
+                    } else if let error = analysisError {
+                        Text(error)
+                            .font(.system(size: 13))
+                            .foregroundColor(muted)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+
+                    Spacer().frame(height: 40)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .sheet(isPresented: $showCamera) {
+            ImagePickerView(image: $selectedImage, sourceType: .camera)
+        }
+        .sheet(isPresented: $showGallery) {
+            ImagePickerView(image: $selectedImage, sourceType: .photoLibrary)
+        }
+        .onChange(of: selectedImage) { _, newImage in
+            guard let img = newImage else { return }
+            Task { await analyzeImage(img) }
+        }
+    }
+
+    private func analyzeImage(_ image: UIImage) async {
+        isAnalyzing = true
+        detectedItems = []
+        missingItems = []
+        analysisError = nil
+
+        guard let jpeg = image.jpegData(compressionQuality: 0.65) else {
+            analysisError = "Bild konnte nicht verarbeitet werden."
+            isAnalyzing = false
+            return
+        }
+        let base64 = jpeg.base64EncodedString()
+
+        let result = await TrackerDataService.shared.analyzeFood(
+            query: "List every individual food ingredient you can see in this fridge or kitchen photo. Respond with a comma-separated list of ingredient names only, nothing else.",
+            imageBase64: base64
+        )
+
+        isAnalyzing = false
+
+        guard let result else {
+            analysisError = "Keine Zutaten erkannt. Bitte versuche es mit einem deutlicheren Foto."
+            return
+        }
+
+        let parsed = result.name
+            .components(separatedBy: CharacterSet(charactersIn: ",\n;"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty && $0.count > 1 }
+
+        detectedItems = Array(Set(parsed)).sorted()
+
+        // Check which required meal plan ingredients are missing from the fridge
+        let req = requiredIngredients.map { $0.lowercased() }
+        missingItems = req.filter { reqWord in
+            !detectedItems.contains { det in
+                det.contains(reqWord) || reqWord.contains(det)
+            }
+        }
     }
 }
