@@ -1744,7 +1744,24 @@ struct ReminderItem: Identifiable, Codable, Equatable {
     var hour: Int
     var minute: Int
     var label: String
+    var emoji: String
     var enabled: Bool
+
+    init(id: String, hour: Int, minute: Int, label: String, emoji: String, enabled: Bool) {
+        self.id = id; self.hour = hour; self.minute = minute
+        self.label = label; self.emoji = emoji; self.enabled = enabled
+    }
+
+    // Backwards-compatible decode: emoji defaults to "" if missing from stored data
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id      = try c.decode(String.self, forKey: .id)
+        hour    = try c.decode(Int.self,    forKey: .hour)
+        minute  = try c.decode(Int.self,    forKey: .minute)
+        label   = try c.decode(String.self, forKey: .label)
+        emoji   = (try? c.decode(String.self, forKey: .emoji)) ?? ""
+        enabled = try c.decode(Bool.self,   forKey: .enabled)
+    }
 
     var timeString: String { String(format: "%02d:%02d", hour, minute) }
 }
@@ -1753,8 +1770,10 @@ private let remindersKey = "frigy.reminders.v1"
 
 struct RemindersView: View {
     @State private var reminders: [ReminderItem] = Self.defaultReminders()
-    @State private var hasPermission = false
-    @State private var showPermissionBanner = false
+    @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
+
+    private var isDenied: Bool { permissionStatus == .denied }
+    private var hasPermission: Bool { permissionStatus == .authorized || permissionStatus == .provisional }
 
     private static func defaultReminders() -> [ReminderItem] {
         if let data = UserDefaults.standard.data(forKey: remindersKey),
@@ -1762,9 +1781,10 @@ struct RemindersView: View {
             return saved
         }
         return [
-            ReminderItem(id: "frigy.breakfast", hour: 8,  minute: 0,  label: "Frühstück tracken",   enabled: true),
-            ReminderItem(id: "frigy.lunch",     hour: 12, minute: 30, label: "Mittagessen tracken", enabled: true),
-            ReminderItem(id: "frigy.dinner",    hour: 19, minute: 0,  label: "Abendessen tracken",  enabled: false),
+            ReminderItem(id: "frigy.breakfast", hour: 8,  minute: 0,  label: "Frühstück tracken",   emoji: "🍳", enabled: true),
+            ReminderItem(id: "frigy.lunch",     hour: 12, minute: 30, label: "Mittagessen tracken", emoji: "🥗", enabled: true),
+            ReminderItem(id: "frigy.dinner",    hour: 19, minute: 0,  label: "Abendessen tracken",  emoji: "🍝", enabled: false),
+            ReminderItem(id: "frigy.snack",     hour: 15, minute: 30, label: "Snack tracken",       emoji: "🍎", enabled: false),
         ]
     }
 
@@ -1774,18 +1794,34 @@ struct RemindersView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    if showPermissionBanner {
+                    // Permission banner
+                    if !hasPermission {
                         VStack(alignment: .leading, spacing: 10) {
-                            Label("Benachrichtigungen nicht aktiv", systemImage: "bell.slash.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color(hex: "#F59E0B"))
-                            Text("Aktiviere Benachrichtigungen, um Mahlzeiterinnerungen zu erhalten.")
+                            Label(
+                                isDenied
+                                    ? "Benachrichtigungen blockiert"
+                                    : "Benachrichtigungen aktivieren",
+                                systemImage: isDenied ? "bell.slash.fill" : "bell.badge.fill"
+                            )
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(isDenied ? Color(hex: "#EF4444") : Color(hex: "#F59E0B"))
+
+                            Text(isDenied
+                                 ? "Öffne die Einstellungen und erlaube Frigy Benachrichtigungen zu senden."
+                                 : "Aktiviere Benachrichtigungen, um tägliche Mahlzeit-Erinnerungen zu erhalten.")
                                 .font(.system(size: 13))
                                 .foregroundColor(FrigyBrand.textMuted)
+
                             Button {
-                                Task { await requestPermission() }
+                                if isDenied {
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                } else {
+                                    Task { await requestPermission() }
+                                }
                             } label: {
-                                Text("Jetzt aktivieren")
+                                Text(isDenied ? "Einstellungen öffnen" : "Jetzt aktivieren")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -1796,10 +1832,7 @@ struct RemindersView: View {
                                                 colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                                                 startPoint: .topLeading, endPoint: .bottomTrailing
                                             ))
-                                            .overlay(RoundedRectangle(cornerRadius: 10)
-                                                .stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                                     )
-                                    .shadow(color: FrigyBrand.primaryDeep.opacity(0.25), radius: 8, y: 4)
                             }
                             .buttonStyle(.plain)
                         }
@@ -1810,6 +1843,9 @@ struct RemindersView: View {
                     VStack(spacing: 0) {
                         ForEach($reminders) { $reminder in
                             HStack {
+                                Text(reminder.emoji)
+                                    .font(.system(size: 26))
+                                    .frame(width: 36)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(reminder.timeString)
                                         .font(.system(size: 18, weight: .bold, design: .monospaced))
@@ -1822,13 +1858,16 @@ struct RemindersView: View {
                                 Toggle("", isOn: $reminder.enabled)
                                     .tint(FrigyBrand.primaryDark)
                                     .onChange(of: reminder.enabled) { _, _ in
+                                        if !hasPermission && reminder.enabled {
+                                            Task { await requestPermission() }
+                                        }
                                         scheduleOrCancel(reminder)
                                         save()
                                     }
                             }
                             .padding(14)
                             if reminder.id != reminders.last?.id {
-                                Divider().padding(.leading, 14)
+                                Divider().padding(.leading, 60)
                             }
                         }
                     }
@@ -1842,8 +1881,22 @@ struct RemindersView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .task { await checkPermission() }
+        .task {
+            await refreshPermissionStatus()
+            // On first visit with undetermined status: ask immediately so the user
+            // doesn't have to tap a button to get the system dialog.
+            if permissionStatus == .notDetermined {
+                await requestPermission()
+            }
+            // (Re-)schedule all enabled reminders so they survive app reinstalls
+            // or cases where the system purged pending notifications.
+            if hasPermission {
+                for r in reminders where r.enabled { scheduleOrCancel(r) }
+            }
+        }
     }
+
+    // MARK: - Persistence
 
     private func save() {
         if let data = try? JSONEncoder().encode(reminders) {
@@ -1851,35 +1904,54 @@ struct RemindersView: View {
         }
     }
 
+    // MARK: - Scheduling
+
     private func scheduleOrCancel(_ item: ReminderItem) {
         let center = UNUserNotificationCenter.current()
-        if item.enabled {
-            let content = UNMutableNotificationContent()
-            content.title = "Frigy"
-            content.body = item.label
-            content.sound = .default
-            var comps = DateComponents()
-            comps.hour = item.hour
-            comps.minute = item.minute
-            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
-            let request = UNNotificationRequest(identifier: item.id, content: content, trigger: trigger)
-            center.add(request)
-        } else {
-            center.removePendingNotificationRequests(withIdentifiers: [item.id])
+        // Always remove first — guarantees exactly one pending request per identifier,
+        // even if this function is called multiple times or center.add was called before.
+        center.removePendingNotificationRequests(withIdentifiers: [item.id])
+        guard item.enabled else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "\(item.emoji) \(item.label)"
+        content.body  = notificationBody(for: item)
+        content.sound = .default
+        content.badge = 1
+
+        var comps = DateComponents()
+        comps.hour   = item.hour
+        comps.minute = item.minute
+        // dateMatching with only hour+minute fires once per day — no duplicates possible.
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
+        center.add(UNNotificationRequest(identifier: item.id, content: content, trigger: trigger))
+    }
+
+    private func notificationBody(for item: ReminderItem) -> String {
+        switch item.id {
+        case "frigy.breakfast": return "Guten Morgen! ☀️ Zeit, dein Frühstück in Frigy zu tracken."
+        case "frigy.lunch":     return "Mittagspause! 🕛 Vergiss nicht, dein Mittagessen zu loggen."
+        case "frigy.dinner":    return "Abendzeit! 🌙 Trag dein Abendessen ein und schau, wie dein Tag war."
+        case "frigy.snack":     return "Snack-Zeit! 🍎 Kleiner Hunger? Tracke deinen Snack."
+        default:                return "Zeit zum Tracken in Frigy! 📊"
         }
     }
 
-    private func checkPermission() async {
+    // MARK: - Permission
+
+    private func refreshPermissionStatus() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
-        hasPermission = settings.authorizationStatus == .authorized
-        showPermissionBanner = settings.authorizationStatus == .notDetermined || settings.authorizationStatus == .denied
+        permissionStatus = settings.authorizationStatus
     }
 
     private func requestPermission() async {
         let granted = (try? await UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-        hasPermission = granted
-        showPermissionBanner = !granted
+        permissionStatus = granted ? .authorized : .denied
+        if granted {
+            // Now that we have permission, schedule all enabled reminders
+            for r in reminders where r.enabled { scheduleOrCancel(r) }
+        }
     }
 }
 
