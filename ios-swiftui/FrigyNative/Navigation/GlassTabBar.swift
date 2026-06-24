@@ -24,22 +24,20 @@ struct GlassTabBar: View {
     @available(iOS 26, *)
     private var glassBody: some View {
         HStack(spacing: 0) {
-            GlassEffectContainer {
-                HStack(spacing: 2) {
-                    glassTabButton(.home)
-                    glassTabButton(.plans)
-                    glassTabButton(.shopping)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
+            // Each button gets its own GlassEffectContainer so they render as
+            // three separate glass capsules, not one merged bar.
+            HStack(spacing: 8) {
+                GlassEffectContainer { glassTabButton(.home) }
+                GlassEffectContainer { glassTabButton(.plans) }
+                GlassEffectContainer { glassTabButton(.shopping) }
             }
-            // Reserve space so the pill never slides under the tracker button.
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+
             Color.clear.frame(width: trackerSize + 12, height: 1)
         }
         .overlay(alignment: .trailing) {
-            // Tracker button sits above and to the right of the pill — it is NOT
-            // inside the HStack layout so it can never be clipped or Z-blocked.
-            glassTrackerButton
+            GlassEffectContainer { glassTrackerButton }
                 .offset(y: -14)
         }
         .padding(.horizontal, 16)
