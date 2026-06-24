@@ -1,8 +1,12 @@
 import SwiftUI
+import UserNotifications
 
 /// Native paywall — matches the web app's OnboardingPaywallStep design:
 /// scrollable header (trial timeline OR feature list) + fixed bottom sheet
-/// (plan cards → "no commitment" row → CTA → restore → legal footer).
+/// (plan cards → commitment row → CTA → restore → legal footer).
+///
+/// After a successful monthly-trial purchase a local notification is scheduled
+/// for day 2 of the trial reminding the user before they are charged.
 struct PaywallStepView: View {
     let onNext: () -> Void
 
@@ -14,13 +18,14 @@ struct PaywallStepView: View {
     @State private var isRestoring = false
     @State private var packagesLoading = true
 
-    // MARK: - Helpers
+    // MARK: - Derived state
 
     private var monthlyPkg: SubscriptionPackage? { packages.first { !$0.isYearly } }
     private var yearlyPkg:  SubscriptionPackage? { packages.first {  $0.isYearly } }
     private var selectedPkg: SubscriptionPackage? { packages.first { $0.id == selectedId } }
     private var isMonthly: Bool { selectedPkg?.isYearly == false || packages.isEmpty }
 
+    // Trial is always shown for monthly; RevenueCat handles actual eligibility at checkout.
     private let trialEligible = true
     private var showTrialTimeline: Bool { isMonthly && trialEligible }
 
@@ -57,12 +62,11 @@ struct PaywallStepView: View {
         ZStack(alignment: .bottom) {
             Color.white.ignoresSafeArea()
 
-            // Scrollable header
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     Spacer().frame(height: 52)
 
-                    // Title — animates when plan toggles
+                    // Title switches with plan selection
                     Text(showTrialTimeline
                          ? "Starte deine 3-tägige\nKOSTENLOSE Testphase"
                          : "Schalte Frigy frei, um deine\nZiele schneller zu erreichen")
@@ -70,8 +74,8 @@ struct PaywallStepView: View {
                         .foregroundColor(textMain)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
+                        .id(showTrialTimeline)
                         .animation(.easeInOut(duration: 0.22), value: showTrialTimeline)
-                        .id(showTrialTimeline) // force re-render for transition
 
                     Spacer().frame(height: 28)
 
@@ -89,18 +93,15 @@ struct PaywallStepView: View {
                             ))
                     }
 
-                    // Spacer so content doesn't hide under bottom bar
                     Spacer().frame(height: 320)
                 }
             }
 
-            // Fixed bottom bar
             bottomBar
         }
         .task {
             packagesLoading = true
             packages = await router.subscriptionService.availablePackages()
-            // Default to monthly (first non-yearly), matching web app behaviour
             if let first = packages.first(where: { !$0.isYearly }) {
                 selectedId = first.id
             } else if let first = packages.first {
@@ -114,15 +115,24 @@ struct PaywallStepView: View {
 
     private var trialTimelineSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            timelineStep(icon: "lock.fill",  title: "Heute",
-                         desc: "Alle Premium-Funktionen freischalten – KI-Scan, Tracker und mehr",
-                         isLast: false)
-            timelineStep(icon: "bell.fill",  title: "In 2 Tagen – Erinnerung",
-                         desc: "Wir erinnern dich, dass deine Testphase bald endet",
-                         isLast: false)
-            timelineStep(icon: "crown.fill", title: "In 3 Tagen – Abrechnung",
-                         desc: "Abrechnung am \(billingDate), sofern du nicht vorher kündigst",
-                         isLast: true)
+            timelineStep(
+                icon: "lock.fill",
+                title: "Heute",
+                desc: "Alle Premium-Funktionen freischalten – KI-Scan, Tracker und mehr",
+                isLast: false
+            )
+            timelineStep(
+                icon: "bell.fill",
+                title: "In 2 Tagen – Erinnerung",
+                desc: "Wir erinnern dich, dass deine Testphase bald endet",
+                isLast: false
+            )
+            timelineStep(
+                icon: "crown.fill",
+                title: "In 3 Tagen – Abrechnung",
+                desc: "Abrechnung am \(billingDate), sofern du nicht vorher kündigst",
+                isLast: true
+            )
         }
         .padding(.horizontal, 24)
     }
@@ -169,13 +179,16 @@ struct PaywallStepView: View {
         }
     }
 
-    // MARK: - Features
+    // MARK: - Features (shown for yearly)
 
     private var featuresSection: some View {
         let feats: [(String, String)] = [
-            ("Einfaches Food-Scanning",              "Tracke deine Kalorien mit nur einem Bild"),
-            ("Erreiche deine Ziele Schritt für Schritt", "Klare Mahlzeiten und Makros – ohne medizinische Versprechen"),
-            ("Verfolge deinen Fortschritt",           "Bleib auf Kurs mit personalisierten Einblicken"),
+            ("Einfaches Food-Scanning",
+             "Tracke deine Kalorien mit nur einem Bild"),
+            ("Erreiche deine Ziele Schritt für Schritt",
+             "Klare Mahlzeiten und Makros – ohne medizinische Versprechen"),
+            ("Verfolge deinen Fortschritt",
+             "Bleib auf Kurs mit personalisierten Einblicken"),
         ]
         return VStack(spacing: 18) {
             ForEach(feats, id: \.0) { (title, desc) in
@@ -206,7 +219,6 @@ struct PaywallStepView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 0) {
-            // Fade in from scroll
             LinearGradient(
                 colors: [Color.white.opacity(0), Color.white],
                 startPoint: .top,
@@ -216,7 +228,7 @@ struct PaywallStepView: View {
             .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                // Plan cards 2-column
+                // 2-column plan cards
                 HStack(spacing: 12) {
                     planCard(pkg: monthlyPkg, fallbackId: "monthly",
                              title: "Monatlich", showBadge: trialEligible)
@@ -224,7 +236,7 @@ struct PaywallStepView: View {
                              title: "Jährlich",  showBadge: false)
                 }
 
-                // "No commitment" row
+                // Commitment row — "no payment now" for trial, "cancel anytime" for yearly
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 15, weight: .semibold))
@@ -237,14 +249,22 @@ struct PaywallStepView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 16)
+                .animation(.easeInOut(duration: 0.2), value: showTrialTimeline)
 
-                // CTA button
+                // CTA
                 Button {
                     guard let pkg = selectedPkg else { return }
                     isPurchasing = true
                     Task {
                         let ok = (try? await router.subscriptionService.purchase(pkg)) ?? false
-                        if ok { router.isPremium = true }
+                        if ok {
+                            router.isPremium = true
+                            // Schedule a local reminder on day 2 of a monthly trial so the
+                            // user is notified before they are charged on day 3.
+                            if !pkg.isYearly {
+                                scheduleTrialReminderNotification()
+                            }
+                        }
                         isPurchasing = false
                         if ok { onNext() }
                     }
@@ -275,13 +295,19 @@ struct PaywallStepView: View {
                 .disabled(isPurchasing || isRestoring || selectedPkg == nil)
                 .padding(.top, 16)
 
-                // Restore
+                // Restore purchases
                 Button {
                     isRestoring = true
                     Task {
                         let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
-                        if ok { router.isPremium = true; onNext() }
+                        if ok {
+                            router.isPremium = true
+                            // Cancel any pending trial notification — user is already premium.
+                            UNUserNotificationCenter.current()
+                                .removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
+                        }
                         isRestoring = false
+                        if ok { onNext() }
                     }
                 } label: {
                     Group {
@@ -336,7 +362,6 @@ struct PaywallStepView: View {
             withAnimation(.easeInOut(duration: 0.15)) { selectedId = id }
         } label: {
             ZStack(alignment: .top) {
-                // Card body
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(title)
@@ -347,6 +372,7 @@ struct PaywallStepView: View {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color(hex: "#E5E7EB"))
                                 .frame(width: 72, height: 17)
+                                .shimmering()
                         } else {
                             Text(pkg?.priceString ?? "—")
                                 .font(.system(size: 17, weight: .bold))
@@ -358,15 +384,13 @@ struct PaywallStepView: View {
 
                     Spacer()
 
-                    // Radio
+                    // Radio button
                     ZStack {
                         Circle()
                             .stroke(selected ? primaryDark : borderIdle, lineWidth: 2)
                             .frame(width: 22, height: 22)
                         if selected {
-                            Circle()
-                                .fill(primaryDark)
-                                .frame(width: 14, height: 14)
+                            Circle().fill(primaryDark).frame(width: 14, height: 14)
                             Image(systemName: "checkmark")
                                 .font(.system(size: 8, weight: .black))
                                 .foregroundColor(.white)
@@ -385,7 +409,6 @@ struct PaywallStepView: View {
                 )
                 .shadow(color: selected ? primary.opacity(0.4) : .clear, radius: 12, y: 4)
 
-                // Trial badge (monthly only)
                 if showBadge {
                     Text("3 TAGE KOSTENLOS")
                         .font(.system(size: 10, weight: .bold))
@@ -398,5 +421,70 @@ struct PaywallStepView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Notifications
+
+    /// Schedules a local notification for day 2 of the monthly trial reminding the user
+    /// that they will be charged tomorrow unless they cancel.
+    private func scheduleTrialReminderNotification() {
+        let center = UNUserNotificationCenter.current()
+
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+            guard granted else { return }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Testphase endet morgen!"
+            content.body = "Deine kostenlose Testphase endet morgen. Kündige jetzt in den App-Store-Einstellungen, wenn du nicht abgerechnet werden möchtest."
+            content.sound = .default
+
+            // Fire 48 hours after trial start (morning of day 2, ~9:00)
+            var fireComponents = Calendar.current.dateComponents(
+                [.year, .month, .day], from: Date()
+            )
+            fireComponents.day = (fireComponents.day ?? 0) + 2
+            fireComponents.hour = 9
+            fireComponents.minute = 0
+            fireComponents.second = 0
+
+            let trigger: UNNotificationTrigger
+            if let fireDate = Calendar.current.date(from: fireComponents) {
+                trigger = UNTimeIntervalNotificationTrigger(
+                    timeInterval: max(60, fireDate.timeIntervalSinceNow),
+                    repeats: false
+                )
+            } else {
+                trigger = UNTimeIntervalNotificationTrigger(
+                    timeInterval: 48 * 60 * 60,
+                    repeats: false
+                )
+            }
+
+            let request = UNNotificationRequest(
+                identifier: "frigy.trial.day2",
+                content: content,
+                trigger: trigger
+            )
+            center.add(request)
+        }
+    }
+}
+
+// MARK: - Shimmer modifier for loading skeleton
+
+private extension View {
+    func shimmering() -> some View {
+        self.overlay(
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0),
+                    Color.white.opacity(0.6),
+                    Color.white.opacity(0),
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .rotationEffect(.degrees(20))
+        )
     }
 }
