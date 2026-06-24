@@ -11,7 +11,7 @@ struct SpeedSelectStepView: View {
     @State private var sliderActive: Bool = false
 
     private let kgPerLb = 0.45359237
-    private let minKg = 0.1
+    private let minKg = 0.2
     private let maxKg = 1.0
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
@@ -20,7 +20,8 @@ struct SpeedSelectStepView: View {
         self.onBack = onBack
         self.onNext = onNext
         _draft = State(initialValue: profile)
-        let weekly = max(0.1, min(1.0, profile.weeklyGoalKg > 0 ? profile.weeklyGoalKg : 0.5))
+        // Always start gentle (green) at 0,2 kg/week; keep a prior in-range choice.
+        let weekly = max(0.2, min(1.0, profile.weeklyGoalKg > 0 ? profile.weeklyGoalKg : 0.2))
         var d = profile
         d.weeklyGoalKg = weekly
         _draft = State(initialValue: d)
@@ -116,7 +117,7 @@ struct SpeedSelectStepView: View {
                     ),
                     min: displayMin,
                     max: displayMax,
-                    ticks: isMetric ? [0.1, 0.5, 1.0] : [
+                    ticks: isMetric ? [0.2, 0.5, 1.0] : [
                         (minKg / kgPerLb * 10).rounded() / 10,
                         (0.5 / kgPerLb * 10).rounded() / 10,
                         (maxKg / kgPerLb * 10).rounded() / 10,
@@ -167,6 +168,32 @@ private struct MintPaceSlider: View {
         return Swift.max(0, Swift.min(1, (v - min) / (max - min)))
     }
 
+    // Pace scale: green (gentle) → orange (moderate) → red (aggressive).
+    private static let green  = (r: 0.22, g: 0.83, b: 0.49)   // #39D47F
+    private static let orange = (r: 1.00, g: 0.62, b: 0.20)   // #FF9E33
+    private static let red    = (r: 0.98, g: 0.27, b: 0.27)   // #FA4545
+
+    /// Smoothly interpolated colour for a 0…1 position along the track.
+    private func paceColor(_ p: Double) -> Color {
+        func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double { a + (b - a) * t }
+        let g = Self.green, o = Self.orange, r = Self.red
+        if p < 0.5 {
+            let t = p / 0.5
+            return Color(red: lerp(g.r, o.r, t), green: lerp(g.g, o.g, t), blue: lerp(g.b, o.b, t))
+        } else {
+            let t = (p - 0.5) / 0.5
+            return Color(red: lerp(o.r, r.r, t), green: lerp(o.g, r.g, t), blue: lerp(o.b, r.b, t))
+        }
+    }
+
+    /// Full green→orange→red gradient across the whole track length.
+    private var paceGradient: LinearGradient {
+        LinearGradient(
+            colors: [paceColor(0), paceColor(0.5), paceColor(1)],
+            startPoint: .leading, endPoint: .trailing
+        )
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             GeometryReader { geo in
@@ -174,31 +201,57 @@ private struct MintPaceSlider: View {
                 let pct = pct(value)
 
                 ZStack(alignment: .leading) {
-                    // Track background — liquid glass capsule
+                    // Track background — the full green→orange→red scale, faint + glassy.
                     Capsule()
-                        .fill(.clear)
-                        .frame(height: 10)
-                        .realGlass(in: Capsule(), interactive: false, fallbackBorder: FrigyBrand.cardBorder.opacity(0.5))
+                        .fill(paceGradient)
+                        .opacity(0.28)
+                        .frame(height: 12)
+                        .overlay(Capsule().stroke(Color.white.opacity(0.45), lineWidth: 1).blendMode(.overlay))
+                        .overlay(Capsule().stroke(FrigyBrand.cardBorder.opacity(0.45), lineWidth: 1))
 
-                    // Active track — ends at the thumb's center so the fill
-                    // tracks the knob exactly.
+                    // Active fill — same gradient at true scale, revealed up to the
+                    // thumb so the colour fades smoothly green→orange→red as you wisch.
                     Capsule()
-                        .fill(FrigyBrand.buttonGradient)
-                        .frame(width: Swift.max(CGFloat(pct) * (w - 26) + 13, 10), height: 10)
-                        .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
-                        .shadow(color: Color(hex: "#4AE896").opacity(0.35), radius: 3, y: 1)
+                        .fill(paceGradient)
+                        .frame(height: 12)
+                        .mask(alignment: .leading) {
+                            Capsule()
+                                .frame(width: Swift.max(CGFloat(pct) * (w - 28) + 14, 12), height: 12)
+                        }
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                                .blendMode(.overlay)
+                                .frame(width: Swift.max(CGFloat(pct) * (w - 28) + 14, 12), height: 12),
+                            alignment: .leading
+                        )
+                        .shadow(color: paceColor(pct).opacity(0.4), radius: 4, y: 1)
+                        .animation(.easeInOut(duration: 0.18), value: pct)
 
-                    // Thumb — liquid glass circle
-                    Circle()
-                        .fill(.clear)
-                        .frame(width: 26, height: 26)
-                        .realGlass(in: Circle(), interactive: true)
-                        .overlay(Circle().stroke(FrigyBrand.primary, lineWidth: 2.5))
-                        .shadow(color: Color(hex: "#4AE896").opacity(0.55), radius: 6, y: 2)
-                        .offset(x: CGFloat(pct) * (w - 26))
-                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pct)
+                    // Thumb — liquid glass, tinted to the current pace colour.
+                    ZStack {
+                        Circle()
+                            .fill(.clear)
+                            .frame(width: 28, height: 28)
+                            .realGlass(in: Circle(), interactive: true)
+                        Circle()
+                            .stroke(paceColor(pct), lineWidth: 3)
+                            .frame(width: 28, height: 28)
+                        Circle()
+                            .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                            .frame(width: 28, height: 28)
+                            .blendMode(.overlay)
+                        Circle()
+                            .fill(paceColor(pct))
+                            .frame(width: 9, height: 9)
+                    }
+                    .scaleEffect(isActive ? 1.18 : 1)
+                    .shadow(color: paceColor(pct).opacity(0.55), radius: isActive ? 9 : 6, y: 2)
+                    .offset(x: CGFloat(pct) * (w - 28))
+                    .animation(.easeInOut(duration: 0.18), value: pct)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.6), value: isActive)
                 }
-                .frame(height: 22)
+                .frame(height: 28)
                 .contentShape(Rectangle().size(CGSize(width: w, height: 42)).offset(y: -10))
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -207,7 +260,7 @@ private struct MintPaceSlider: View {
                             // Map against the thumb's travel range (inset by its
                             // radius on each side) so the knob lands exactly where
                             // you drag — and under the matching tick number.
-                            let ratio = Swift.max(0, Swift.min(1, (drag.location.x - 13) / (w - 26)))
+                            let ratio = Swift.max(0, Swift.min(1, (drag.location.x - 14) / (w - 28)))
                             value = min + ratio * (max - min)
                         }
                         .onEnded { _ in isActive = false }
@@ -226,7 +279,7 @@ private struct MintPaceSlider: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(isActive ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
                         .fixedSize()
-                        .position(x: CGFloat(pct(tick)) * (w - 26) + 13, y: 8)
+                        .position(x: CGFloat(pct(tick)) * (w - 28) + 14, y: 8)
                         .animation(.easeInOut(duration: 0.15), value: isActive)
                 }
             }
