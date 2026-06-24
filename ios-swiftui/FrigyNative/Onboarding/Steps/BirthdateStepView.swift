@@ -69,7 +69,7 @@ struct BirthdateStepView: View {
                         .multilineTextAlignment(.center)
                         .keyboardType(.numberPad)
                         .focused($isFocused)
-                        .onChange(of: inputText) { newVal in
+                        .onChange(of: inputText) { _, newVal in
                             inputText = sanitizeBirthdateInput(newVal)
                             updateDraftFromInput()
                         }
