@@ -645,25 +645,18 @@ struct FridgeScanSheet: View {
             return
         }
         let base64 = jpeg.base64EncodedString()
+        let dataURL = "data:image/jpeg;base64,\(base64)"
 
-        let result = await TrackerDataService.shared.analyzeFood(
-            query: "List every individual food ingredient you can see in this fridge or kitchen photo. Respond with a comma-separated list of ingredient names only, nothing else.",
-            imageBase64: base64
-        )
+        let items = await TrackerDataService.shared.analyzeIngredients(imageDataURL: dataURL)
 
         isAnalyzing = false
 
-        guard let result else {
+        guard !items.isEmpty else {
             analysisError = "Keine Zutaten erkannt. Bitte versuche es mit einem deutlicheren Foto."
             return
         }
 
-        let parsed = result.name
-            .components(separatedBy: CharacterSet(charactersIn: ",\n;"))
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-            .filter { !$0.isEmpty && $0.count > 1 }
-
-        detectedItems = Array(Set(parsed)).sorted()
+        detectedItems = items.map { $0.lowercased() }.sorted()
 
         // Check which required meal plan ingredients are missing from the fridge
         let req = requiredIngredients.map { $0.lowercased() }

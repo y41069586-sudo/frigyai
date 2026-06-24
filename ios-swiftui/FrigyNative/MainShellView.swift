@@ -26,17 +26,12 @@ struct MainShellView: View {
                 GlassTabBar(selection: $coordinator.selectedTab)
             }
             // Tracker button rendered AFTER safeAreaInset so it's always on top.
-            // Bottom padding positions it floating above the tab bar.
+            // Bottom padding positions it floating above the center of the tab bar.
             .overlay(alignment: .bottom) {
-                HStack {
-                    Spacer()
-                    trackerButton(
-                        mealCount: coordinator.todayMealCount,
-                        action: { coordinator.openTracker() }
-                    )
-                    .padding(.trailing, 16)
-                }
-                .frame(maxWidth: 460)
+                trackerButton(
+                    mealCount: coordinator.todayMealCount,
+                    action: { coordinator.openTracker() }
+                )
                 .padding(.bottom, geo.safeAreaInsets.bottom + 18)
             }
         }

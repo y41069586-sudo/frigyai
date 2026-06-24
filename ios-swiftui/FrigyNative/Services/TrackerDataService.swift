@@ -536,6 +536,41 @@ final class TrackerDataService {
         #endif
     }
 
+    // MARK: - Ingredient analysis (analyze-ingredients edge function)
+
+    func analyzeIngredients(imageDataURL: String) async -> [String] {
+        #if canImport(Supabase)
+        guard SupabaseConfig.isConfigured,
+              let base = SupabaseConfig.urlString,
+              let anonKey = SupabaseConfig.anonKey,
+              let url = URL(string: "\(base)/functions/v1/analyze-ingredients") else { return [] }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        if let session = try? await SupabaseAuthService.shared.client.auth.session {
+            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        } else {
+            request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        }
+
+        let body: [String: Any] = ["image": imageDataURL, "isOnboarding": false]
+        guard let payload = try? JSONSerialization.data(withJSONObject: body) else { return [] }
+        request.httpBody = payload
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
+
+        struct IngredientsResponse: Decodable { let ingredients: [String] }
+        guard let decoded = try? JSONDecoder().decode(IngredientsResponse.self, from: data) else { return [] }
+        return decoded.ingredients
+        #else
+        return []
+        #endif
+    }
+
     // MARK: - User settings
 
     func loadUserEmail() async -> String? {
