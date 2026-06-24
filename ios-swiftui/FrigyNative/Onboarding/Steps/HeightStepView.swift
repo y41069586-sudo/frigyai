@@ -7,12 +7,13 @@ struct HeightStepView: View {
     let onNext: (UserProfileDraft) -> Void
 
     @State private var draft: UserProfileDraft
-    @State private var inputText: String = ""
     @State private var isMetric: Bool = true
-    @FocusState private var isFocused: Bool
+    @State private var selectedCm: Int = 170
+    // Imperial: two separate wheels for feet and inches
+    @State private var selectedFeet: Int = 5
+    @State private var selectedInches: Int = 7
 
     private let cmPerInch = 2.54
-    private let inchesPerFoot = 12.0
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
@@ -20,47 +21,41 @@ struct HeightStepView: View {
         self.onBack = onBack
         self.onNext = onNext
         _draft = State(initialValue: profile)
-        let cm = profile.heightCm
-        _inputText = State(initialValue: cm > 0 ? String(Int(cm)) : "")
-    }
-
-    private var parsedCm: Double? {
-        if isMetric {
-            guard let val = Double(inputText), val >= 100, val <= 250 else { return nil }
-            return val
-        } else {
-            return parseImperialHeight(inputText)
+        let cm = profile.heightCm > 0 ? Int(round(profile.heightCm)) : 170
+        _selectedCm = State(initialValue: min(max(cm, 100), 250))
+        if profile.heightCm > 0 {
+            let totalInches = profile.heightCm / 2.54
+            let feet = Int(totalInches / 12)
+            let inches = Int(totalInches.truncatingRemainder(dividingBy: 12))
+            _selectedFeet   = State(initialValue: min(max(feet, 3), 8))
+            _selectedInches = State(initialValue: min(max(inches, 0), 11))
         }
     }
 
-    private var canProceed: Bool { parsedCm != nil }
-
-    private var showError: Bool {
-        !inputText.isEmpty && !canProceed
-    }
-
-    private var helperText: String {
-        if showError {
-            return isMetric ? "Bitte zwischen 100 und 250 cm eingeben." : "Bitte im Format 5'7 eingeben."
-        }
-        return isMetric ? "z.B. 170 cm" : "e.g. 5'7\""
+    private var imperialCm: Double {
+        Double(selectedFeet * 12 + selectedInches) * cmPerInch
     }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            // Question
             FrigyMascotQuestion("Wie groß bist du?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
 
-            // Unit toggle
             MintSegmentedControl(
                 options: [("metric", "Metrisch"), ("imperial", "Imperial")],
                 selected: isMetric ? "metric" : "imperial"
             ) { id in
+                let wasMetric = isMetric
                 isMetric = (id == "metric")
-                inputText = ""
+                if wasMetric && !isMetric {
+                    let totalIn = Double(selectedCm) / cmPerInch
+                    selectedFeet   = min(max(Int(totalIn / 12), 3), 8)
+                    selectedInches = min(max(Int(totalIn.truncatingRemainder(dividingBy: 12)), 0), 11)
+                } else if !wasMetric && isMetric {
+                    selectedCm = min(max(Int(round(imperialCm)), 100), 250)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
@@ -68,55 +63,24 @@ struct HeightStepView: View {
 
             Spacer()
 
-            // Input card
-            VStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 24)
-                                .stroke(FrigyBrand.borderMint, lineWidth: 1)
-                        )
-                        .shadow(color: Color(hex: "#39D47F").opacity(0.12), radius: 18, y: 8)
-
-                    HStack(spacing: 12) {
-                        TextField(isMetric ? "170" : "5'7", text: $inputText)
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(FrigyBrand.text)
-                            .multilineTextAlignment(.center)
-                            .keyboardType(isMetric ? .numberPad : .numbersAndPunctuation)
-                            .focused($isFocused)
-                            .frame(maxWidth: .infinity)
-                            .onChange(of: inputText) { _, _ in
-                                commitInput()
-                            }
-
-                        Text(isMetric ? "cm" : "ft/in")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(FrigyBrand.textMuted)
-                    }
+            if isMetric {
+                NumberScrollInput(value: $selectedCm, range: 100...250, unit: "cm")
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                }
-                .frame(maxWidth: 320)
-                .frame(height: 64)
-
-                Text(helperText)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(showError ? Color(hex: "#DC2626") : FrigyBrand.textMuted)
-                    .multilineTextAlignment(.center)
-                    .animation(.easeInOut(duration: 0.15), value: helperText)
+                    .onChange(of: selectedCm) { _, cm in
+                        draft.heightCm = Double(cm)
+                    }
+            } else {
+                imperialPicker
+                    .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
 
             Spacer()
 
-            // Bottom bar
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
-                OnboardingContinueButton(isEnabled: canProceed) {
+                OnboardingContinueButton {
                     var updated = draft
-                    if let cm = parsedCm { updated.heightCm = cm }
+                    updated.heightCm = isMetric ? Double(selectedCm) : imperialCm
                     onNext(updated)
                 }
                 .padding(.horizontal, 20)
@@ -125,29 +89,54 @@ struct HeightStepView: View {
                 .background(FrigyBrand.bg)
             }
         }
-        .onAppear { isFocused = true }
-    }
-
-    private func commitInput() {
-        guard let cm = parsedCm else { return }
-        draft.heightCm = cm
-    }
-
-    private func parseImperialHeight(_ text: String) -> Double? {
-        // Accepts: "5'7", "5'7\"", "5 7", "67" (total inches)
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        if trimmed.contains("'") {
-            let parts = trimmed.split(separator: "'")
-            guard parts.count >= 1, let feet = Double(parts[0]) else { return nil }
-            let inchStr = parts.count > 1 ? parts[1].replacingOccurrences(of: "\"", with: "").trimmingCharacters(in: .whitespaces) : "0"
-            let inches = Double(inchStr) ?? 0
-            guard feet >= 3, feet <= 8, inches >= 0, inches <= 11 else { return nil }
-            let cm = (feet * inchesPerFoot + inches) * cmPerInch
-            return cm >= 100 && cm <= 250 ? cm : nil
-        } else if let totalInches = Double(trimmed) {
-            let cm = totalInches * cmPerInch
-            return cm >= 100 && cm <= 250 ? cm : nil
+        .onAppear {
+            draft.heightCm = isMetric ? Double(selectedCm) : imperialCm
         }
-        return nil
+    }
+
+    // Imperial: two side-by-side wheels (feet | inches) with a combined display.
+    private var imperialPicker: some View {
+        VStack(spacing: 4) {
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("\(selectedFeet)")
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .foregroundColor(FrigyBrand.text)
+                    .contentTransition(.numericText())
+                    .animation(.snappy(duration: 0.18), value: selectedFeet)
+                    .monospacedDigit()
+                Text("ft")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(FrigyBrand.primaryDeep)
+                    .padding(.bottom, 6)
+                Text("\(selectedInches)")
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .foregroundColor(FrigyBrand.text)
+                    .contentTransition(.numericText())
+                    .animation(.snappy(duration: 0.18), value: selectedInches)
+                    .monospacedDigit()
+                    .padding(.leading, 8)
+                Text("in")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(FrigyBrand.primaryDeep)
+                    .padding(.bottom, 6)
+            }
+
+            HStack(spacing: 0) {
+                Picker("", selection: $selectedFeet) {
+                    ForEach(3...8, id: \.self) { ft in Text("\(ft) ft").tag(ft) }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 150)
+                .onChange(of: selectedFeet) { _, _ in draft.heightCm = imperialCm }
+
+                Picker("", selection: $selectedInches) {
+                    ForEach(0...11, id: \.self) { i in Text("\(i) in").tag(i) }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 150)
+                .onChange(of: selectedInches) { _, _ in draft.heightCm = imperialCm }
+            }
+            .clipped()
+        }
     }
 }
