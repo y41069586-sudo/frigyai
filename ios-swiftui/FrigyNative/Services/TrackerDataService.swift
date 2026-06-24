@@ -461,6 +461,14 @@ final class TrackerDataService {
         return Context(client: SupabaseAuthService.shared.client, userId: session.user.id.uuidString)
     }
     #endif
+
+    func hasActiveSession() async -> Bool {
+        #if canImport(Supabase)
+        return (try? await SupabaseAuthService.shared.client.auth.session) != nil
+        #else
+        return false
+        #endif
+    }
 }
 
 #if canImport(Supabase)

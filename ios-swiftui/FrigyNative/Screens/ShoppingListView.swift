@@ -63,7 +63,7 @@ struct ShoppingListView: View {
         guard let data = UserDefaults.standard.data(forKey: shoppingItemsKey),
               let saved = try? JSONDecoder().decode([ShoppingItem].self, from: data),
               !saved.isEmpty else {
-            return demoItems()
+            return []
         }
         return saved
     }

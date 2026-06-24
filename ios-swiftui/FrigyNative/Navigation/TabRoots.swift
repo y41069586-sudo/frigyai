@@ -85,6 +85,8 @@ struct ProfileView: View {
     @Environment(AppRouter.self) private var router
     @State private var userEmail: String = ""
     @State private var isRestoring = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeletingAccount = false
 
     private var appVersion: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -214,6 +216,14 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
 
+                    Button { showDeleteConfirm = true } label: {
+                        Text(isDeletingAccount ? "Wird gelöscht…" : "Konto löschen")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(hex: "#9CA3AF"))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isDeletingAccount)
+
                     Text(appVersion)
                         .font(.system(size: 11))
                         .foregroundColor(FrigyBrand.textMuted.opacity(0.7))
@@ -230,6 +240,26 @@ struct ProfileView: View {
             if let premium = try? await router.subscriptionService.refreshPremiumState() {
                 router.isPremium = premium
             }
+        }
+        .confirmationDialog(
+            "Konto wirklich löschen?",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Konto löschen", role: .destructive) {
+                Task {
+                    isDeletingAccount = true
+                    // Clear local data
+                    UserDefaults.standard.removeObject(forKey: "frigy.shoppingItems.v2")
+                    UserDefaults.standard.removeObject(forKey: "frigy.transformation.photos.v1")
+                    UserDefaults.standard.removeObject(forKey: "frigy.reminders.v1")
+                    await router.signOut()
+                    isDeletingAccount = false
+                }
+            }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text("Dein Konto und alle lokalen Daten werden gelöscht. Deine Serverdaten werden innerhalb von 30 Tagen entfernt. Diese Aktion kann nicht rückgängig gemacht werden.")
         }
     }
 
@@ -779,6 +809,7 @@ struct NutritionGoalsView: View {
 struct SubscriptionView: View {
     @Environment(AppRouter.self) private var router
     @State private var showPaywall = false
+    @State private var packages: [SubscriptionPackage] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -819,7 +850,9 @@ struct SubscriptionView: View {
                         .padding(.horizontal, 20)
 
                         Button { showPaywall = true } label: {
-                            Text("Jetzt upgraden – 4,99 € / Monat")
+                            let monthly = packages.first { !$0.isYearly }
+                            let priceLabel = monthly.map { "Jetzt upgraden – \($0.priceString) / \($0.period)" } ?? "Jetzt upgraden"
+                            Text(priceLabel)
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -845,6 +878,7 @@ struct SubscriptionView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task { packages = await router.subscriptionService.availablePackages() }
         .sheet(isPresented: $showPaywall) {
             PaywallStepView(onNext: { showPaywall = false })
         }
@@ -1267,6 +1301,7 @@ struct ChatbotView: View {
         ("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?"),
     ]
     @State private var inputText = ""
+    @State private var isTyping = false
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -1280,12 +1315,18 @@ struct ChatbotView: View {
                             ChatBubble(text: messages[i].text, isUser: messages[i].role == "user")
                                 .id(i)
                         }
+                        if isTyping {
+                            TypingBubble().id("typing")
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 }
                 .onChange(of: messages.count) { _, _ in
                     withAnimation { proxy.scrollTo(messages.count - 1) }
+                }
+                .onChange(of: isTyping) { _, v in
+                    if v { withAnimation { proxy.scrollTo("typing") } }
                 }
             }
 
@@ -1340,10 +1381,12 @@ struct ChatbotView: View {
         guard !text.isEmpty else { return }
         messages.append(("user", text))
         inputText = ""
+        isTyping = true
 
         let history = messages.map { ChatTurn(role: $0.role, content: $0.text) }
         Task {
             let reply = await TrackerDataService.shared.sendChatMessage(text, history: history)
+            isTyping = false
             messages.append((
                 "assistant",
                 reply ?? "Ich konnte gerade keine Antwort laden. Bitte prüfe deine Verbindung und versuche es erneut."
@@ -1390,6 +1433,34 @@ struct ChatBubble: View {
                 .containerRelativeFrame(.horizontal) { width, _ in width * 0.75 }
             if !isUser { Spacer() }
         }
+    }
+}
+
+struct TypingBubble: View {
+    @State private var phase: Double = 0
+
+    var body: some View {
+        HStack {
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(FrigyBrand.textMuted)
+                        .frame(width: 7, height: 7)
+                        .scaleEffect(1 + 0.4 * sin(phase + Double(i) * 0.8))
+                        .animation(.easeInOut(duration: 0.5).repeatForever().delay(Double(i) * 0.15), value: phase)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(.ultraThinMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.25), lineWidth: 1))
+            )
+            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+            Spacer()
+        }
+        .onAppear { phase = .pi * 2 }
     }
 }
 
@@ -1474,17 +1545,90 @@ struct BadgesView: View {
 
 struct FoodEntryView: View {
     let id: UUID
+    @State private var entry: LoggedMeal? = nil
+    @State private var isLoading = true
 
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: "Eintrag")
-            Spacer()
-            Text("Lebensmitteleintrag \(id.uuidString.prefix(8))")
-                .foregroundColor(FrigyBrand.textMuted)
-            Spacer()
+
+            if isLoading {
+                Spacer()
+                ProgressView()
+                Spacer()
+            } else if let meal = entry {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        VStack(spacing: 10) {
+                            Text(meal.category.emoji)
+                                .font(.system(size: 56))
+                            Text(meal.name)
+                                .font(.system(size: 22, weight: .black))
+                                .foregroundColor(FrigyBrand.text)
+                                .multilineTextAlignment(.center)
+                            if !meal.time.isEmpty {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "clock").font(.system(size: 12))
+                                    Text(meal.time).font(.system(size: 13, weight: .medium))
+                                }
+                                .foregroundColor(FrigyBrand.textMuted)
+                            }
+                        }
+                        .padding(.top, 12)
+
+                        HStack(spacing: 10) {
+                            entryMacroChip("Kalorien", value: "\(meal.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                            entryMacroChip("Protein",  value: "\(meal.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
+                            entryMacroChip("Carbs",    value: "\(meal.carbs)",    unit: "g",    color: Color(hex: "#FBBF24"))
+                            entryMacroChip("Fett",     value: "\(meal.fat)",      unit: "g",    color: Color(hex: "#F87171"))
+                        }
+                        .padding(.horizontal, 20)
+
+                        Spacer().frame(height: 32)
+                    }
+                }
+            } else {
+                Spacer()
+                VStack(spacing: 14) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 44))
+                        .foregroundColor(FrigyBrand.cardBorder)
+                    Text("Eintrag nicht verfügbar")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(FrigyBrand.text)
+                    Text("Dieser Lebensmitteleintrag konnte nicht geladen werden.")
+                        .font(.system(size: 13))
+                        .foregroundColor(FrigyBrand.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+                Spacer()
+            }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task {
+            let result = await TrackerDataService.shared.loadToday()
+            entry = result.meals.first { $0.id == id }
+            isLoading = false
+        }
+    }
+
+    private func entryMacroChip(_ label: String, value: String, unit: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundColor(color)
+            Text(unit)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(color.opacity(0.7))
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(FrigyBrand.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .frigyCard(cornerRadius: 12)
     }
 }
 
@@ -1492,24 +1636,104 @@ struct FoodEntryView: View {
 
 struct MealDetailView: View {
     let id: String
+    @State private var isSaving = false
+    @Environment(MainTabCoordinator.self) private var tabCoordinator
+
+    private var template: FoodTemplate? { FoodTemplate.all.first { $0.name == id } }
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Mahlzeit")
+            FrigyNavBar(title: template?.name ?? id)
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(id)
-                        .font(.title2.bold())
-                        .foregroundColor(FrigyBrand.text)
-                    Text("Rezeptdetails werden hier angezeigt.")
-                        .foregroundColor(FrigyBrand.textMuted)
+                VStack(spacing: 20) {
+                    if let tpl = template {
+                        VStack(spacing: 10) {
+                            Text(tpl.emoji).font(.system(size: 56))
+                            Text(tpl.name)
+                                .font(.system(size: 22, weight: .black))
+                                .foregroundColor(FrigyBrand.text)
+                                .multilineTextAlignment(.center)
+                            HStack(spacing: 5) {
+                                Image(systemName: "clock").font(.system(size: 11))
+                                Text(tpl.prepTime).font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(FrigyBrand.textMuted)
+                        }
+                        .frame(maxWidth: .infinity).padding(.top, 12)
+
+                        HStack(spacing: 10) {
+                            mealDetailMacroChip("Kalorien", value: "\(tpl.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                            mealDetailMacroChip("Protein",  value: "\(tpl.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
+                            mealDetailMacroChip("Carbs",    value: "\(tpl.carbs)",    unit: "g",    color: Color(hex: "#FBBF24"))
+                            mealDetailMacroChip("Fett",     value: "\(tpl.fat)",      unit: "g",    color: Color(hex: "#F87171"))
+                        }
+                        .padding(.horizontal, 20)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Zubereitung", systemImage: "list.bullet")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(FrigyBrand.text)
+                            Text(tpl.recipe)
+                                .font(.system(size: 14))
+                                .foregroundColor(FrigyBrand.textMuted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(16)
+                        .frigyCard(cornerRadius: 18)
+                        .padding(.horizontal, 20)
+
+                        Button {
+                            isSaving = true
+                            Task {
+                                await TrackerDataService.shared.addFoodEntry(
+                                    name: tpl.name, calories: tpl.calories,
+                                    protein: tpl.protein, carbs: tpl.carbs, fat: tpl.fat,
+                                    portion: "1 Portion", category: .lunch
+                                )
+                                isSaving = false
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if isSaving { ProgressView().tint(.white) }
+                                Text(isSaving ? "Wird gespeichert…" : "Zu Tagebuch hinzufügen")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity).frame(height: 54)
+                            .background(FrigyBrand.buttonGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .buttonStyle(.plain).disabled(isSaving)
+                        .padding(.horizontal, 20)
+                    } else {
+                        VStack(spacing: 14) {
+                            Image(systemName: "fork.knife").font(.system(size: 44))
+                                .foregroundColor(FrigyBrand.cardBorder)
+                            Text(id).font(.system(size: 20, weight: .bold))
+                                .foregroundColor(FrigyBrand.text).multilineTextAlignment(.center)
+                            Text("Füge diese Mahlzeit über den + Button zu deinem Tagebuch hinzu.")
+                                .font(.system(size: 14)).foregroundColor(FrigyBrand.textMuted)
+                                .multilineTextAlignment(.center).padding(.horizontal, 24)
+                        }
+                        .frame(maxWidth: .infinity).padding(.top, 60)
+                    }
+
+                    Spacer().frame(height: 40)
                 }
-                .padding(20)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func mealDetailMacroChip(_ label: String, value: String, unit: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value).font(.system(size: 18, weight: .black, design: .rounded)).foregroundColor(color)
+            Text(unit).font(.system(size: 10, weight: .bold)).foregroundColor(color.opacity(0.7))
+            Text(label).font(.system(size: 10)).foregroundColor(FrigyBrand.textMuted)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 10).frigyCard(cornerRadius: 12)
     }
 }
 
@@ -1661,9 +1885,23 @@ struct RemindersView: View {
 
 // MARK: - Meal Plan Preferences
 
+private let prefCaloriesKey = "frigy.planPrefs.calories"
+private let prefMealsKey = "frigy.planPrefs.mealsPerDay"
+
 struct MealPlanPreferencesView: View {
-    @State private var calories = 1900.0
-    @State private var mealsPerDay = 3
+    @Environment(\.dismiss) private var dismiss
+
+    private static func loadCalories() -> Double {
+        let v = UserDefaults.standard.integer(forKey: prefCaloriesKey)
+        return v > 0 ? max(1200, min(3500, Double(v))) : 1900
+    }
+    private static func loadMeals() -> Int {
+        let v = UserDefaults.standard.integer(forKey: prefMealsKey)
+        return v > 0 ? max(2, min(6, v)) : 3
+    }
+
+    @State private var calories: Double = MealPlanPreferencesView.loadCalories()
+    @State private var mealsPerDay: Int = MealPlanPreferencesView.loadMeals()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1739,6 +1977,12 @@ struct MealPlanPreferencesView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .onChange(of: calories) { _, v in
+            UserDefaults.standard.set(Int(v), forKey: prefCaloriesKey)
+        }
+        .onChange(of: mealsPerDay) { _, v in
+            UserDefaults.standard.set(v, forKey: prefMealsKey)
+        }
     }
 }
 
@@ -1827,13 +2071,64 @@ struct AGBView: View {
 struct ShoppingCategoryView: View {
     let name: String
 
+    private var category: ShoppingCategory? { ShoppingCategory.allCases.first { $0.rawValue == name } }
+    private var items: [ShoppingItem] {
+        guard let cat = category else { return [] }
+        guard let data = UserDefaults.standard.data(forKey: "frigy.shoppingItems.v2"),
+              let all = try? JSONDecoder().decode([ShoppingItem].self, from: data) else { return [] }
+        return all.filter { $0.category == cat }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: name)
-            Spacer()
-            Text("Kategorie: \(name)")
-                .foregroundColor(FrigyBrand.textMuted)
-            Spacer()
+
+            if items.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: category?.icon ?? "bag")
+                        .font(.system(size: 44)).foregroundColor(FrigyBrand.cardBorder)
+                    Text("Keine Artikel in dieser Kategorie")
+                        .font(.system(size: 16, weight: .semibold)).foregroundColor(FrigyBrand.text)
+                }
+                Spacer()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 8) {
+                        ForEach(items) { item in
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(item.isChecked ? Color(hex: "#D1FAE5") : (category?.color ?? FrigyBrand.primary).opacity(0.15))
+                                        .frame(width: 36, height: 36)
+                                    Image(systemName: item.isChecked ? "checkmark" : (category?.icon ?? "bag"))
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(item.isChecked ? Color(hex: "#10B981") : (category?.color ?? FrigyBrand.primary))
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(item.isChecked ? FrigyBrand.textMuted : FrigyBrand.text)
+                                        .strikethrough(item.isChecked)
+                                    if !item.amount.isEmpty {
+                                        Text(item.amount).font(.system(size: 12)).foregroundColor(FrigyBrand.textMuted)
+                                    }
+                                }
+                                Spacer()
+                                if item.price > 0 {
+                                    Text(String(format: "%.2f €", item.price))
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(Color(hex: "#39D47F"))
+                                }
+                            }
+                            .padding(14)
+                            .frigyCard(cornerRadius: 14)
+                        }
+                    }
+                    .padding(.horizontal, 20).padding(.top, 8)
+                    Spacer().frame(height: 32)
+                }
+            }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -1843,15 +2138,70 @@ struct ShoppingCategoryView: View {
 struct ShoppingItemDetailView: View {
     let id: String
 
+    private var item: ShoppingItem? {
+        guard let uuid = UUID(uuidString: id),
+              let data = UserDefaults.standard.data(forKey: "frigy.shoppingItems.v2"),
+              let all = try? JSONDecoder().decode([ShoppingItem].self, from: data) else { return nil }
+        return all.first { $0.id == uuid }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Artikel")
-            Spacer()
-            Text("Artikel: \(id)")
-                .foregroundColor(FrigyBrand.textMuted)
-            Spacer()
+            FrigyNavBar(title: item?.name ?? "Artikel")
+
+            if let it = item {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        ZStack {
+                            Circle().fill(it.category.color.opacity(0.15)).frame(width: 80, height: 80)
+                            Image(systemName: it.category.icon)
+                                .font(.system(size: 36, weight: .semibold))
+                                .foregroundColor(it.category.color)
+                        }.padding(.top, 20)
+
+                        Text(it.name)
+                            .font(.system(size: 22, weight: .black)).foregroundColor(FrigyBrand.text)
+
+                        VStack(spacing: 0) {
+                            detailRow("Kategorie", value: it.category.rawValue)
+                            Divider().padding(.leading, 16)
+                            if !it.amount.isEmpty {
+                                detailRow("Menge", value: it.amount)
+                                Divider().padding(.leading, 16)
+                            }
+                            if it.price > 0 {
+                                detailRow("Preis", value: String(format: "%.2f €", it.price))
+                                Divider().padding(.leading, 16)
+                            }
+                            detailRow("Status", value: it.isChecked ? "Erledigt ✓" : "Offen")
+                        }
+                        .frigyCard(cornerRadius: 16)
+                        .padding(.horizontal, 20)
+
+                        Spacer().frame(height: 32)
+                    }
+                }
+            } else {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "bag.badge.questionmark")
+                        .font(.system(size: 44)).foregroundColor(FrigyBrand.cardBorder)
+                    Text("Artikel nicht gefunden")
+                        .font(.system(size: 16, weight: .semibold)).foregroundColor(FrigyBrand.text)
+                }
+                Spacer()
+            }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private func detailRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label).font(.system(size: 14)).foregroundColor(FrigyBrand.textMuted)
+            Spacer()
+            Text(value).font(.system(size: 14, weight: .semibold)).foregroundColor(FrigyBrand.text)
+        }
+        .padding(14)
     }
 }

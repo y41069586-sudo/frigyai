@@ -71,6 +71,7 @@ struct HomeDashboardView: View {
     @State private var meals: [LoggedMeal] = []
     // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
     @State private var targets = MacroTargets.default
+    @State private var loadError = false
     @State private var aiPrompt = ""
     @FocusState private var aiFocused: Bool
     @State private var waterGlasses: Int = 0
@@ -111,7 +112,14 @@ struct HomeDashboardView: View {
     }
 
     private func reload() async {
-        let result = await TrackerDataService.shared.loadToday()
+        loadError = false
+        async let sessionCheck = TrackerDataService.shared.hasActiveSession()
+        async let dataFetch = TrackerDataService.shared.loadToday()
+        let (hasSession, result) = await (sessionCheck, dataFetch)
+        guard hasSession else {
+            loadError = true
+            return
+        }
         meals = result.meals
         targets = result.targets
         tabCoordinator.todayMealCount = result.meals.count
@@ -167,6 +175,40 @@ struct HomeDashboardView: View {
             if !isShowing { Task { await reload() } }
         }
         .sheet(isPresented: $showEditTargets) { NutritionGoalsView() }
+        .overlay(alignment: .top) {
+            if loadError {
+                HStack(spacing: 10) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "#EF4444"))
+                    Text("Daten konnten nicht geladen werden.")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(hex: "#1F2937"))
+                    Spacer()
+                    Button {
+                        Task { await reload() }
+                    } label: {
+                        Text("Erneut")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(FrigyBrand.primaryDark)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                        .overlay(RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color(hex: "#EF4444").opacity(0.3), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.3), value: loadError)
+            }
+        }
     }
 
     // MARK: - Header
