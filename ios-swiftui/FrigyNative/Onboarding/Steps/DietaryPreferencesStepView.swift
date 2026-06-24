@@ -31,10 +31,7 @@ struct DietaryPreferencesStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            Text("Wie ist dein Ernährungsziel?")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.5)
+            FrigyMascotQuestion("Wie ist dein Ernährungsziel?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

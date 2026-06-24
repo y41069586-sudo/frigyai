@@ -49,10 +49,7 @@ struct HeightStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            Text("Wie groß bist du?")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.5)
+            FrigyMascotQuestion("Wie groß bist du?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

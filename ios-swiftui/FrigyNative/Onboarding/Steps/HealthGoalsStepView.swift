@@ -28,10 +28,7 @@ struct HealthGoalsStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            Text("Was möchtest du erreichen?")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.5)
+            FrigyMascotQuestion("Was möchtest du erreichen?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

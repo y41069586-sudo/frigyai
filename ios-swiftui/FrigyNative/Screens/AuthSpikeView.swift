@@ -4,6 +4,10 @@ struct AuthSpikeView: View {
     @Environment(AppRouter.self) private var router
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var bob = false
+    @State private var isReturning = UserDefaults.standard.bool(forKey: AuthSpikeView.returningKey)
+
+    static let returningKey = "frigy.hasSignedInBefore"
 
     var body: some View {
         ZStack {
@@ -22,21 +26,24 @@ struct AuthSpikeView: View {
                     ZStack {
                         Circle()
                             .fill(LinearGradient(
-                                colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                colors: [Color(hex: "#EAFFF4"), Color(hex: "#D6FBE7")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ))
-                            .frame(width: 96, height: 96)
-                        Image(systemName: "leaf.fill")
-                            .font(.system(size: 46, weight: .bold))
-                            .foregroundColor(.white)
+                            .frame(width: 132, height: 132)
+                        Image("FrigyMascot")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 104, height: 104)
+                            .offset(y: bob ? -4 : 4)
                     }
-                    .shadow(color: Color(hex: "#39D47F").opacity(0.30), radius: 24, y: 10)
+                    .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 26, y: 12)
 
                     VStack(spacing: 8) {
-                        Text("Willkommen bei Frigy")
+                        Text(isReturning ? "Willkommen zurück bei Frigy" : "Willkommen bei Frigy")
                             .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundColor(Color(hex: "#1F2937"))
+                            .multilineTextAlignment(.center)
                         Text("Dein KI-Ernährungscoach")
                             .font(.system(size: 15))
                             .foregroundColor(Color(hex: "#6B7280"))
@@ -122,6 +129,16 @@ struct AuthSpikeView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                bob = true
+            }
+        }
+    }
+
+    private func markSignedIn() {
+        UserDefaults.standard.set(true, forKey: AuthSpikeView.returningKey)
+        isReturning = true
     }
 
     private func signInApple() async {
@@ -130,6 +147,7 @@ struct AuthSpikeView: View {
         defer { isLoading = false }
         do {
             _ = try await router.authService.signInWithApple()
+            markSignedIn()
             router.rootRoute = .main
         } catch {
             errorMessage = error.localizedDescription
@@ -145,6 +163,7 @@ struct AuthSpikeView: View {
             // signInWithGoogle only returns once the OAuth session is established
             // (continuation resumes after auth.session(from:)), so navigate now —
             // matching the Apple path. Previously the user was left on this screen.
+            markSignedIn()
             router.rootRoute = .main
         } catch {
             errorMessage = error.localizedDescription

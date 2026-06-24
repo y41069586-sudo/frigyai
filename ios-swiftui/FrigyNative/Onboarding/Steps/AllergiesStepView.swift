@@ -34,10 +34,7 @@ struct AllergiesStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            Text("Hast du Allergien oder Unverträglichkeiten?")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.5)
+            FrigyMascotQuestion("Hast du Allergien oder Unverträglichkeiten?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

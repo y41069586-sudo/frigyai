@@ -56,10 +56,7 @@ struct WeightStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            Text("Wie viel wiegst du aktuell?")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.5)
+            FrigyMascotQuestion("Wie viel wiegst du aktuell?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

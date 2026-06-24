@@ -20,10 +20,7 @@ struct GenderStepView: View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question header
             VStack(alignment: .leading, spacing: 0) {
-                Text("Was ist dein biologisches Geschlecht?")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundColor(FrigyBrand.text)
-                    .tracking(-0.5)
+                FrigyMascotQuestion("Was ist dein biologisches Geschlecht?")
                     .padding(.horizontal, 20)
                     .padding(.top, 4)
                     .padding(.bottom, 12)

@@ -72,10 +72,7 @@ struct SpeedSelectStepView: View {
     private var content: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            Text("Wie schnell möchtest du dein Ziel erreichen?")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.5)
+            FrigyMascotQuestion("Wie schnell möchtest du dein Ziel erreichen?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
