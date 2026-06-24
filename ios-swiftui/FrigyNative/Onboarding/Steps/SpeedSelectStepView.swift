@@ -11,8 +11,8 @@ struct SpeedSelectStepView: View {
     @State private var sliderActive: Bool = false
 
     private let kgPerLb = 0.45359237
-    private let minKg = 0.2
-    private let maxKg = 1.0
+    private let minKg = 0.1
+    private let maxKg = 0.9
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
@@ -20,8 +20,8 @@ struct SpeedSelectStepView: View {
         self.onBack = onBack
         self.onNext = onNext
         _draft = State(initialValue: profile)
-        // Always start gentle (green) at 0,2 kg/week; keep a prior in-range choice.
-        let weekly = max(0.2, min(1.0, profile.weeklyGoalKg > 0 ? profile.weeklyGoalKg : 0.2))
+        // Start at 0.1 kg/week (leftmost, gentlest); keep a prior in-range choice.
+        let weekly = max(0.1, min(0.9, profile.weeklyGoalKg > 0 ? profile.weeklyGoalKg : 0.1))
         var d = profile
         d.weeklyGoalKg = weekly
         _draft = State(initialValue: d)
@@ -117,7 +117,7 @@ struct SpeedSelectStepView: View {
                     ),
                     min: displayMin,
                     max: displayMax,
-                    ticks: isMetric ? [0.2, 0.5, 1.0] : [
+                    ticks: isMetric ? [0.1, 0.5, 0.9] : [
                         (minKg / kgPerLb * 10).rounded() / 10,
                         (0.5 / kgPerLb * 10).rounded() / 10,
                         (maxKg / kgPerLb * 10).rounded() / 10,
