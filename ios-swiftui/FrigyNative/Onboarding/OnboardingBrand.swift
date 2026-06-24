@@ -243,3 +243,41 @@ struct OnboardingStepScaffold<Content: View>: View {
     }
 }
 
+// MARK: - Mint segmented control
+
+struct MintSegmentedControl: View {
+    let options: [(id: String, label: String)]
+    let selected: String
+    let onSelect: (String) -> Void
+
+    init(options: [(String, String)], selected: String, onSelect: @escaping (String) -> Void) {
+        self.options = options.map { (id: $0.0, label: $0.1) }
+        self.selected = selected
+        self.onSelect = onSelect
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options, id: \.id) { opt in
+                let active = opt.id == selected
+                Button { onSelect(opt.id) } label: {
+                    Text(opt.label)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(active ? .white : FrigyBrand.primaryDark)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(active ? AnyShapeStyle(FrigyBrand.buttonGradient) : AnyShapeStyle(Color.clear))
+                        )
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.15), value: selected)
+            }
+        }
+        .padding(3)
+        .background(FrigyBrand.borderMint.opacity(0.18), in: RoundedRectangle(cornerRadius: 13))
+        .overlay(RoundedRectangle(cornerRadius: 13).stroke(FrigyBrand.borderMint.opacity(0.4), lineWidth: 1))
+    }
+}
+

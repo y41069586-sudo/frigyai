@@ -895,7 +895,7 @@ struct SubscriptionView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task { packages = await router.subscriptionService.availablePackages() }
         .sheet(isPresented: $showPaywall) {
-            PaywallStepView(onNext: { showPaywall = false })
+            PaywallStepView(onBack: nil, onNext: { showPaywall = false })
         }
     }
 
