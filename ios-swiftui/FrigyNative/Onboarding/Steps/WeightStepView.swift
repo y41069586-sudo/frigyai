@@ -19,7 +19,7 @@ struct WeightStepView: View {
         self.onBack = onBack
         self.onNext = onNext
         _draft = State(initialValue: profile)
-        let kg = profile.weightKg > 0 ? Int(round(profile.weightKg)) : 70
+        let kg  = profile.weightKg > 0 ? Int(round(profile.weightKg)) : 70
         let lbs = profile.weightKg > 0 ? Int(round(profile.weightKg / 0.45359237)) : 154
         _selectedKg  = State(initialValue: min(max(kg, 30), 250))
         _selectedLbs = State(initialValue: min(max(lbs, 66), 550))
@@ -38,41 +38,25 @@ struct WeightStepView: View {
             ) { id in
                 let wasMetric = isMetric
                 isMetric = (id == "metric")
-                // Sync the other unit when switching
-                if wasMetric && !isMetric {
-                    selectedLbs = min(max(Int(round(Double(selectedKg) / kgPerLb)), 66), 550)
-                } else if !wasMetric && isMetric {
-                    selectedKg = min(max(Int(round(Double(selectedLbs) * kgPerLb)), 30), 250)
-                }
+                if wasMetric  { selectedLbs = min(max(Int(round(Double(selectedKg) / kgPerLb)), 66), 550) }
+                if !wasMetric { selectedKg  = min(max(Int(round(Double(selectedLbs) * kgPerLb)), 30), 250) }
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
-            .padding(.bottom, 4)
 
             Spacer()
 
-            if isMetric {
-                NumberScrollInput(value: $selectedKg, range: 30...250, unit: "kg")
-                    .padding(.horizontal, 20)
-                    .onChange(of: selectedKg) { _, kg in
-                        draft.weightKg = Double(kg)
-                    }
-            } else {
-                NumberScrollInput(value: $selectedLbs, range: 66...550, unit: "lbs")
-                    .padding(.horizontal, 20)
-                    .onChange(of: selectedLbs) { _, lbs in
-                        draft.weightKg = Double(lbs) * kgPerLb
-                    }
-            }
+            wheelPicker
+                .padding(.horizontal, 20)
 
             Spacer()
 
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
                 OnboardingContinueButton {
-                    var updated = draft
-                    updated.weightKg = isMetric ? Double(selectedKg) : Double(selectedLbs) * kgPerLb
-                    onNext(updated)
+                    var u = draft
+                    u.weightKg = isMetric ? Double(selectedKg) : Double(selectedLbs) * kgPerLb
+                    onNext(u)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -80,8 +64,56 @@ struct WeightStepView: View {
                 .background(FrigyBrand.bg)
             }
         }
-        .onAppear {
-            draft.weightKg = isMetric ? Double(selectedKg) : Double(selectedLbs) * kgPerLb
+    }
+
+    @ViewBuilder
+    private var wheelPicker: some View {
+        if isMetric {
+            unitWheel(
+                selection: $selectedKg,
+                range: 30...250,
+                unit: "kg",
+                onChange: { draft.weightKg = Double($0) }
+            )
+        } else {
+            unitWheel(
+                selection: $selectedLbs,
+                range: 66...550,
+                unit: "lbs",
+                onChange: { draft.weightKg = Double($0) * kgPerLb }
+            )
         }
     }
+}
+
+// MARK: - Shared inline wheel helper
+
+private func unitWheel(
+    selection: Binding<Int>,
+    range: ClosedRange<Int>,
+    unit: String,
+    onChange: @escaping (Int) -> Void
+) -> some View {
+    ZStack {
+        Picker("", selection: selection) {
+            ForEach(range, id: \.self) { n in
+                Text("\(n)")
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .tag(n)
+            }
+        }
+        .pickerStyle(.wheel)
+        .frame(height: 200)
+
+        // Unit label pinned to the right at selection-row height
+        HStack {
+            Spacer()
+            Text(unit)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(FrigyBrand.primaryDeep)
+                .padding(.trailing, 24)
+        }
+        .allowsHitTesting(false)
+    }
+    .onChange(of: selection.wrappedValue, initial: false) { _, v in onChange(v) }
 }

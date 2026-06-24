@@ -9,7 +9,6 @@ struct HeightStepView: View {
     @State private var draft: UserProfileDraft
     @State private var isMetric: Bool = true
     @State private var selectedCm: Int = 170
-    // Imperial: two separate wheels for feet and inches
     @State private var selectedFeet: Int = 5
     @State private var selectedInches: Int = 7
 
@@ -24,11 +23,9 @@ struct HeightStepView: View {
         let cm = profile.heightCm > 0 ? Int(round(profile.heightCm)) : 170
         _selectedCm = State(initialValue: min(max(cm, 100), 250))
         if profile.heightCm > 0 {
-            let totalInches = profile.heightCm / 2.54
-            let feet = Int(totalInches / 12)
-            let inches = Int(totalInches.truncatingRemainder(dividingBy: 12))
-            _selectedFeet   = State(initialValue: min(max(feet, 3), 8))
-            _selectedInches = State(initialValue: min(max(inches, 0), 11))
+            let totalIn = profile.heightCm / 2.54
+            _selectedFeet   = State(initialValue: min(max(Int(totalIn / 12), 3), 8))
+            _selectedInches = State(initialValue: min(max(Int(totalIn.truncatingRemainder(dividingBy: 12)), 0), 11))
         }
     }
 
@@ -49,28 +46,29 @@ struct HeightStepView: View {
             ) { id in
                 let wasMetric = isMetric
                 isMetric = (id == "metric")
-                if wasMetric && !isMetric {
+                if wasMetric {
                     let totalIn = Double(selectedCm) / cmPerInch
                     selectedFeet   = min(max(Int(totalIn / 12), 3), 8)
                     selectedInches = min(max(Int(totalIn.truncatingRemainder(dividingBy: 12)), 0), 11)
-                } else if !wasMetric && isMetric {
+                } else {
                     selectedCm = min(max(Int(round(imperialCm)), 100), 250)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
-            .padding(.bottom, 4)
 
             Spacer()
 
             if isMetric {
-                NumberScrollInput(value: $selectedCm, range: 100...250, unit: "cm")
-                    .padding(.horizontal, 20)
-                    .onChange(of: selectedCm) { _, cm in
-                        draft.heightCm = Double(cm)
-                    }
+                unitWheel(
+                    selection: $selectedCm,
+                    range: 100...250,
+                    unit: "cm",
+                    onChange: { draft.heightCm = Double($0) }
+                )
+                .padding(.horizontal, 20)
             } else {
-                imperialPicker
+                imperialWheels
                     .padding(.horizontal, 20)
             }
 
@@ -79,9 +77,9 @@ struct HeightStepView: View {
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
                 OnboardingContinueButton {
-                    var updated = draft
-                    updated.heightCm = isMetric ? Double(selectedCm) : imperialCm
-                    onNext(updated)
+                    var u = draft
+                    u.heightCm = isMetric ? Double(selectedCm) : imperialCm
+                    onNext(u)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -89,54 +87,71 @@ struct HeightStepView: View {
                 .background(FrigyBrand.bg)
             }
         }
-        .onAppear {
-            draft.heightCm = isMetric ? Double(selectedCm) : imperialCm
-        }
     }
 
-    // Imperial: two side-by-side wheels (feet | inches) with a combined display.
-    private var imperialPicker: some View {
-        VStack(spacing: 4) {
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
-                Text("\(selectedFeet)")
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundColor(FrigyBrand.text)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.18), value: selectedFeet)
-                    .monospacedDigit()
-                Text("ft")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(FrigyBrand.primaryDeep)
-                    .padding(.bottom, 6)
-                Text("\(selectedInches)")
-                    .font(.system(size: 52, weight: .bold, design: .rounded))
-                    .foregroundColor(FrigyBrand.text)
-                    .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.18), value: selectedInches)
-                    .monospacedDigit()
-                    .padding(.leading, 8)
-                Text("in")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(FrigyBrand.primaryDeep)
-                    .padding(.bottom, 6)
-            }
-
-            HStack(spacing: 0) {
+    // Two side-by-side native wheels for ft + in
+    private var imperialWheels: some View {
+        HStack(spacing: 0) {
+            ZStack {
                 Picker("", selection: $selectedFeet) {
-                    ForEach(3...8, id: \.self) { ft in Text("\(ft) ft").tag(ft) }
+                    ForEach(3...8, id: \.self) { ft in
+                        Text("\(ft)")
+                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                            .tag(ft)
+                    }
                 }
                 .pickerStyle(.wheel)
-                .frame(height: 150)
-                .onChange(of: selectedFeet) { _, _ in draft.heightCm = imperialCm }
-
-                Picker("", selection: $selectedInches) {
-                    ForEach(0...11, id: \.self) { i in Text("\(i) in").tag(i) }
-                }
-                .pickerStyle(.wheel)
-                .frame(height: 150)
-                .onChange(of: selectedInches) { _, _ in draft.heightCm = imperialCm }
+                .frame(height: 200)
+                HStack { Spacer()
+                    Text("ft").font(.system(size: 16, weight: .semibold)).foregroundColor(FrigyBrand.primaryDeep).padding(.trailing, 8)
+                }.allowsHitTesting(false)
             }
-            .clipped()
+            .onChange(of: selectedFeet) { _, _ in draft.heightCm = imperialCm }
+
+            ZStack {
+                Picker("", selection: $selectedInches) {
+                    ForEach(0...11, id: \.self) { i in
+                        Text("\(i)")
+                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                            .tag(i)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 200)
+                HStack { Spacer()
+                    Text("in").font(.system(size: 16, weight: .semibold)).foregroundColor(FrigyBrand.primaryDeep).padding(.trailing, 8)
+                }.allowsHitTesting(false)
+            }
+            .onChange(of: selectedInches) { _, _ in draft.heightCm = imperialCm }
         }
     }
+}
+
+private func unitWheel(
+    selection: Binding<Int>,
+    range: ClosedRange<Int>,
+    unit: String,
+    onChange: @escaping (Int) -> Void
+) -> some View {
+    ZStack {
+        Picker("", selection: selection) {
+            ForEach(range, id: \.self) { n in
+                Text("\(n)")
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .tag(n)
+            }
+        }
+        .pickerStyle(.wheel)
+        .frame(height: 200)
+
+        HStack {
+            Spacer()
+            Text(unit)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(FrigyBrand.primaryDeep)
+                .padding(.trailing, 24)
+        }
+        .allowsHitTesting(false)
+    }
+    .onChange(of: selection.wrappedValue, initial: false) { _, v in onChange(v) }
 }
