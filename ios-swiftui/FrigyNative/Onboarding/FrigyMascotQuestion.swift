@@ -45,18 +45,52 @@ struct FrigyMascotQuestion: View {
     // MARK: - Mascot (holds the pad from the lower-left)
 
     private var mascot: some View {
-        Image("FrigyMascot")
-            .resizable()
-            .scaledToFit()
-            .frame(width: mascotSize, height: mascotSize)
-            .offset(y: bob ? -3 : 3)
-            .rotationEffect(.degrees(appeared ? 0 : -10), anchor: .bottom)
-            .scaleEffect(appeared ? 1 : 0.5, anchor: .bottom)
-            .opacity(appeared ? 1 : 0)
-            .animation(.spring(response: 0.55, dampingFraction: 0.6), value: appeared)
-            .shadow(color: FrigyBrand.primaryDark.opacity(0.16), radius: 7, y: 4)
-            .zIndex(1)
-            .accessibilityHidden(true)
+        ZStack {
+            Image("FrigyMascot")
+                .resizable()
+                .scaledToFit()
+                .frame(width: mascotSize, height: mascotSize)
+            arms
+        }
+        .frame(width: mascotSize, height: mascotSize)
+        .offset(y: bob ? -3 : 3)
+        .rotationEffect(.degrees(appeared ? 0 : -10), anchor: .bottom)
+        .scaleEffect(appeared ? 1 : 0.5, anchor: .bottom)
+        .opacity(appeared ? 1 : 0)
+        .animation(.spring(response: 0.55, dampingFraction: 0.6), value: appeared)
+        .shadow(color: FrigyBrand.primaryDark.opacity(0.16), radius: 7, y: 4)
+        .zIndex(1)
+        .accessibilityHidden(true)
+    }
+
+    /// Two little arms reaching from the fridge to grip the notepad's near edge.
+    private var arms: some View {
+        let bodyGreen = LinearGradient(
+            colors: [Color(hex: "#AFEEB0"), Color(hex: "#74CE86")],
+            startPoint: .top, endPoint: .bottom
+        )
+        return ZStack {
+            armHand(green: bodyGreen, y: mascotSize * 0.08, angle: -11)
+            armHand(green: bodyGreen, y: mascotSize * 0.30, angle: 9)
+        }
+        .offset(x: mascotSize * 0.40)
+    }
+
+    private func armHand(green: LinearGradient, y: CGFloat, angle: Double) -> some View {
+        HStack(spacing: -3) {
+            Capsule()
+                .fill(green)
+                .overlay(Capsule().stroke(Color(hex: "#3FA552").opacity(0.55), lineWidth: 1))
+                .frame(width: 15, height: 7)
+            // Mitten hand, like the fridge's white face.
+            Circle()
+                .fill(Color.white)
+                .overlay(Circle().stroke(Color(hex: "#BFE9C6"), lineWidth: 1))
+                .frame(width: 12, height: 12)
+                .shadow(color: .black.opacity(0.06), radius: 1, y: 1)
+        }
+        .rotationEffect(.degrees(angle), anchor: .leading)
+        .offset(y: y)
     }
 
     // MARK: - Notepad
