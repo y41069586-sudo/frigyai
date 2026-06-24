@@ -108,11 +108,11 @@ struct SpeedSelectStepView: View {
                 // Mint slider
                 MintPaceSlider(
                     value: Binding(
-                        get: { snapDisplay(displayValue) },
+                        get: { displayValue },
                         set: { newVal in
-                            let snapped = snapDisplay(newVal)
-                            let kg = isMetric ? snapped : snapped * kgPerLb
-                            draft.weeklyGoalKg = max(minKg, min(maxKg, (kg * 1000).rounded() / 1000))
+                            // Store raw value during drag — slider snaps on release
+                            let kg = isMetric ? newVal : newVal * kgPerLb
+                            draft.weeklyGoalKg = max(minKg, min(maxKg, kg))
                         }
                     ),
                     min: displayMin,
@@ -163,6 +163,17 @@ private struct MintPaceSlider: View {
     let ticks: [Double]
     @Binding var isActive: Bool
 
+    // Smooth live position during drag; nil = use value binding
+    @State private var liveVal: Double? = nil
+
+    private var renderVal: Double { liveVal ?? value }
+
+    private func snap(_ v: Double) -> Double {
+        let step = 0.1
+        let s = (v / step).rounded() * step
+        return Swift.max(min, Swift.min(max, s))
+    }
+
     private func pct(_ v: Double) -> Double {
         guard max > min else { return 0 }
         return Swift.max(0, Swift.min(1, (v - min) / (max - min)))
@@ -198,10 +209,10 @@ private struct MintPaceSlider: View {
         VStack(spacing: 4) {
             GeometryReader { geo in
                 let w = geo.size.width
-                let pct = pct(value)
+                let p = pct(renderVal)
 
                 ZStack(alignment: .leading) {
-                    // Track background — the full green→orange→red scale, faint + glassy.
+                    // Track background
                     Capsule()
                         .fill(paceGradient)
                         .opacity(0.28)
@@ -209,46 +220,43 @@ private struct MintPaceSlider: View {
                         .overlay(Capsule().stroke(Color.white.opacity(0.45), lineWidth: 1).blendMode(.overlay))
                         .overlay(Capsule().stroke(FrigyBrand.cardBorder.opacity(0.45), lineWidth: 1))
 
-                    // Active fill — same gradient at true scale, revealed up to the
-                    // thumb so the colour fades smoothly green→orange→red as you wisch.
+                    // Active fill
                     Capsule()
                         .fill(paceGradient)
                         .frame(height: 12)
                         .mask(alignment: .leading) {
                             Capsule()
-                                .frame(width: Swift.max(CGFloat(pct) * (w - 28) + 14, 12), height: 12)
+                                .frame(width: Swift.max(CGFloat(p) * (w - 28) + 14, 12), height: 12)
                         }
                         .overlay(
                             Capsule()
                                 .stroke(Color.white.opacity(0.35), lineWidth: 1)
                                 .blendMode(.overlay)
-                                .frame(width: Swift.max(CGFloat(pct) * (w - 28) + 14, 12), height: 12),
+                                .frame(width: Swift.max(CGFloat(p) * (w - 28) + 14, 12), height: 12),
                             alignment: .leading
                         )
-                        .shadow(color: paceColor(pct).opacity(0.4), radius: 4, y: 1)
-                        .animation(.easeInOut(duration: 0.18), value: pct)
+                        .shadow(color: paceColor(p).opacity(0.4), radius: 4, y: 1)
 
-                    // Thumb — liquid glass, tinted to the current pace colour.
+                    // Thumb
                     ZStack {
                         Circle()
                             .fill(.clear)
                             .frame(width: 28, height: 28)
                             .realGlass(in: Circle(), interactive: true)
                         Circle()
-                            .stroke(paceColor(pct), lineWidth: 3)
+                            .stroke(paceColor(p), lineWidth: 3)
                             .frame(width: 28, height: 28)
                         Circle()
                             .stroke(Color.white.opacity(0.55), lineWidth: 1)
                             .frame(width: 28, height: 28)
                             .blendMode(.overlay)
                         Circle()
-                            .fill(paceColor(pct))
+                            .fill(paceColor(p))
                             .frame(width: 9, height: 9)
                     }
                     .scaleEffect(isActive ? 1.18 : 1)
-                    .shadow(color: paceColor(pct).opacity(0.55), radius: isActive ? 9 : 6, y: 2)
-                    .offset(x: CGFloat(pct) * (w - 28))
-                    .animation(.easeInOut(duration: 0.18), value: pct)
+                    .shadow(color: paceColor(p).opacity(0.55), radius: isActive ? 9 : 6, y: 2)
+                    .offset(x: CGFloat(p) * (w - 28))
                     .animation(.spring(response: 0.32, dampingFraction: 0.6), value: isActive)
                 }
                 .frame(height: 28)
@@ -257,30 +265,38 @@ private struct MintPaceSlider: View {
                     DragGesture(minimumDistance: 0)
                         .onChanged { drag in
                             isActive = true
-                            // Map against the thumb's travel range (inset by its
-                            // radius on each side) so the knob lands exactly where
-                            // you drag — and under the matching tick number.
                             let ratio = Swift.max(0, Swift.min(1, (drag.location.x - 14) / (w - 28)))
-                            value = min + ratio * (max - min)
+                            let raw = min + ratio * (max - min)
+                            liveVal = raw           // smooth visual
+                            value = raw             // propagate raw for number display
                         }
-                        .onEnded { _ in isActive = false }
+                        .onEnded { _ in
+                            let snapped = snap(renderVal)
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                liveVal = snapped
+                            }
+                            value = snapped
+                            isActive = false
+                            // Clear override after spring settles
+                            Task {
+                                try? await Task.sleep(nanoseconds: 600_000_000)
+                                liveVal = nil
+                            }
+                        }
                 )
             }
             .frame(height: 42)
 
-            // Tick labels — each sits under the thumb's actual position for that
-            // value (ticks aren't evenly spaced, e.g. 0,5 is not the midpoint of
-            // 0,1…1,0), so the highlighted number always lines up with the knob.
             GeometryReader { geo in
                 let w = geo.size.width
                 ForEach(Array(ticks.enumerated()), id: \.offset) { _, tick in
-                    let isActive = abs(tick - value) < 0.06
+                    let highlighted = abs(tick - renderVal) < 0.06
                     Text(String(format: "%.1f", tick))
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(isActive ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
+                        .foregroundColor(highlighted ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
                         .fixedSize()
                         .position(x: CGFloat(pct(tick)) * (w - 28) + 14, y: 8)
-                        .animation(.easeInOut(duration: 0.15), value: isActive)
+                        .animation(.easeInOut(duration: 0.15), value: highlighted)
                 }
             }
             .frame(height: 16)
