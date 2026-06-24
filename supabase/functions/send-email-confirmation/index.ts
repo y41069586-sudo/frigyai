@@ -132,7 +132,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Frigy <noreply@frigy.app>",
+        from: "Frigy <hallo@frigy.app>",
         to: [email],
         subject: "✅ Bestätige deine E-Mail-Adresse – Frigy",
         html: buildEmailHTML(linkData.properties.action_link),
