@@ -32,6 +32,9 @@ struct FrigyMascotQuestion: View {
             mascot
             notepad
         }
+        // Critical: prevent the HStack from stretching to fill all available
+        // vertical space — the notepad should only be as tall as its content.
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear {
             startIdle()
             runType()
