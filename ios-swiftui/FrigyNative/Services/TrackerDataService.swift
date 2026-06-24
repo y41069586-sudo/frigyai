@@ -571,6 +571,47 @@ final class TrackerDataService {
         #endif
     }
 
+    // MARK: - Referral code validation
+
+    struct ReferralValidationResult {
+        let valid: Bool
+        let code: String?
+        let influencerName: String?
+        let error: String?
+    }
+
+    func validateReferralCode(_ code: String) async -> ReferralValidationResult {
+        #if canImport(Supabase)
+        guard SupabaseConfig.isConfigured,
+              let base = SupabaseConfig.urlString,
+              let anonKey = SupabaseConfig.anonKey,
+              let url = URL(string: "\(base)/functions/v1/validate-referral-code") else {
+            return ReferralValidationResult(valid: false, code: nil, influencerName: nil, error: "Nicht verbunden")
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        let body: [String: Any] = ["code": code]
+        guard let payload = try? JSONSerialization.data(withJSONObject: body) else {
+            return ReferralValidationResult(valid: false, code: nil, influencerName: nil, error: "Fehler")
+        }
+        request.httpBody = payload
+        guard let (data, _) = try? await URLSession.shared.data(for: request) else {
+            return ReferralValidationResult(valid: false, code: nil, influencerName: nil, error: "Keine Verbindung")
+        }
+        struct Resp: Decodable { let valid: Bool; let code: String?; let influencer_name: String?; let error: String? }
+        guard let decoded = try? JSONDecoder().decode(Resp.self, from: data) else {
+            return ReferralValidationResult(valid: false, code: nil, influencerName: nil, error: "Unbekannter Fehler")
+        }
+        return ReferralValidationResult(valid: decoded.valid, code: decoded.code, influencerName: decoded.influencer_name, error: decoded.error)
+        #else
+        return ReferralValidationResult(valid: false, code: nil, influencerName: nil, error: "Nicht unterstützt")
+        #endif
+    }
+
     // MARK: - User settings
 
     func loadUserEmail() async -> String? {
