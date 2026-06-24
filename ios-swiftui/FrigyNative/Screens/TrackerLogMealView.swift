@@ -24,6 +24,7 @@ struct TrackerLogMealView: View {
     @State private var searchTask: Task<Void, Never>? = nil
     @State private var showCamera = false
     @State private var isAnalyzingPhoto = false
+    @State private var selectedTemplate: FoodTemplate?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -107,6 +108,7 @@ struct TrackerLogMealView: View {
                             .padding(.horizontal, 16)
                     } else {
                         recentFoodsSection
+                        templatesSection
                     }
 
                     Spacer().frame(height: 32)
@@ -152,6 +154,9 @@ struct TrackerLogMealView: View {
                 selectedCategory: selectedCategory
             ) { dismiss() }
             .onDisappear { prefillFood = nil }
+        }
+        .sheet(item: $selectedTemplate) { tpl in
+            FoodTemplateDetailSheet(template: tpl, category: selectedCategory) { dismiss() }
         }
     }
 
@@ -312,6 +317,48 @@ struct TrackerLogMealView: View {
         .frigyCard(cornerRadius: 14)
     }
 
+    // MARK: - Food templates section
+
+    @ViewBuilder private var templatesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Mahlzeit-Vorlagen")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(Color(hex: "#1F2937"))
+                .padding(.horizontal, 16)
+
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: 10
+            ) {
+                ForEach(FoodTemplate.all) { tpl in
+                    Button { selectedTemplate = tpl } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(tpl.emoji)
+                                .font(.system(size: 26))
+                            Text(tpl.name)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(FrigyBrand.text)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("\(tpl.calories) kcal")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(FrigyBrand.primaryDark)
+                            Text("P \(tpl.protein)g · K \(tpl.carbs)g · F \(tpl.fat)g")
+                                .font(.system(size: 10))
+                                .foregroundColor(FrigyBrand.textMuted)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .frigyCard(cornerRadius: 14)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+        .padding(.top, 4)
+    }
+
     // MARK: - Helpers
 
     private func loadFoods() async {
@@ -387,6 +434,241 @@ struct TrackerLogMealView: View {
         case 15..<18: return .snack
         default:      return .dinner
         }
+    }
+}
+
+// MARK: - Food template model
+
+struct FoodTemplate: Identifiable {
+    let id = UUID()
+    let name: String
+    let emoji: String
+    let calories: Int
+    let protein: Int
+    let carbs: Int
+    let fat: Int
+    let recipe: String
+    let prepTime: String
+
+    static let all: [FoodTemplate] = [
+        FoodTemplate(name: "Haferflocken mit Beeren", emoji: "🫐", calories: 320, protein: 12, carbs: 52, fat: 7,
+            recipe: "50g Haferflocken mit 200ml Hafermilch aufkochen. 100g gemischte Beeren und 1 TL Honig dazugeben.",
+            prepTime: "5 Min"),
+        FoodTemplate(name: "Rührei mit Toast", emoji: "🍳", calories: 380, protein: 22, carbs: 28, fat: 18,
+            recipe: "3 Eier verquirlen, mit Butter in der Pfanne scrambled kochen. Mit 2 Scheiben Vollkorntoast servieren.",
+            prepTime: "8 Min"),
+        FoodTemplate(name: "Griechischer Joghurt", emoji: "🥛", calories: 150, protein: 15, carbs: 8, fat: 5,
+            recipe: "200g griechischer Joghurt mit 1 EL Honig und 30g Granola. Mit Nüssen garnieren.",
+            prepTime: "2 Min"),
+        FoodTemplate(name: "Avocado Toast", emoji: "🥑", calories: 390, protein: 10, carbs: 36, fat: 22,
+            recipe: "1 Avocado zerdrücken, mit Salz, Pfeffer und Zitronensaft würzen. Auf 2 Scheiben Sauerteigbrot streichen.",
+            prepTime: "5 Min"),
+        FoodTemplate(name: "Hähnchen mit Reis", emoji: "🍗", calories: 520, protein: 45, carbs: 58, fat: 9,
+            recipe: "150g Hähnchenbrust würzen und in Pfanne braten. Mit 120g gekochtem Reis und Gemüse servieren.",
+            prepTime: "25 Min"),
+        FoodTemplate(name: "Lachs mit Brokkoli", emoji: "🐟", calories: 450, protein: 40, carbs: 12, fat: 24,
+            recipe: "150g Lachsfilet im Ofen bei 180°C 15 Min backen. Mit 200g gedämpftem Brokkoli servieren.",
+            prepTime: "20 Min"),
+        FoodTemplate(name: "Quinoa Bowl", emoji: "🥗", calories: 480, protein: 18, carbs: 62, fat: 16,
+            recipe: "100g Quinoa kochen. Mit Kichererbsen, Gurke, Tomate, Feta und Olivenöl-Dressing mischen.",
+            prepTime: "15 Min"),
+        FoodTemplate(name: "Pasta Bolognese", emoji: "🍝", calories: 650, protein: 32, carbs: 78, fat: 18,
+            recipe: "250g Hackfleisch anbraten, Tomatensauce dazu. 150g Pasta kochen, alles mischen.",
+            prepTime: "25 Min"),
+        FoodTemplate(name: "Gemüse-Curry", emoji: "🍛", calories: 420, protein: 14, carbs: 58, fat: 14,
+            recipe: "Paprika, Zucchini, Kichererbsen in Kokosöl anbraten. Kokosmilch, Currypaste und Gewürze hinzufügen.",
+            prepTime: "20 Min"),
+        FoodTemplate(name: "Caesar Salat", emoji: "🥗", calories: 350, protein: 18, carbs: 15, fat: 24,
+            recipe: "Römersalat, gegrillte Hähnchenbrust, Parmesan, Croutons und Caesar-Dressing mischen.",
+            prepTime: "10 Min"),
+        FoodTemplate(name: "Smoothie Bowl", emoji: "🍓", calories: 280, protein: 8, carbs: 48, fat: 6,
+            recipe: "200g gefrorene Banane + Beeren mixen. In Schüssel füllen, mit Granola, Kokosflocken, Nüssen toppen.",
+            prepTime: "5 Min"),
+        FoodTemplate(name: "Proteinsmoothie", emoji: "💪", calories: 350, protein: 30, carbs: 38, fat: 6,
+            recipe: "1 Banane, 1 Messlöffel Proteinpulver, 200ml Mandelmilch, 1 EL Erdnussbutter mixen.",
+            prepTime: "3 Min"),
+        FoodTemplate(name: "Omelett mit Käse", emoji: "🫕", calories: 340, protein: 24, carbs: 4, fat: 26,
+            recipe: "3 Eier verquirlen, in Pfanne geben. 40g geriebenen Käse und frische Kräuter draufgeben, falten.",
+            prepTime: "10 Min"),
+        FoodTemplate(name: "Veggie Wrap", emoji: "🌯", calories: 380, protein: 14, carbs: 52, fat: 12,
+            recipe: "Tortilla mit Hummus bestreichen. Gurkenscheiben, Paprika, Karotten, Spinat und Feta einwickeln.",
+            prepTime: "7 Min"),
+        FoodTemplate(name: "Overnight Oats", emoji: "🌾", calories: 360, protein: 14, carbs: 58, fat: 8,
+            recipe: "50g Haferflocken, 200ml Milch, 1 EL Chia, 1 TL Honig mischen. Über Nacht im Kühlschrank ziehen lassen.",
+            prepTime: "5 Min + Nacht"),
+        FoodTemplate(name: "Linseneintopf", emoji: "🫘", calories: 380, protein: 20, carbs: 54, fat: 6,
+            recipe: "200g rote Linsen mit Karotten, Sellerie, Tomaten und Gewürzen 20 Min kochen.",
+            prepTime: "25 Min"),
+        FoodTemplate(name: "Thunfisch-Sandwich", emoji: "🥪", calories: 420, protein: 32, carbs: 38, fat: 14,
+            recipe: "1 Dose Thunfisch mit Joghurt, Senf, Zwiebel mischen. Auf Vollkorntoast mit Salat servieren.",
+            prepTime: "5 Min"),
+        FoodTemplate(name: "Steak mit Süßkartoffeln", emoji: "🥩", calories: 580, protein: 48, carbs: 38, fat: 22,
+            recipe: "200g Rinderfilet in Pfanne 3 Min je Seite braten. Mit 200g gerösteten Süßkartoffeln servieren.",
+            prepTime: "20 Min"),
+        FoodTemplate(name: "Tofu Stir-Fry", emoji: "🥦", calories: 360, protein: 22, carbs: 32, fat: 14,
+            recipe: "200g Tofu würfeln, in Sesamöl anbraten. Brokkoli, Paprika, Karotten dazu, mit Sojasoße würzen.",
+            prepTime: "15 Min"),
+        FoodTemplate(name: "Banane mit Mandelbutter", emoji: "🍌", calories: 280, protein: 7, carbs: 42, fat: 12,
+            recipe: "1 große Banane in Scheiben schneiden, mit 2 EL Mandelbutter servieren.",
+            prepTime: "2 Min"),
+        FoodTemplate(name: "Griechischer Salat", emoji: "🫒", calories: 310, protein: 12, carbs: 14, fat: 22,
+            recipe: "Tomate, Gurke, Paprika, Oliven, Zwiebel mit Feta. Olivenöl, Oregano, Zitrone als Dressing.",
+            prepTime: "8 Min"),
+        FoodTemplate(name: "Müsli mit Milch", emoji: "🥣", calories: 340, protein: 12, carbs: 56, fat: 8,
+            recipe: "60g Vollkornmüsli mit 200ml Vollmilch. Mit Bananenscheiben und Nüssen garnieren.",
+            prepTime: "3 Min"),
+        FoodTemplate(name: "Erbsensuppe", emoji: "🍵", calories: 290, protein: 16, carbs: 42, fat: 5,
+            recipe: "300g gelbe Erbsen mit Zwiebeln, Sellerie, Karotten und Brühe 30 Min kochen, pürieren.",
+            prepTime: "35 Min"),
+        FoodTemplate(name: "Pizza Margherita", emoji: "🍕", calories: 680, protein: 24, carbs: 88, fat: 22,
+            recipe: "Pizzateig ausrollen, mit Tomatensoße bestreichen, Mozzarella drauf. Bei 220°C 12 Min backen.",
+            prepTime: "30 Min"),
+        FoodTemplate(name: "Falafel Bowl", emoji: "🧆", calories: 520, protein: 18, carbs: 68, fat: 20,
+            recipe: "Fertiger Falafel mit Quinoa, Hummus, Gurke, Tomate, Tahini-Dressing.",
+            prepTime: "10 Min"),
+        FoodTemplate(name: "Putenschnitzel", emoji: "🍖", calories: 420, protein: 42, carbs: 22, fat: 16,
+            recipe: "150g Putenbrust klopfen, panieren, 3 Min je Seite braten. Mit Salzkartoffeln servieren.",
+            prepTime: "20 Min"),
+        FoodTemplate(name: "Buchweizenpfannkuchen", emoji: "🥞", calories: 380, protein: 14, carbs: 54, fat: 12,
+            recipe: "100g Buchweizenmehl, 2 Eier, 200ml Milch verrühren. In Pfanne von beiden Seiten backen.",
+            prepTime: "15 Min"),
+        FoodTemplate(name: "Edamame", emoji: "🫛", calories: 180, protein: 16, carbs: 14, fat: 8,
+            recipe: "200g tiefgekühlte Edamame 4 Min in gesalzenem Wasser kochen. Mit Meersalz servieren.",
+            prepTime: "5 Min"),
+        FoodTemplate(name: "Cottage Cheese Bowl", emoji: "🧀", calories: 220, protein: 24, carbs: 12, fat: 6,
+            recipe: "200g Hüttenkäse mit Gurke, Tomate, Radieschen und frischem Dill. Mit etwas Salz würzen.",
+            prepTime: "5 Min"),
+        FoodTemplate(name: "Nuss-Mix", emoji: "🥜", calories: 320, protein: 10, carbs: 14, fat: 26,
+            recipe: "40g gemischte Nüsse (Mandeln, Walnüsse, Cashews) und 30g getrocknete Früchte mischen.",
+            prepTime: "1 Min"),
+    ]
+}
+
+// MARK: - Food template detail sheet
+
+struct FoodTemplateDetailSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let template: FoodTemplate
+    let category: MealCategory
+    let onSaved: () -> Void
+
+    @State private var isSaving = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Schließen") { dismiss() }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(FrigyBrand.primaryDark)
+                Spacer()
+                Text("Vorlage")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                Color.clear.frame(width: 72, height: 1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    VStack(spacing: 10) {
+                        Text(template.emoji)
+                            .font(.system(size: 56))
+                        Text(template.name)
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(FrigyBrand.text)
+                            .multilineTextAlignment(.center)
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 11))
+                                .foregroundColor(FrigyBrand.textMuted)
+                            Text(template.prepTime)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(FrigyBrand.textMuted)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+
+                    // Macros
+                    HStack(spacing: 10) {
+                        macroChip("Kalorien", value: "\(template.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                        macroChip("Protein", value: "\(template.protein)", unit: "g", color: Color(hex: "#60A5FA"))
+                        macroChip("Carbs", value: "\(template.carbs)", unit: "g", color: Color(hex: "#FBBF24"))
+                        macroChip("Fett", value: "\(template.fat)", unit: "g", color: Color(hex: "#F87171"))
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Recipe
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Zubereitung", systemImage: "list.bullet")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(FrigyBrand.text)
+                        Text(template.recipe)
+                            .font(.system(size: 14))
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(16)
+                    .frigyCard(cornerRadius: 18)
+                    .padding(.horizontal, 20)
+
+                    // Add button
+                    Button {
+                        isSaving = true
+                        Task {
+                            await TrackerDataService.shared.addFoodEntry(
+                                name: template.name,
+                                calories: template.calories,
+                                protein: template.protein,
+                                carbs: template.carbs,
+                                fat: template.fat,
+                                portion: "1 Portion",
+                                category: category
+                            )
+                            isSaving = false
+                            dismiss()
+                            onSaved()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isSaving { ProgressView().tint(.white) }
+                            Text(isSaving ? "Wird gespeichert…" : "Zu Tagebuch hinzufügen")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(FrigyBrand.buttonGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSaving)
+                    .padding(.horizontal, 20)
+
+                    Spacer().frame(height: 32)
+                }
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+    }
+
+    private func macroChip(_ label: String, value: String, unit: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundColor(color)
+            Text(unit)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(color.opacity(0.7))
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(FrigyBrand.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .frigyCard(cornerRadius: 12)
     }
 }
 

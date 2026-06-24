@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 // MARK: - Model
 
@@ -91,7 +92,9 @@ struct HomeDashboardView: View {
         )
     }
 
+    private var isOverBudget: Bool { consumed.kcal > targets.calories && targets.calories > 0 }
     private var remaining: Int { max(0, targets.calories - consumed.kcal) }
+    private var surplus: Int { max(0, consumed.kcal - targets.calories) }
     private var caloriePct: Int {
         targets.calories > 0 ? min(100, Int(Double(consumed.kcal) / Double(targets.calories) * 100)) : 0
     }
@@ -109,6 +112,28 @@ struct HomeDashboardView: View {
         let result = await TrackerDataService.shared.loadToday()
         meals = result.meals
         targets = result.targets
+        tabCoordinator.todayMealCount = result.meals.count
+        scheduleOverageNotification()
+    }
+
+    private func scheduleOverageNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["frigy.calorie.overage"])
+        let over = surplus
+        guard over > 0 else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Gestern warst du im Kalorienüberschuss"
+        content.body = "Du hast gestern \(over) kcal zu viel gegessen. Passe deinen heutigen Plan an!"
+        content.sound = .default
+        var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        comps.day = (comps.day ?? 0) + 1
+        comps.hour = 8; comps.minute = 0; comps.second = 0
+        if let fireDate = Calendar.current.date(from: comps) {
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: max(60, fireDate.timeIntervalSinceNow), repeats: false)
+            center.add(UNNotificationRequest(
+                identifier: "frigy.calorie.overage", content: content, trigger: trigger))
+        }
     }
 
     private func fmt(_ value: Int) -> String {
@@ -199,27 +224,35 @@ struct HomeDashboardView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(fmt(remaining))
+                    Text(isOverBudget ? "+\(fmt(surplus))" : fmt(remaining))
                         .font(.system(size: 44, weight: .black, design: .rounded))
-                        .foregroundColor(Color(hex: "#1F2937"))
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : Color(hex: "#1F2937"))
+                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOverBudget)
                     Text("kcal")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(hex: "#1F2937"))
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : Color(hex: "#1F2937"))
                 }
-                Text("übrig von \(fmt(targets.calories)) kcal")
+                Text(isOverBudget
+                     ? "über dem Tagesziel von \(fmt(targets.calories)) kcal"
+                     : "übrig von \(fmt(targets.calories)) kcal")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                    .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : Color(hex: "#9CA3AF"))
             }
 
             // Progress bar
             VStack(spacing: 8) {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(FrigyBrand.primary.opacity(0.18)).frame(height: 8)
                         Capsule()
-                            .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                                                 startPoint: .leading, endPoint: .trailing))
-                            .frame(width: max(8, geo.size.width * Double(caloriePct) / 100), height: 8)
+                            .fill(isOverBudget ? Color(hex: "#FEE2E2") : FrigyBrand.primary.opacity(0.18))
+                            .frame(height: 8)
+                        Capsule()
+                            .fill(isOverBudget
+                                  ? LinearGradient(colors: [Color(hex: "#FCA5A5"), Color(hex: "#EF4444")],
+                                                   startPoint: .leading, endPoint: .trailing)
+                                  : LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                                   startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(8, geo.size.width * Double(min(caloriePct, 100)) / 100), height: 8)
                             .animation(.spring(duration: 0.6), value: caloriePct)
                     }
                 }
@@ -228,11 +261,11 @@ struct HomeDashboardView: View {
                 HStack {
                     Text("\(fmt(consumed.kcal)) Gegessen")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : Color(hex: "#9CA3AF"))
                     Spacer()
-                    Text("\(caloriePct)%")
+                    Text(isOverBudget ? "Überschuss!" : "\(caloriePct)%")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(FrigyBrand.primaryDark)
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : FrigyBrand.primaryDark)
                 }
             }
 

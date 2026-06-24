@@ -19,7 +19,7 @@ struct MainShellView: View {
             tabRoot(ShoppingTabRoot(), tab: .shopping, selected: coordinator.selectedTab)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            GlassTabBar(selection: $coordinator.selectedTab) {
+            GlassTabBar(selection: $coordinator.selectedTab, mealCount: coordinator.todayMealCount) {
                 coordinator.openTracker()
             }
         }

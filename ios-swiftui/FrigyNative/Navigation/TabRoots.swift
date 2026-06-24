@@ -126,8 +126,8 @@ struct ProfileView: View {
                     .padding(.top, 8)
 
                     VStack(spacing: 0) {
-                        NavigationLink(destination: NutritionGoalsView()) {
-                            profileRow("Ernährungsziele", icon: "target", color: Color(hex: "#60A5FA"))
+                        NavigationLink(destination: TransformationView()) {
+                            profileRow("Transformation", icon: "figure.arms.open", color: Color(hex: "#8B5CF6"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
@@ -242,6 +242,416 @@ struct ProfileView: View {
                 .foregroundColor(Color(hex: "#D1D5DB"))
         }
         .padding(14)
+    }
+}
+
+// MARK: - Transformation
+
+struct TransformationPhoto: Identifiable, Codable {
+    var id: String = UUID().uuidString
+    var date: String
+    var note: String
+    var imageData: Data?
+}
+
+struct TransformationView: View {
+    @State private var photos: [TransformationPhoto] = []
+    @State private var showCamera = false
+    @State private var showPicker = false
+    @State private var pickedImage: UIImage?
+    @State private var noteText = ""
+    @State private var isAnalyzing = false
+    @State private var aiFeedback: String?
+    @State private var showAddSheet = false
+
+    private static let storageKey = "frigy.transformation.photos.v1"
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "de_DE")
+        f.dateStyle = .medium
+        return f
+    }()
+
+    var body: some View {
+        VStack(spacing: 0) {
+            FrigyNavBar(
+                title: "Transformation",
+                trailingIcon: "plus",
+                trailingAction: { showAddSheet = true }
+            )
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    // Intro banner
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(hex: "#8B5CF6").opacity(0.15))
+                                .frame(width: 48, height: 48)
+                            Image(systemName: "figure.arms.open")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(Color(hex: "#8B5CF6"))
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Dein Körper-Fortschritt")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(FrigyBrand.text)
+                            Text("Mache regelmäßig Fotos und erhalte KI-Feedback zu deinem Fortschritt.")
+                                .font(.system(size: 12))
+                                .foregroundColor(FrigyBrand.textMuted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(16)
+                    .frigyCard(cornerRadius: 18)
+
+                    if photos.isEmpty {
+                        VStack(spacing: 14) {
+                            Image(systemName: "camera.viewfinder")
+                                .font(.system(size: 48))
+                                .foregroundColor(FrigyBrand.cardBorder)
+                            Text("Noch keine Fotos")
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundColor(FrigyBrand.text)
+                            Text("Tippe auf + um dein erstes Transformationsfoto hinzuzufügen.")
+                                .font(.system(size: 13))
+                                .foregroundColor(FrigyBrand.textMuted)
+                                .multilineTextAlignment(.center)
+                            Button {
+                                showAddSheet = true
+                            } label: {
+                                Label("Erstes Foto hinzufügen", systemImage: "camera.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 48)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(LinearGradient(
+                                                colors: [Color(hex: "#8B5CF6"), Color(hex: "#6D28D9")],
+                                                startPoint: .topLeading, endPoint: .bottomTrailing
+                                            ))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 32)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                    } else {
+                        // Compare: first vs latest
+                        if photos.count >= 2 {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Vergleich: Anfang vs. Jetzt")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(FrigyBrand.text)
+                                HStack(spacing: 12) {
+                                    photoThumb(photos.first!, label: "Start")
+                                    photoThumb(photos.last!, label: "Aktuell")
+                                }
+                            }
+                            .padding(16)
+                            .frigyCard(cornerRadius: 18)
+                        }
+
+                        // AI Feedback button
+                        if photos.count >= 1 {
+                            Button {
+                                Task { await requestAiFeedback() }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    if isAnalyzing {
+                                        ProgressView().tint(.white)
+                                    } else {
+                                        Image(systemName: "sparkles")
+                                            .font(.system(size: 15, weight: .semibold))
+                                    }
+                                    Text(isAnalyzing ? "Analyse läuft…" : "KI-Feedback erhalten")
+                                        .font(.system(size: 15, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(LinearGradient(
+                                            colors: [Color(hex: "#8B5CF6"), Color(hex: "#6D28D9")],
+                                            startPoint: .topLeading, endPoint: .bottomTrailing
+                                        ))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isAnalyzing)
+
+                            if let feedback = aiFeedback {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Label("KI-Feedback", systemImage: "sparkles")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(Color(hex: "#8B5CF6"))
+                                    Text(feedback)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(FrigyBrand.text)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(14)
+                                .frigyCard(cornerRadius: 16)
+                            }
+                        }
+
+                        // Photo timeline
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Verlauf")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(FrigyBrand.text)
+                            ForEach(photos.reversed()) { photo in
+                                HStack(spacing: 12) {
+                                    if let data = photo.imageData, let img = UIImage(data: data) {
+                                        Image(uiImage: img)
+                                            .resizable().scaledToFill()
+                                            .frame(width: 60, height: 60)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(FrigyBrand.cardBorder)
+                                            .frame(width: 60, height: 60)
+                                            .overlay(Image(systemName: "photo").foregroundColor(FrigyBrand.textMuted))
+                                    }
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(photo.date)
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(FrigyBrand.text)
+                                        if !photo.note.isEmpty {
+                                            Text(photo.note)
+                                                .font(.system(size: 12))
+                                                .foregroundColor(FrigyBrand.textMuted)
+                                                .lineLimit(2)
+                                        }
+                                    }
+                                    Spacer()
+                                }
+                                .padding(12)
+                                .frigyCard(cornerRadius: 14)
+                            }
+                        }
+                    }
+
+                    Spacer().frame(height: 32)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showAddSheet) {
+            AddTransformationPhotoSheet { image, note in
+                let photo = TransformationPhoto(
+                    date: Self.dateFormatter.string(from: Date()),
+                    note: note,
+                    imageData: image?.jpegData(compressionQuality: 0.6)
+                )
+                photos.append(photo)
+                save()
+            }
+        }
+        .onAppear { load() }
+    }
+
+    private func photoThumb(_ photo: TransformationPhoto, label: String) -> some View {
+        VStack(spacing: 6) {
+            if let data = photo.imageData, let img = UIImage(data: data) {
+                Image(uiImage: img)
+                    .resizable().scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 140)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            } else {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(FrigyBrand.cardBorder)
+                    .frame(maxWidth: .infinity, minHeight: 140)
+                    .overlay(Image(systemName: "photo").foregroundColor(FrigyBrand.textMuted).font(.system(size: 30)))
+            }
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(FrigyBrand.textMuted)
+            Text(photo.date)
+                .font(.system(size: 11))
+                .foregroundColor(FrigyBrand.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func requestAiFeedback() async {
+        isAnalyzing = true
+        aiFeedback = nil
+        let count = photos.count
+        let daysSince = photos.count >= 2
+            ? "mehrere Wochen"
+            : "kurze Zeit"
+        let prompt = "Ein Nutzer macht seit \(daysSince) Transformationsfotos und hat insgesamt \(count) Foto(s) hochgeladen. Gib motivierendes, konkretes Feedback über Konsistenz und was als nächstes zu tun ist für den Körperfortschritt. Max 3 Sätze."
+        let reply = await TrackerDataService.shared.sendChatMessage(prompt, history: [])
+        aiFeedback = reply ?? "Tolle Arbeit, dass du deinen Fortschritt dokumentierst! Bleib konsequent und mache alle 2 Wochen ein neues Foto, um deinen Fortschritt sichtbar zu machen."
+        isAnalyzing = false
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(photos) {
+            UserDefaults.standard.set(data, forKey: Self.storageKey)
+        }
+    }
+
+    private func load() {
+        if let data = UserDefaults.standard.data(forKey: Self.storageKey),
+           let saved = try? JSONDecoder().decode([TransformationPhoto].self, from: data) {
+            photos = saved
+        }
+    }
+}
+
+struct AddTransformationPhotoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onSave: (UIImage?, String) -> Void
+
+    @State private var selectedImage: UIImage?
+    @State private var noteText = ""
+    @State private var showImagePicker = false
+    @State private var showCamera = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Abbrechen") { dismiss() }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(FrigyBrand.primaryDark)
+                Spacer()
+                Text("Foto hinzufügen")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                Button("Speichern") {
+                    onSave(selectedImage, noteText)
+                    dismiss()
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(Color(hex: "#8B5CF6"))
+                .disabled(selectedImage == nil)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Image area
+                    if let img = selectedImage {
+                        Image(uiImage: img)
+                            .resizable().scaledToFit()
+                            .frame(maxWidth: .infinity)
+                            .frame(maxHeight: 300)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .padding(.horizontal, 20)
+                    } else {
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(FrigyBrand.cardBorder.opacity(0.3))
+                            .frame(height: 200)
+                            .overlay(
+                                VStack(spacing: 10) {
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 36))
+                                        .foregroundColor(FrigyBrand.textMuted)
+                                    Text("Foto auswählen")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(FrigyBrand.textMuted)
+                                }
+                            )
+                            .padding(.horizontal, 20)
+                    }
+
+                    HStack(spacing: 12) {
+                        Button {
+                            showCamera = true
+                        } label: {
+                            Label("Kamera", systemImage: "camera.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(hex: "#8B5CF6")))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            showImagePicker = true
+                        } label: {
+                            Label("Galerie", systemImage: "photo.on.rectangle")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color(hex: "#8B5CF6"))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .background(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(hex: "#8B5CF6"), lineWidth: 1.5))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Notiz (optional)")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(FrigyBrand.textMuted)
+                        TextField("z.B. Nach 4 Wochen Training", text: $noteText)
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 12)
+                                .fill(.ultraThinMaterial)
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.25), lineWidth: 1)))
+                    }
+                    .padding(.horizontal, 20)
+
+                    Spacer().frame(height: 32)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .sheet(isPresented: $showImagePicker) {
+            ImagePickerView(image: $selectedImage, sourceType: .photoLibrary)
+        }
+        .sheet(isPresented: $showCamera) {
+            ImagePickerView(image: $selectedImage, sourceType: .camera)
+        }
+    }
+}
+
+struct ImagePickerView: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    var sourceType: UIImagePickerController.SourceType
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePickerView
+        init(_ parent: ImagePickerView) { self.parent = parent }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            parent.image = info[.originalImage] as? UIImage
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
     }
 }
 

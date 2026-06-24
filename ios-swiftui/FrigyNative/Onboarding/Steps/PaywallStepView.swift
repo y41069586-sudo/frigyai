@@ -120,7 +120,7 @@ struct PaywallStepView: View {
                     .disabled(isPurchasing || selectedPackage == nil)
                     .padding(.horizontal, 24)
 
-                    // Legal
+                    // Legal + Restore
                     VStack(spacing: 4) {
                         Text(legalText)
                             .font(.system(size: 11))
@@ -130,9 +130,10 @@ struct PaywallStepView: View {
                         Button {
                             isLoadingRestore = true
                             Task {
-                                _ = try? await router.subscriptionService.restorePurchases()
+                                let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
+                                if ok { router.isPremium = true }
                                 isLoadingRestore = false
-                                onNext()
+                                if ok { onNext() }
                             }
                         } label: {
                             if isLoadingRestore {
@@ -147,15 +148,6 @@ struct PaywallStepView: View {
                         .padding(.top, 4)
                     }
                     .padding(.horizontal, 24)
-
-                    // Skip
-                    Button {
-                        onNext()
-                    } label: {
-                        Text("Nicht jetzt")
-                            .font(.system(size: 14))
-                            .foregroundColor(FrigyBrand.textMuted)
-                    }
                     .padding(.bottom, 32)
                 }
             }

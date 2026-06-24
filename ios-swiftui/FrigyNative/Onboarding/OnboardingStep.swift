@@ -78,13 +78,11 @@ enum OnboardingFlow {
         .weight,
         .height,
         .activity,
-        .holdExperience,        // ~25% — immersive "hold to continue" moment
         .mainGoal,
         .targetWeight,
         .goalPreview,
         .speedSelect,
         .healthGoals,
-        .energySwipe,           // ~50% — interactive energy swipe world
         .dietaryPreferences,
         .allergies,
         .weeklyPlanPreview,
@@ -92,7 +90,6 @@ enum OnboardingFlow {
         .shoppingList,
         .notificationPrefs,
         .referralCode,
-        .momentumReveal,        // ~85% — cinematic reveal before finalization
         .analyzing,
         .macroPreview,
     ]

@@ -40,6 +40,8 @@ struct MealPlansView: View {
     @State private var bannerMessage: String?
     @State private var bannerIsError = false
     @State private var eatenMealIDs: Set<UUID> = []
+    @State private var toastMessage: String?
+    @State private var selectedTemplate: FoodTemplate?
 
     // Web tokens
     private let pageBg     = Color(hex: "#F2FFF8")
@@ -57,6 +59,7 @@ struct MealPlansView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     generateButton
+                        .padding(.top, 8)
 
                     if let msg = bannerMessage {
                         Text(msg)
@@ -73,6 +76,9 @@ struct MealPlansView: View {
                         dayCard(day)
                     }
 
+                    planTemplatesSection
+                        .padding(.top, 8)
+
                     Spacer().frame(height: 100)
                 }
                 .padding(.horizontal, 12)
@@ -81,6 +87,69 @@ struct MealPlansView: View {
         }
         .background(pageBg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .overlay(alignment: .bottom) {
+            if let toast = toastMessage {
+                Text(toast)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Capsule().fill(Color(hex: "#1A2B22").opacity(0.92)))
+                    .shadow(radius: 8, y: 4)
+                    .padding(.bottom, 100)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toastMessage)
+        .sheet(item: $selectedTemplate) { tpl in
+            FoodTemplateDetailSheet(template: tpl, category: .lunch) { }
+        }
+    }
+
+    // MARK: - Templates section
+
+    private var planTemplatesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Mahlzeit-Vorlagen")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(foreground)
+            Text("Tippe auf eine Vorlage, um das Rezept und Nährwerte zu sehen.")
+                .font(.system(size: 12))
+                .foregroundColor(muted)
+
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: 10
+            ) {
+                ForEach(FoodTemplate.all) { tpl in
+                    Button { selectedTemplate = tpl } label: {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(tpl.emoji)
+                                .font(.system(size: 24))
+                            Text(tpl.name)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(foreground)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("\(tpl.calories) kcal")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(primary.opacity(0.9))
+                            Text("P \(tpl.protein)g · K \(tpl.carbs)g · F \(tpl.fat)g")
+                                .font(.system(size: 9))
+                                .foregroundColor(muted)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(primary.opacity(0.25), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.03), radius: 4, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     // MARK: - Header (web sticky top bar: back arrow + "Frigy")
@@ -241,6 +310,17 @@ struct MealPlansView: View {
         )
         if ok {
             eatenMealIDs.insert(meal.id)
+            toastMessage = "✓ \(meal.name) geloggt"
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                toastMessage = nil
+            }
+        } else {
+            toastMessage = "Fehler beim Speichern – bitte anmelden"
+            Task {
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                toastMessage = nil
+            }
         }
     }
 

@@ -7,6 +7,7 @@ import SwiftUI
 struct GlassTabBar: View {
     @Binding var selection: AppTab
     var onTrackerTap: () -> Void
+    var mealCount: Int = 0
 
     private let trackerSize: CGFloat = 60
 
@@ -79,21 +80,33 @@ struct GlassTabBar: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
-    // MARK: - Tracker (+) button — raised green circle with white ring
+    // MARK: - Tracker (+) button — raised green circle with white ring + meal count badge
 
     private var trackerButton: some View {
         Button(action: onTrackerTap) {
-            Image(systemName: "plus")
-                .font(.system(size: 30, weight: .heavy))
-                .foregroundStyle(.white)
-                .frame(width: trackerSize, height: trackerSize)
-                .modifier(TrackerButtonStyle())
-                .padding(5)
-                .background(Circle().fill(.white))
-                .shadow(color: FrigyBrand.primaryDeep.opacity(0.38), radius: 12, y: 6)
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "plus")
+                    .font(.system(size: 30, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .frame(width: trackerSize, height: trackerSize)
+                    .modifier(TrackerButtonStyle())
+                    .padding(5)
+                    .background(Circle().fill(.white))
+                    .shadow(color: FrigyBrand.primaryDeep.opacity(0.38), radius: 12, y: 6)
+
+                if mealCount > 0 {
+                    Text("\(mealCount)")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color(hex: "#EF4444")))
+                        .offset(x: 4, y: -2)
+                }
+            }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Mahlzeit tracken")
+        .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
     }
 }
 
