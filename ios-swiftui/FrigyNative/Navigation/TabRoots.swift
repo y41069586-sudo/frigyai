@@ -11,8 +11,8 @@ struct HomeRouteView: View {
         switch route {
         case .profile:            ProfileView()
         case .badges:             BadgesView()
-        case .foodEntry(let id):  FoodEntryView(id: id)
-        case .chatbot:            ChatbotView()
+        case .foodEntry(let id):  FoodEntryView(entryId: id)
+        case .chatbot(let prompt): ChatbotView(initialPrompt: prompt)
         case .weightProgress:     WeightProgressView()
         }
     }
@@ -87,6 +87,7 @@ struct ProfileView: View {
     @State private var isRestoring = false
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
+    @State private var accountDeleteFailed = false
 
     private var appVersion: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -249,17 +250,27 @@ struct ProfileView: View {
             Button("Konto löschen", role: .destructive) {
                 Task {
                     isDeletingAccount = true
-                    // Clear local data
+                    // Delete server-side account + data first (auth user, DB rows).
+                    let serverDeleted = await TrackerDataService.shared.deleteAccount()
+                    // Clear local data regardless, then sign out.
                     UserDefaults.standard.removeObject(forKey: "frigy.shoppingItems.v2")
                     UserDefaults.standard.removeObject(forKey: "frigy.transformation.photos.v1")
                     UserDefaults.standard.removeObject(forKey: "frigy.reminders.v1")
                     await router.signOut()
                     isDeletingAccount = false
+                    if !serverDeleted {
+                        accountDeleteFailed = true
+                    }
                 }
             }
             Button("Abbrechen", role: .cancel) {}
         } message: {
-            Text("Dein Konto und alle lokalen Daten werden gelöscht. Deine Serverdaten werden innerhalb von 30 Tagen entfernt. Diese Aktion kann nicht rückgängig gemacht werden.")
+            Text("Dein Konto und alle lokalen Daten werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.")
+        }
+        .alert("Serverdaten konnten nicht gelöscht werden", isPresented: $accountDeleteFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Du wurdest abgemeldet und lokale Daten wurden entfernt, aber dein Konto auf dem Server konnte nicht gelöscht werden. Bitte versuche es später erneut oder kontaktiere den Support.")
         }
     }
 
@@ -670,7 +681,11 @@ struct ImagePickerView: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = sourceType
+        // Guard against requesting an unavailable source (e.g. .camera on the
+        // Simulator) which raises and crashes. Fall back to the photo library.
+        picker.sourceType = UIImagePickerController.isSourceTypeAvailable(sourceType)
+            ? sourceType
+            : .photoLibrary
         picker.delegate = context.coordinator
         return picker
     }
@@ -1297,11 +1312,14 @@ struct AddWeightSheet: View {
 // MARK: - Chatbot
 
 struct ChatbotView: View {
+    var initialPrompt: String? = nil
+
     @State private var messages: [(role: String, text: String)] = [
         ("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?"),
     ]
     @State private var inputText = ""
     @State private var isTyping = false
+    @State private var didSendInitial = false
     @FocusState private var inputFocused: Bool
 
     var body: some View {
@@ -1374,16 +1392,31 @@ struct ChatbotView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            // Auto-send a prompt forwarded from the home AI widget.
+            if let prompt = initialPrompt?.trimmingCharacters(in: .whitespaces),
+               !prompt.isEmpty, !didSendInitial {
+                didSendInitial = true
+                send(prompt)
+            }
+        }
     }
 
     private func sendMessage() {
-        let text = inputText.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
-        messages.append(("user", text))
+        let text = inputText
         inputText = ""
+        send(text)
+    }
+
+    private func send(_ raw: String) {
+        let text = raw.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        // Build history from prior turns BEFORE appending the new message, so the
+        // current user turn isn't duplicated in the request payload.
+        let history = messages.map { ChatTurn(role: $0.role, content: $0.text) }
+        messages.append(("user", text))
         isTyping = true
 
-        let history = messages.map { ChatTurn(role: $0.role, content: $0.text) }
         Task {
             let reply = await TrackerDataService.shared.sendChatMessage(text, history: history)
             isTyping = false
@@ -1503,7 +1536,7 @@ struct BadgesView: View {
             ScrollView(showsIndicators: false) {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(catalog) { badge in
-                        let unlocked = unlockedTypes.contains(badge.id)
+                        let unlocked = unlockedTypes.contains(badge.id.lowercased())
                         VStack(spacing: 10) {
                             ZStack {
                                 Circle()
@@ -1537,14 +1570,15 @@ struct BadgesView: View {
 
     private func load() async {
         let earned = await TrackerDataService.shared.loadBadges()
-        unlockedTypes = Set(earned.map(\.type))
+        // Normalize so casing/whitespace drift from the DB still matches catalog ids.
+        unlockedTypes = Set(earned.map { $0.type.lowercased().trimmingCharacters(in: .whitespaces) })
     }
 }
 
 // MARK: - Food Entry
 
 struct FoodEntryView: View {
-    let id: UUID
+    let entryId: String
     @State private var entry: LoggedMeal? = nil
     @State private var isLoading = true
 
@@ -1609,7 +1643,7 @@ struct FoodEntryView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task {
             let result = await TrackerDataService.shared.loadToday()
-            entry = result.meals.first { $0.id == id }
+            entry = result.meals.first { $0.entryId == entryId }
             isLoading = false
         }
     }
@@ -1689,7 +1723,7 @@ struct MealDetailView: View {
                                 await TrackerDataService.shared.addFoodEntry(
                                     name: tpl.name, calories: tpl.calories,
                                     protein: tpl.protein, carbs: tpl.carbs, fat: tpl.fat,
-                                    portion: "1 Portion", category: .lunch
+                                    portion: "1 Portion", category: .current()
                                 )
                                 isSaving = false
                             }

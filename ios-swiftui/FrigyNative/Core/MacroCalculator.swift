@@ -88,11 +88,17 @@ enum MacroCalculator {
         )
     }
 
+    /// Weeks until the target weight is reached. Returns 0 for maintain or when
+    /// no pace is set — callers should never receive `Int.max` (which overflows
+    /// date math and renders as garbage). A sane fallback pace of 0.5 kg/week is
+    /// used if `weeklyGoalKg` is non-positive.
     static func weeksToGoal(_ input: Input) -> Int {
         if input.goalMode == .maintain { return 0 }
-        guard input.weeklyGoalKg > 0 else { return .max }
 
         let weightDiff = abs(input.targetWeightKg - input.weightKg)
-        return Int(ceil(weightDiff / input.weeklyGoalKg))
+        guard weightDiff > 0 else { return 0 }
+
+        let pace = input.weeklyGoalKg > 0 ? input.weeklyGoalKg : 0.5
+        return Int(ceil(weightDiff / pace))
     }
 }

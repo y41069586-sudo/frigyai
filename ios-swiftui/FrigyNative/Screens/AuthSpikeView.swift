@@ -142,6 +142,10 @@ struct AuthSpikeView: View {
         defer { isLoading = false }
         do {
             try await router.authService.signInWithGoogle()
+            // signInWithGoogle only returns once the OAuth session is established
+            // (continuation resumes after auth.session(from:)), so navigate now —
+            // matching the Apple path. Previously the user was left on this screen.
+            router.rootRoute = .main
         } catch {
             errorMessage = error.localizedDescription
         }

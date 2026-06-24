@@ -347,7 +347,7 @@ struct MealPlansView: View {
     private func generatePlan() async {
         isGenerating = true
         bannerMessage = nil
-        let targets = MacroTargets.default
+        let targets = await TrackerDataService.shared.loadTargets()
         if let generatedDays = await TrackerDataService.shared.generateMealPlan(
             calories: targets.calories,
             protein: targets.protein,
@@ -426,6 +426,7 @@ struct FridgeScanSheet: View {
     @State private var detectedItems: [String] = []
     @State private var missingItems: [String] = []
     @State private var analysisError: String?
+    @State private var addedToListCount: Int?
 
     private let primary = Color(hex: "#75FBB2")
     private let foreground = Color(hex: "#1F2937")
@@ -574,11 +575,17 @@ struct FridgeScanSheet: View {
                                     }
                                 }
                                 Button {
-                                    dismiss()
+                                    let added = ShoppingListStore.add(names: missingItems, category: .other)
+                                    addedToListCount = added
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                                        dismiss()
+                                    }
                                 } label: {
                                     HStack(spacing: 6) {
-                                        Image(systemName: "cart.badge.plus")
-                                        Text("Zur Einkaufsliste hinzufügen")
+                                        Image(systemName: addedToListCount == nil ? "cart.badge.plus" : "checkmark")
+                                        Text(addedToListCount == nil
+                                             ? "Zur Einkaufsliste hinzufügen"
+                                             : "\(addedToListCount ?? 0) hinzugefügt")
                                     }
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.white)
@@ -586,10 +593,11 @@ struct FridgeScanSheet: View {
                                     .frame(height: 44)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color(hex: "#EF4444"))
+                                            .fill(addedToListCount == nil ? Color(hex: "#EF4444") : Color(hex: "#39D47F"))
                                     )
                                 }
                                 .buttonStyle(.plain)
+                                .disabled(addedToListCount != nil)
                                 .padding(.top, 4)
                             }
                             .padding(16)

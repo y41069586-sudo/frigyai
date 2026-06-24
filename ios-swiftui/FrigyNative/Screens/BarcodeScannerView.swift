@@ -240,7 +240,10 @@ private struct CameraPreviewView: UIViewRepresentable {
             guard session.canAddOutput(output) else { return }
             session.addOutput(output)
             output.setMetadataObjectsDelegate(self, queue: .main)
-            output.metadataObjectTypes = [.ean8, .ean13, .upce]
+            // EAN/UPC cover most retail food; code128 + GS1 DataMatrix appear on
+            // some European packaging. Only set types the session actually supports.
+            let desired: [AVMetadataObject.ObjectType] = [.ean8, .ean13, .upce, .code128, .dataMatrix]
+            output.metadataObjectTypes = desired.filter { output.availableMetadataObjectTypes.contains($0) }
 
             let layer = AVCaptureVideoPreviewLayer(session: session)
             layer.videoGravity = .resizeAspectFill

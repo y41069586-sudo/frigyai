@@ -71,6 +71,7 @@ struct HomeDashboardView: View {
     @State private var meals: [LoggedMeal] = []
     // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
     @State private var targets = MacroTargets.default
+    @State private var streak: Int = 0
     @State private var loadError = false
     @State private var aiPrompt = ""
     @FocusState private var aiFocused: Bool
@@ -104,11 +105,16 @@ struct HomeDashboardView: View {
 
     private var loggedCategories: Set<MealCategory> { Set(meals.map(\.category)) }
 
-    private var weekdayText: String {
+    // Cached once — building a DateFormatter on every body pass is expensive.
+    private static let weekdayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "de_DE")
         f.dateFormat = "EEEE"
-        return f.string(from: Date())
+        return f
+    }()
+
+    private var weekdayText: String {
+        Self.weekdayFormatter.string(from: Date())
     }
 
     private func reload() async {
@@ -124,6 +130,7 @@ struct HomeDashboardView: View {
         targets = result.targets
         tabCoordinator.todayMealCount = result.meals.count
         scheduleOverageNotification()
+        streak = await TrackerDataService.shared.loadStreak()
     }
 
     private func scheduleOverageNotification() {
@@ -240,14 +247,14 @@ struct HomeDashboardView: View {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(Color(hex: "#FB923C"))
-                        Text("\(loggedCategories.isEmpty ? 0 : 1)")
+                        Text("\(streak)")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(Color(hex: "#1F2937"))
                     }
                 }
                 .buttonStyle(.plain)
                 headerIcon("bubble.left.and.bubble.right.fill", color: FrigyBrand.primaryDark) {
-                    tabCoordinator.pushHome(.chatbot)
+                    tabCoordinator.pushHome(.chatbot(initialPrompt: nil))
                 }
                 headerIcon("gearshape.fill", color: Color(hex: "#9CA3AF")) {
                     tabCoordinator.pushHome(.profile)
@@ -730,8 +737,9 @@ struct HomeDashboardView: View {
     }
 
     private func submitAi() {
+        let prompt = aiPrompt.trimmingCharacters(in: .whitespaces)
         aiPrompt = ""
         aiFocused = false
-        tabCoordinator.pushHome(.chatbot)
+        tabCoordinator.pushHome(.chatbot(initialPrompt: prompt.isEmpty ? nil : prompt))
     }
 }

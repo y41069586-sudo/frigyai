@@ -152,6 +152,79 @@ final class TrackerDataService {
         #endif
     }
 
+    /// Current logging streak: consecutive days (ending today, or yesterday if
+    /// nothing logged yet today) on which at least one food entry exists.
+    func loadStreak() async -> Int {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return 0 }
+        guard let rows: [FoodEntryRow] = try? await ctx.client
+            .from("food_entries")
+            .select("id,name,calories,protein,carbs,fat,meal_type,date")
+            .eq("user_id", value: ctx.userId)
+            .order("date", ascending: false)
+            .limit(400)
+            .execute()
+            .value else { return 0 }
+
+        let loggedDays = Set(rows.map(\.date))
+        guard !loggedDays.isEmpty else { return 0 }
+
+        let cal = Calendar(identifier: .gregorian)
+        let formatter = DateFormatter()
+        formatter.calendar = cal
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        // Start counting from today; if today isn't logged, allow the streak to
+        // still be "alive" from yesterday rather than resetting to 0.
+        var cursor = cal.startOfDay(for: Date())
+        if !loggedDays.contains(formatter.string(from: cursor)) {
+            guard let yesterday = cal.date(byAdding: .day, value: -1, to: cursor),
+                  loggedDays.contains(formatter.string(from: yesterday)) else { return 0 }
+            cursor = yesterday
+        }
+
+        var streak = 0
+        while loggedDays.contains(formatter.string(from: cursor)) {
+            streak += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = prev
+        }
+        return streak
+        #else
+        return 0
+        #endif
+    }
+
+    /// Resolve the user's current daily macro targets without loading meals.
+    /// Reads `user_tracker_settings` (persisting to cache), falling back to the
+    /// last cached value, then the static default. Used by the meal-plan
+    /// generator so plans match the user's real goal — not hardcoded numbers.
+    func loadTargets() async -> MacroTargets {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return cachedTargets() ?? .default }
+        if let settings: [TrackerSettingsRow] = try? await ctx.client
+            .from("user_tracker_settings")
+            .select()
+            .eq("user_id", value: ctx.userId)
+            .limit(1)
+            .execute()
+            .value, let row = settings.first {
+            let targets = MacroTargets(
+                calories: Int((row.daily_calories ?? Double(MacroTargets.default.calories)).rounded()),
+                protein: Int((row.daily_protein ?? Double(MacroTargets.default.protein)).rounded()),
+                carbs: Int((row.daily_carbs ?? Double(MacroTargets.default.carbs)).rounded()),
+                fat: Int((row.daily_fat ?? Double(MacroTargets.default.fat)).rounded())
+            )
+            persistTargets(targets)
+            return targets
+        }
+        return cachedTargets() ?? .default
+        #else
+        return cachedTargets() ?? .default
+        #endif
+    }
+
     // MARK: - Tracker (log a meal)
 
     /// Persist a food entry for today. Returns true on success.
@@ -345,6 +418,38 @@ final class TrackerDataService {
         }
         #else
         return nil
+        #endif
+    }
+
+    // MARK: - Account deletion
+
+    /// Permanently delete the user's account and all server-side data via the
+    /// `delete-user` edge function (uses the service role to remove the auth
+    /// user + DB rows). Returns true on success.
+    func deleteAccount() async -> Bool {
+        #if canImport(Supabase)
+        guard SupabaseConfig.isConfigured,
+              let base = SupabaseConfig.urlString,
+              let anonKey = SupabaseConfig.anonKey,
+              let session = try? await SupabaseAuthService.shared.client.auth.session,
+              let url = URL(string: "\(base)/functions/v1/delete-user") else { return false }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = Data("{}".utf8)
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            return (200..<300).contains(status)
+        } catch {
+            return false
+        }
+        #else
+        return false
         #endif
     }
 
@@ -602,6 +707,17 @@ extension MealCategory {
         case .lunch:     "lunch"
         case .dinner:    "dinner"
         case .snack:     "snack"
+        }
+    }
+
+    /// Best-guess category from the current time of day, used when the user
+    /// logs a meal without explicitly choosing a slot.
+    static func current(at date: Date = Date()) -> MealCategory {
+        switch Calendar.current.component(.hour, from: date) {
+        case 5..<11:  return .breakfast
+        case 11..<15: return .lunch
+        case 17..<22: return .dinner
+        default:      return .snack
         }
     }
 }

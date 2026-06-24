@@ -300,7 +300,7 @@ struct TrackerLogMealView: View {
                     await TrackerDataService.shared.addFoodEntry(
                         name: food.name, calories: food.calories,
                         protein: food.protein, carbs: food.carbs, fat: food.fat,
-                        portion: "100g", category: selectedCategory
+                        portion: "1 Portion", category: selectedCategory
                     )
                     dismiss()
                 }

@@ -33,7 +33,10 @@ enum SupabaseConfig {
     }
 
     static var oauthRedirectURL: URL {
-        URL(string: "\(oauthRedirectScheme)://\(oauthCallbackHost)")!
+        // Never force-unwrap: a misconfigured xcconfig could produce an invalid
+        // scheme/host. Fall back to the known-good default rather than crash.
+        URL(string: "\(oauthRedirectScheme)://\(oauthCallbackHost)")
+            ?? URL(string: "frigy://callback")!
     }
 
     static var isConfigured: Bool {

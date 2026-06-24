@@ -51,30 +51,61 @@ enum ShoppingCategory: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - View
+// MARK: - Shared store
+//
+// Single source of truth for the persisted shopping list so other screens (e.g.
+// the fridge scan in MealPlansView) can append items and have this view refresh.
 
-private let shoppingItemsKey = "frigy.shoppingItems.v2"
+enum ShoppingListStore {
+    static let key = "frigy.shoppingItems.v2"
+    static let didChange = Notification.Name("frigy.shoppingList.didChange")
 
-struct ShoppingListView: View {
-    @State private var items: [ShoppingItem] = Self.loadItems()
-    @State private var newItemName = ""
-
-    private static func loadItems() -> [ShoppingItem] {
-        guard let data = UserDefaults.standard.data(forKey: shoppingItemsKey),
-              let saved = try? JSONDecoder().decode([ShoppingItem].self, from: data),
-              !saved.isEmpty else {
+    static func load() -> [ShoppingItem] {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let saved = try? JSONDecoder().decode([ShoppingItem].self, from: data) else {
             return []
         }
         return saved
     }
 
-    private func save() {
-        do {
-            let data = try JSONEncoder().encode(items)
-            UserDefaults.standard.set(data, forKey: shoppingItemsKey)
-        } catch {
-            assertionFailure("ShoppingList encode failed: \(error)")
+    static func save(_ items: [ShoppingItem]) {
+        if let data = try? JSONEncoder().encode(items) {
+            UserDefaults.standard.set(data, forKey: key)
         }
+    }
+
+    /// Append named items, deduped by case-insensitive name. Returns how many
+    /// were actually added and notifies any live ShoppingListView to reload.
+    @discardableResult
+    static func add(names: [String], category: ShoppingCategory = .other) -> Int {
+        var items = load()
+        var existing = Set(items.map { $0.name.lowercased() })
+        var added = 0
+        for raw in names {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, !existing.contains(trimmed.lowercased()) else { continue }
+            let display = trimmed.prefix(1).uppercased() + trimmed.dropFirst()
+            items.append(ShoppingItem(name: display, category: category))
+            existing.insert(trimmed.lowercased())
+            added += 1
+        }
+        if added > 0 {
+            save(items)
+            NotificationCenter.default.post(name: didChange, object: nil)
+        }
+        return added
+    }
+}
+
+// MARK: - View
+
+struct ShoppingListView: View {
+    @State private var items: [ShoppingItem] = ShoppingListStore.load()
+    @State private var newItemName = ""
+    @State private var showAddSheet = false
+
+    private func save() {
+        ShoppingListStore.save(items)
     }
 
     private var unchecked: [ShoppingItem] { items.filter { !$0.isChecked } }
@@ -108,6 +139,20 @@ struct ShoppingListView: View {
                                 .foregroundColor(Color(hex: "#9CA3AF"))
                         }
                     }
+                    Button { showAddSheet = true } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 40, height: 40)
+                            .background(
+                                Circle().fill(LinearGradient(
+                                    colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+                            )
+                            .shadow(color: FrigyBrand.primaryDeep.opacity(0.3), radius: 8, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 4)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -212,12 +257,27 @@ struct ShoppingListView: View {
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: items) { save() }
+        .onReceive(NotificationCenter.default.publisher(for: ShoppingListStore.didChange)) { _ in
+            items = ShoppingListStore.load()
+        }
+        .sheet(isPresented: $showAddSheet) {
+            AddShoppingItemSheet { name, category in
+                addItem(name: name, category: category)
+            }
+            .presentationDetents([.large])
+        }
     }
 
     private func toggle(_ item: ShoppingItem) {
         guard let idx = items.firstIndex(where: { $0.id == item.id }) else { return }
         withAnimation(.spring(duration: 0.25)) {
             items[idx].isChecked.toggle()
+        }
+    }
+
+    private func addItem(name: String, category: ShoppingCategory) {
+        withAnimation(.spring(duration: 0.3)) {
+            items.append(ShoppingItem(name: name, category: category))
         }
     }
 }
@@ -443,21 +503,3 @@ struct AddShoppingItemSheet: View {
     }
 }
 
-// MARK: - Demo data
-
-private func demoItems() -> [ShoppingItem] {
-    [
-        ShoppingItem(name: "Haferflocken", amount: "500g", category: .grains, price: 1.49),
-        ShoppingItem(name: "Blaubeeren", amount: "200g", category: .produce, price: 2.99),
-        ShoppingItem(name: "Bananen", amount: "6 Stück", category: .produce, price: 1.39),
-        ShoppingItem(name: "Spinat", amount: "300g", category: .produce, price: 1.99),
-        ShoppingItem(name: "Hähnchenbrust", amount: "800g", category: .protein, price: 7.49),
-        ShoppingItem(name: "Lachs", amount: "400g", category: .protein, price: 6.99),
-        ShoppingItem(name: "Eier", amount: "10 Stück", category: .protein, price: 2.79),
-        ShoppingItem(name: "Griechischer Joghurt", amount: "500g", category: .dairy, price: 1.89),
-        ShoppingItem(name: "Mozzarella", amount: "125g", category: .dairy, price: 0.99),
-        ShoppingItem(name: "Quinoa", amount: "300g", category: .grains, price: 2.49),
-        ShoppingItem(name: "Olivenöl", amount: "1 Flasche", category: .pantry, price: 4.99),
-        ShoppingItem(name: "Mandeln", amount: "200g", category: .pantry, price: 3.29),
-    ]
-}
