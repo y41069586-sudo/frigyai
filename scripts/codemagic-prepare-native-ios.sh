@@ -54,6 +54,22 @@ cd "$NATIVE_DIR"
 echo "Cleaning stale Xcode build artifacts before project generation..."
 rm -rf FrigyNative.xcodeproj 2>/dev/null || true
 
+# Patch CURRENT_PROJECT_VERSION in project.yml before XcodeGen reads it, so the
+# generated project.pbxproj already has the correct CFBundleVersion. This is more
+# reliable than sed-patching the generated pbxproj afterwards (XcodeGen can emit
+# the key in varying formats that the post-generation sed may not match).
+_build_floor="${IOS_BUILD_NUMBER:-1}"
+_cm_num="${CM_BUILD_NUMBER:-0}"
+if [ "$_cm_num" -gt "$_build_floor" ]; then
+  _build_floor="$_cm_num"
+fi
+echo "Patching CURRENT_PROJECT_VERSION → $_build_floor in project.yml"
+if [ "$(uname -s)" = "Darwin" ]; then
+  sed -i '' "s/CURRENT_PROJECT_VERSION: [0-9]*/CURRENT_PROJECT_VERSION: ${_build_floor}/" "$NATIVE_DIR/project.yml"
+else
+  sed -i "s/CURRENT_PROJECT_VERSION: [0-9]*/CURRENT_PROJECT_VERSION: ${_build_floor}/" "$NATIVE_DIR/project.yml"
+fi
+
 echo "Generating FrigyNative.xcodeproj with XcodeGen..."
 xcodegen generate
 test -d FrigyNative.xcodeproj || (echo "ERROR: FrigyNative.xcodeproj not generated" && exit 1)
