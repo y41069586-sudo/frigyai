@@ -124,11 +124,9 @@ struct OnboardingQuestion: View {
     let text: String
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 22, weight: .bold, design: .default))
-            .foregroundColor(FrigyBrand.text)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 24)
+        // The Frigy fridge mascot "asks" the question on its notepad.
+        FrigyMascotQuestion(text)
+            .padding(.horizontal, 20)
     }
 }
 

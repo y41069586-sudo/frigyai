@@ -1,14 +1,12 @@
 import SwiftUI
 
-/// A small, smoothly animated Frigy mascot (the friendly fridge from the app icon)
-/// that "asks" the current onboarding question from a speech bubble while drawing
-/// an underline on a notepad with its pen.
+/// The Frigy fridge mascot (the app-icon character) holding a notepad with the
+/// current question written directly on it. The pen "writes" as the pad appears,
+/// the fridge gently bobs and the pad sways — everything smooth and self-contained.
 ///
-/// Designed to be dropped in place of a plain question `Text(...)` header. It is
-/// intentionally compact ("klein, nicht groß") and self-contained — no external
-/// state required.
+/// The notepad grows with its text, so every question fits comfortably. Drop it in
+/// place of a plain question `Text(...)` header:
 ///
-/// Usage:
 /// ```swift
 /// FrigyMascotQuestion("Wie groß bist du?")
 ///     .padding(.horizontal, 20)
@@ -21,27 +19,30 @@ struct FrigyMascotQuestion: View {
 
     @State private var appeared = false
     @State private var bob = false
+    @State private var sway = false
     @State private var penWiggle = false
     @State private var writeProgress: CGFloat = 0
 
-    init(_ question: String, mascotSize: CGFloat = 66) {
+    init(_ question: String, mascotSize: CGFloat = 58) {
         self.question = question
         self.mascotSize = mascotSize
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .bottom, spacing: -10) {
             mascot
-            bubble
+            notepad
         }
-        .onAppear { runIntro() }
+        .onAppear {
+            startIdle()
+            runWrite()
+        }
         .onChange(of: question) { _, _ in
-            writeProgress = 0
             runWrite()
         }
     }
 
-    // MARK: - Mascot
+    // MARK: - Mascot (holds the pad from the lower-left)
 
     private var mascot: some View {
         Image("FrigyMascot")
@@ -49,97 +50,141 @@ struct FrigyMascotQuestion: View {
             .scaledToFit()
             .frame(width: mascotSize, height: mascotSize)
             .offset(y: bob ? -3 : 3)
-            .scaleEffect(appeared ? 1 : 0.6)
+            .rotationEffect(.degrees(appeared ? 0 : -10), anchor: .bottom)
+            .scaleEffect(appeared ? 1 : 0.5, anchor: .bottom)
             .opacity(appeared ? 1 : 0)
             .animation(.spring(response: 0.55, dampingFraction: 0.6), value: appeared)
-            .shadow(color: FrigyBrand.primaryDark.opacity(0.16), radius: 8, y: 4)
+            .shadow(color: FrigyBrand.primaryDark.opacity(0.16), radius: 7, y: 4)
+            .zIndex(1)
             .accessibilityHidden(true)
     }
 
-    // MARK: - Speech bubble + notepad
+    // MARK: - Notepad
 
-    private var bubble: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(question)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .tracking(-0.3)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // Notepad line the pen "writes" as Frigy speaks.
-            GeometryReader { geo in
-                let w = geo.size.width
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(FrigyBrand.borderMint.opacity(0.25))
-                        .frame(height: 3)
-                    Capsule()
-                        .fill(FrigyBrand.buttonGradient)
-                        .frame(width: max(w * writeProgress, 0), height: 3)
-                    Image(systemName: "pencil")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(FrigyBrand.primaryDeep)
-                        .rotationEffect(.degrees(penWiggle ? -7 : 7))
-                        .offset(x: max(w * writeProgress - 5, -2), y: -7)
-                        .opacity(writeProgress > 0.02 && writeProgress < 0.99 ? 1 : 0)
-                }
-                .frame(height: 3)
-            }
-            .frame(height: 6)
+    private var notepad: some View {
+        VStack(spacing: 0) {
+            spiralBinding
+            paper
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            SpeechBubbleShape()
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color.white)
-                .shadow(color: Color(hex: "#39D47F").opacity(0.12), radius: 12, y: 6)
+                .shadow(color: Color(hex: "#39D47F").opacity(0.14), radius: 14, y: 7)
         )
         .overlay(
-            SpeechBubbleShape()
-                .stroke(FrigyBrand.borderMint.opacity(0.7), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(FrigyBrand.borderMint.opacity(0.55), lineWidth: 1)
         )
-        .scaleEffect(appeared ? 1 : 0.85, anchor: .topLeading)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .rotationEffect(.degrees(sway ? 0.7 : -0.7), anchor: .bottomLeading)
+        .scaleEffect(appeared ? 1 : 0.9, anchor: .bottomLeading)
         .opacity(appeared ? 1 : 0)
-        .animation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.08), value: appeared)
+        .animation(.spring(response: 0.5, dampingFraction: 0.75).delay(0.05), value: appeared)
+    }
+
+    private var spiralBinding: some View {
+        ZStack {
+            Rectangle()
+                .fill(FrigyBrand.selectedBg)
+                .frame(height: 16)
+            HStack(spacing: 0) {
+                ForEach(0..<8, id: \.self) { _ in
+                    Circle()
+                        .stroke(FrigyBrand.primaryDeep.opacity(0.5), lineWidth: 1.6)
+                        .frame(width: 7, height: 7)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.horizontal, 12)
+        }
+    }
+
+    private var paper: some View {
+        ZStack(alignment: .topLeading) {
+            ruledLines
+            marginLine
+            VStack(alignment: .leading, spacing: 8) {
+                Text(question)
+                    .font(.system(size: 16.5, weight: .semibold, design: .rounded))
+                    .foregroundColor(FrigyBrand.text)
+                    .tracking(-0.2)
+                    .lineSpacing(7)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                writeUnderline
+            }
+            .padding(.leading, 30)
+            .padding(.trailing, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
+        }
+    }
+
+    /// Faint horizontal rules so the card reads as lined notepad paper.
+    private var ruledLines: some View {
+        GeometryReader { geo in
+            let spacing: CGFloat = 27
+            let count = Swift.max(Int(geo.size.height / spacing), 1)
+            VStack(spacing: 0) {
+                ForEach(0..<count, id: \.self) { _ in
+                    Spacer().frame(height: spacing - 1)
+                    Rectangle()
+                        .fill(FrigyBrand.borderMint.opacity(0.16))
+                        .frame(height: 1)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// Soft pink margin rule on the left, like a real notepad.
+    private var marginLine: some View {
+        HStack(spacing: 0) {
+            Spacer().frame(width: 22)
+            Rectangle()
+                .fill(Color(hex: "#F4B8C4").opacity(0.45))
+                .frame(width: 1.2)
+            Spacer()
+        }
+        .allowsHitTesting(false)
+    }
+
+    /// The pen and the line it "writes" beneath the question.
+    private var writeUnderline: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(FrigyBrand.buttonGradient)
+                    .frame(width: Swift.max(w * 0.55 * writeProgress, 0), height: 2.5)
+                Image(systemName: "pencil")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(FrigyBrand.primaryDeep)
+                    .rotationEffect(.degrees(penWiggle ? -8 : 8))
+                    .offset(x: Swift.max(w * 0.55 * writeProgress - 5, -2), y: -7)
+                    .opacity(writeProgress > 0.02 && writeProgress < 0.99 ? 1 : 0)
+            }
+            .frame(height: 3)
+        }
+        .frame(height: 6)
     }
 
     // MARK: - Animation driving
 
-    private func runIntro() {
+    private func startIdle() {
         appeared = true
-        withAnimation(.easeInOut(duration: 1.7).repeatForever(autoreverses: true)) { bob = true }
-        withAnimation(.easeInOut(duration: 0.28).repeatForever(autoreverses: true)) { penWiggle = true }
-        runWrite()
+        withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) { bob = true }
+        withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { sway = true }
+        withAnimation(.easeInOut(duration: 0.3).repeatForever(autoreverses: true)) { penWiggle = true }
     }
 
     private func runWrite() {
-        // Let the bubble settle in first, then "write" the underline smoothly.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
-            withAnimation(.easeInOut(duration: 0.9)) { writeProgress = 1 }
+        writeProgress = 0
+        // Let the pad settle in, then "write" the underline smoothly.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.easeInOut(duration: 1.0)) { writeProgress = 1 }
         }
-    }
-}
-
-/// Rounded speech bubble with a small tail on the leading edge pointing at the mascot.
-private struct SpeechBubbleShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        let radius: CGFloat = 18
-        let tailW: CGFloat = 9
-        let tailH: CGFloat = 14
-        let body = CGRect(x: rect.minX + tailW, y: rect.minY,
-                          width: rect.width - tailW, height: rect.height)
-        var p = Path(roundedRect: body, cornerRadius: radius)
-
-        let cy = rect.minY + min(rect.height * 0.4, 28)
-        var tail = Path()
-        tail.move(to: CGPoint(x: body.minX, y: cy - tailH / 2))
-        tail.addLine(to: CGPoint(x: rect.minX, y: cy))
-        tail.addLine(to: CGPoint(x: body.minX, y: cy + tailH / 2))
-        tail.closeSubpath()
-        p.addPath(tail)
-        return p
     }
 }
 
@@ -148,6 +193,7 @@ private struct SpeechBubbleShape: Shape {
     VStack(spacing: 28) {
         FrigyMascotQuestion("Wie groß bist du?")
         FrigyMascotQuestion("Hast du Allergien oder Unverträglichkeiten?")
+        FrigyMascotQuestion("Wie schnell möchtest du dein Ziel erreichen und dabei gesund bleiben?")
     }
     .padding(20)
     .background(FrigyBrand.bg)
