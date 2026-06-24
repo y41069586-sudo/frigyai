@@ -163,6 +163,11 @@ final class AppRouter {
         rootRoute = .auth
     }
 
+    func navigateToOnboardingStart() {
+        onboardingCoordinator.resetForFreshOnboarding()
+        rootRoute = .onboarding(step: .splash)
+    }
+
     func signOut() async {
         try? await authService.signOut()
         UserDefaults.standard.removeObject(forKey: "pendingReferralCode")
@@ -174,13 +179,24 @@ final class AppRouter {
 
     // MARK: - Private
 
+    // Accounts that always get premium access — dev/tester bypass.
+    static let paywallBypassEmails: Set<String> = ["yousef0087mohamed@gmail.com"]
+
+    func isPaywallBypassed(for email: String) -> Bool {
+        Self.paywallBypassEmails.contains(email.lowercased())
+    }
+
     private func routeAfterOnboarding() async throws {
-        guard try await authService.currentSession() != nil else {
+        guard let session = try await authService.currentSession() else {
             rootRoute = .auth
             return
         }
 
-        isPremium = try await subscriptionService.refreshPremiumState()
+        if isPaywallBypassed(for: session.email) {
+            isPremium = true
+        } else {
+            isPremium = try await subscriptionService.refreshPremiumState()
+        }
         rootRoute = .main
         flushPendingDeepLinkIfNeeded()
     }

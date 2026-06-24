@@ -333,7 +333,7 @@ struct OnboardingSkeletonView: View {
                 PremiumHintStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
             case .paywall:
-                PaywallStepView(onNext: next)
+                PaywallStepView(onBack: canGoBack ? back : nil, onNext: next)
 
             case .celebration:
                 CelebrationStepView(onNext: next)

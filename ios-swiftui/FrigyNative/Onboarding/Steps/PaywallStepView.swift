@@ -8,6 +8,7 @@ import UserNotifications
 /// After a successful monthly-trial purchase a local notification is scheduled
 /// for day 2 of the trial reminding the user before they are charged.
 struct PaywallStepView: View {
+    let onBack: (() -> Void)?
     let onNext: () -> Void
 
     @Environment(AppRouter.self) private var router
@@ -64,7 +65,19 @@ struct PaywallStepView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    Spacer().frame(height: 52)
+                    // Back button row
+                    HStack {
+                        if let back = onBack {
+                            OnboardingBackButton(action: back)
+                        } else {
+                            Color.clear.frame(width: 40, height: 40)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+
+                    Spacer().frame(height: 16)
 
                     // Title switches with plan selection
                     Text(showTrialTimeline
@@ -100,6 +113,14 @@ struct PaywallStepView: View {
             bottomBar
         }
         .task {
+            // Dev/tester account — skip paywall entirely.
+            if let session = try? await router.authService.currentSession(),
+               router.isPaywallBypassed(for: session.email) {
+                router.isPremium = true
+                onNext()
+                return
+            }
+
             packagesLoading = true
             packages = await router.subscriptionService.availablePackages()
             if let first = packages.first(where: { !$0.isYearly }) {

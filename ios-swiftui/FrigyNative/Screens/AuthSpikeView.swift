@@ -18,6 +18,17 @@ struct AuthSpikeView: View {
             )
             .ignoresSafeArea()
 
+            // Back to onboarding start — top left
+            VStack {
+                HStack {
+                    OnboardingBackButton(action: { router.navigateToOnboardingStart() })
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                Spacer()
+            }
+
             VStack(spacing: 0) {
                 Spacer()
 
