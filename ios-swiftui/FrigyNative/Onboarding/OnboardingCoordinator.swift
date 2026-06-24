@@ -297,6 +297,16 @@ final class OnboardingCoordinator {
         persistState()
     }
 
+    /// Called from the email-confirmation deep-link callback to bypass
+    /// whatever step was persisted and land directly on the paywall.
+    func skipToPaywall() {
+        context.auth.isAuthenticated = true
+        context.auth.hasAccount = true
+        context.completedSteps.insert(.accountCreation)
+        currentStep = .paywall
+        persistState()
+    }
+
     /// Clears all persisted onboarding state and restarts from the first step.
     /// Used when a returning user has no active session — they go through onboarding
     /// again and can sign in via the AccountCreation step.

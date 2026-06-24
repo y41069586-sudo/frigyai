@@ -193,7 +193,7 @@ private struct EmailAuthSheet: View {
     enum Mode { case signIn, signUp }
     enum SheetPhase { case form, checkInbox }
 
-    @State private var mode: Mode = .signIn
+    @State private var mode: Mode = .signUp
     @State private var email = ""
     @State private var password = ""
     @State private var isLoading = false

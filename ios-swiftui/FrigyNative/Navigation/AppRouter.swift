@@ -226,15 +226,11 @@ final class AppRouter {
                 flushPendingDeepLinkIfNeeded()
             } else {
                 // Auth callback arrived during onboarding (email confirmation or OAuth).
-                // Restore the saved step, mark auth as done, then advance past accountCreation.
+                // Always jump straight to paywall regardless of the persisted step,
+                // so the user never lands back on the Apple/Google/Email auth screen.
                 onboardingCoordinator.resumeFromLastStep()
-                onboardingCoordinator.didAuthenticate()
-                if onboardingCoordinator.currentStep == .accountCreation {
-                    // next() evaluates rules and moves to the paywall step.
-                    onboardingNext()
-                } else {
-                    rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
-                }
+                onboardingCoordinator.skipToPaywall()
+                rootRoute = .onboarding(step: .paywall)
             }
         } catch {
             authStatusMessage = error.localizedDescription

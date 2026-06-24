@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct ScanFridgeStepView: View {
     let progress: Double
@@ -37,11 +38,16 @@ struct ScanFridgeStepView: View {
 
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
-                OnboardingContinueButton(action: onNext)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, max(20, 16))
-                    .background(FrigyBrand.bg)
+                OnboardingContinueButton {
+                    Task {
+                        _ = await AVCaptureDevice.requestAccess(for: .video)
+                        await MainActor.run { onNext() }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, max(20, 16))
+                .background(FrigyBrand.bg)
             }
         }
         .onAppear {

@@ -25,6 +25,7 @@ struct ShoppingListIntroStepView: View {
             Text("Nur die Zutaten, die dir noch fehlen.")
                 .font(.system(size: 14))
                 .foregroundColor(FrigyBrand.textMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
 

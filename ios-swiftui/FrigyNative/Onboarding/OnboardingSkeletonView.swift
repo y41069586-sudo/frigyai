@@ -238,11 +238,9 @@ struct OnboardingSkeletonView: View {
                 )
 
             case .cameraPermission:
-                CameraPermissionStepView(
-                    progress: progress,
-                    onBack: canGoBack ? back : nil,
-                    onNext: next
-                )
+                // Permission is now requested inline in ScanFridgeStepView — auto-advance.
+                Color.clear
+                    .onAppear { next() }
 
             case .shoppingList:
                 ShoppingListIntroStepView(

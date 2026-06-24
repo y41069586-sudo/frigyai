@@ -5,164 +5,137 @@ struct WeeklyPlanPreviewStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let entries: [(emoji: String, label: String)] = [
-        ("🥗", "Quinoa-Bowl"),
-        ("🥑", "Avocado-Toast"),
-        ("🍗", "Hähnchen-Wrap"),
-        ("🍓", "Beeren-Smoothie"),
+    @State private var appeared = false
+
+    private let days: [(short: String, meals: [String])] = [
+        ("Mo", ["🥗 Quinoa-Bowl", "🍗 Hähnchen-Wrap"]),
+        ("Di", ["🥑 Avocado-Toast", "🍓 Beeren-Smoothie"]),
+        ("Mi", ["🐟 Lachs & Reis", "🥦 Gemüse-Curry"]),
+        ("Do", ["🍳 Rührei & Toast", "🥩 Steak-Salat"]),
+        ("Fr", ["🌯 Veggie-Wrap", "🍝 Pasta bolognese"]),
     ]
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            // Question with mint highlight
-            Group {
-                Text("Erreiche dein Ziel durch einen ") +
-                Text("Wochenplan")
-                    .foregroundColor(FrigyBrand.primaryDeep)
-                    .underline(color: FrigyBrand.primary) +
-                Text(" gezielt auf dein Kalorienziel.")
-            }
-            .font(.system(size: 19, weight: .semibold))
-            .foregroundColor(FrigyBrand.text)
-            .tracking(-0.5)
-            .padding(.horizontal, 20)
-            .padding(.top, 4)
-            .padding(.bottom, 12)
-
-            Spacer()
-
-            // Notebook hero
-            mealNotebook
+            FrigyMascotQuestion("Dein Wochenplan, perfekt auf dich abgestimmt.")
                 .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 4)
+
+            Text("KI plant deine Mahlzeiten basierend auf deinem Ziel und Geschmack.")
+                .font(.system(size: 14))
+                .foregroundColor(FrigyBrand.textMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineSpacing(2)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+                .opacity(appeared ? 1 : 0)
+                .animation(.easeOut(duration: 0.4).delay(0.2), value: appeared)
 
             Spacer()
 
-            // Bottom bar
+            planCard
+                .scaleEffect(appeared ? 1 : 0.88)
+                .opacity(appeared ? 1 : 0)
+                .animation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.12), value: appeared)
+
+            Spacer()
+
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
                 OnboardingContinueButton(action: onNext)
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, max(20, 16))
-                .background(FrigyBrand.bg)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, max(20, 16))
+                    .background(FrigyBrand.bg)
             }
         }
+        .onAppear { appeared = true }
     }
 
-    private var mealNotebook: some View {
-        ZStack {
-            // Floating food emojis
-            Text("🥑")
-                .font(.system(size: 22))
-                .offset(x: -110, y: -4)
-                .rotationEffect(.degrees(-8))
-
-            Text("🥕")
-                .font(.system(size: 20))
-                .offset(x: 110, y: -2)
-                .rotationEffect(.degrees(10))
-
-            Text("🍅")
-                .font(.system(size: 19))
-                .offset(x: -120, y: 80)
-                .rotationEffect(.degrees(-4))
-
-            Text("🥦")
-                .font(.system(size: 19))
-                .offset(x: 115, y: 70)
-                .rotationEffect(.degrees(14))
-
-            // Shadow page behind
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color(hex: "#F1FBF6"))
-                .frame(width: 220, height: 256)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color(hex: "#D1D5DB"), lineWidth: 1)
-                )
-                .offset(x: 4, y: 4)
-                .shadow(color: Color(hex: "#0A7848").opacity(0.12), radius: 14, y: 8)
-
-            // Main notebook page
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(
-                        LinearGradient(colors: [.white, Color(hex: "#FAFFFC")], startPoint: .top, endPoint: .bottom)
-                    )
-                    .frame(width: 220, height: 256)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color(hex: "#BCFDDC"), lineWidth: 1)
-                    )
-                    .shadow(color: Color(hex: "#0A7848").opacity(0.18), radius: 22, y: 12)
-
-                // Spiral binding stripe
-                Rectangle()
-                    .fill(
-                        LinearGradient(colors: [Color(hex: "#FBFFFD"), FrigyBrand.primary], startPoint: .top, endPoint: .bottom)
-                    )
-                    .frame(width: 22, height: 256)
-                    .clipShape(
-                        UnevenRoundedRectangle(topLeadingRadius: 18, bottomLeadingRadius: 18)
-                    )
-
-                // Spiral rings
-                VStack(spacing: 18) {
-                    ForEach(0..<8, id: \.self) { _ in
-                        Circle()
-                            .fill(Color.white)
-                            .overlay(Circle().stroke(FrigyBrand.primaryDark, lineWidth: 2))
-                            .frame(width: 10, height: 10)
-                    }
+    private var planCard: some View {
+        VStack(spacing: 0) {
+            // Card header
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(FrigyBrand.buttonGradient)
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "calendar")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
                 }
-                .padding(.leading, 6)
-                .padding(.top, 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Mein Wochenplan")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(FrigyBrand.text)
+                    Text("KI-generiert · Diese Woche")
+                        .font(.system(size: 12))
+                        .foregroundColor(FrigyBrand.textMuted)
+                }
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(FrigyBrand.primaryDeep)
+                    Text("Dein Plan")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(FrigyBrand.primaryDeep)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(FrigyBrand.primary.opacity(0.18), in: Capsule())
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
-                // Page content
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(FrigyBrand.primaryDark)
-                        Text("Mein Plan")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(FrigyBrand.text)
-                    }
-                    .padding(.bottom, 12)
+            Divider()
+                .overlay(FrigyBrand.borderMint.opacity(0.5))
+                .padding(.horizontal, 18)
 
-                    // Entry list
-                    VStack(spacing: 12) {
-                        ForEach(entries, id: \.label) { entry in
-                            HStack(spacing: 10) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(FrigyBrand.selectedBg)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(FrigyBrand.borderMint, lineWidth: 1)
-                                        )
-                                        .frame(width: 32, height: 32)
-                                    Text(entry.emoji)
-                                        .font(.system(size: 16))
-                                }
-                                Text(entry.label)
-                                    .font(.system(size: 13, weight: .semibold))
+            VStack(spacing: 0) {
+                ForEach(Array(days.enumerated()), id: \.offset) { idx, day in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text(day.short)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(FrigyBrand.primaryDeep)
+                            .frame(width: 28, alignment: .leading)
+                            .padding(.top, 1)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            ForEach(day.meals, id: \.self) { meal in
+                                Text(meal)
+                                    .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(FrigyBrand.text)
-                                    .tracking(-0.3)
-                                    .lineLimit(1)
                             }
                         }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 9)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(x: appeared ? 0 : 14)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.72).delay(0.22 + Double(idx) * 0.06), value: appeared)
+
+                    if idx < days.count - 1 {
+                        Divider()
+                            .overlay(FrigyBrand.borderMint.opacity(0.3))
+                            .padding(.horizontal, 18)
                     }
                 }
-                .padding(.leading, 36)
-                .padding(.top, 18)
-                .padding(.trailing, 16)
-                .frame(width: 220, alignment: .topLeading)
             }
-            .frame(width: 220, height: 256)
+            .padding(.bottom, 14)
         }
-        .frame(width: 260, height: 300)
-        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(FrigyBrand.cardBorder, lineWidth: 1)
+                )
+                .shadow(color: FrigyBrand.primaryDark.opacity(0.1), radius: 18, y: 8)
+        )
+        .padding(.horizontal, 24)
     }
 }
