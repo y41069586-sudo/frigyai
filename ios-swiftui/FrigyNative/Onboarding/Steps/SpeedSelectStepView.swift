@@ -95,7 +95,9 @@ struct SpeedSelectStepView: View {
                     Text(formatValue(displayValue))
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
+                        // Smooth, fast iOS rolling-number transition as the slider moves.
                         .contentTransition(.numericText())
+                        .animation(.snappy(duration: 0.18), value: displayValue)
                         .scaleEffect(sliderActive ? 1.06 : 1)
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: sliderActive)
                     Text(unitLabel)

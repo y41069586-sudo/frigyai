@@ -110,22 +110,25 @@ struct GoalPreviewStepView: View {
                         .padding(.top, 14)
                 }
                 .overlay(alignment: .topTrailing) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 5) {
-                            Circle().fill(FrigyBrand.primaryDeep).frame(width: 7, height: 7)
-                            Text("Mit Frigy")
-                                .font(.system(size: 12, weight: .black))
-                                .foregroundColor(FrigyBrand.primaryDeep)
-                        }
-                        HStack(spacing: 5) {
-                            Circle().fill(Color(hex: "#EF4444")).frame(width: 7, height: 7)
-                            Text("Ohne Frigy")
-                                .font(.system(size: 12, weight: .black))
-                                .foregroundColor(Color(hex: "#EF4444"))
-                        }
+                    HStack(spacing: 5) {
+                        Circle().fill(FrigyBrand.primaryDeep).frame(width: 7, height: 7)
+                        Text("Mit Frigy")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(FrigyBrand.primaryDeep)
                     }
                     .padding(.trailing, 14)
                     .padding(.top, 14)
+                }
+                // "Ohne Frigy" name sits at the bottom, next to where its line ends.
+                .overlay(alignment: .bottomTrailing) {
+                    HStack(spacing: 5) {
+                        Circle().fill(Color(hex: "#EF4444")).frame(width: 7, height: 7)
+                        Text("Ohne Frigy")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(Color(hex: "#EF4444"))
+                    }
+                    .padding(.trailing, 14)
+                    .padding(.bottom, 14)
                 }
         }
         .frame(maxWidth: .infinity)
@@ -145,13 +148,11 @@ struct GoalPreviewStepView: View {
             let yStart = yBot - 4
             let yEnd: CGFloat = direction == "maintain" ? (yTop + yBot) / 2 - 4 : yTop + 18
 
-            // "Ohne Frigy" stays in the lower portion: a small early bump, then it
-            // sinks back down to the very bottom — clearly below the rising good line.
-            let peakY: CGFloat = max(yTop + 20, yStart - 20)
+            let peakY: CGFloat = max(yTop + 16, yStart - 34)
             let rise = yStart - peakY
             let angle = CGFloat(tan(38.0 * .pi / 180))
-            let peakX = min(x0 + rise / angle, x0 + (x1 - x0) * 0.42)
-            let endBadY = yBot - 2
+            let peakX = min(x0 + rise / angle, x0 + (x1 - x0) * 0.5)
+            let endBadY = min(yBot - 6, yStart + 14)
 
             // Derived area opacity — fill fades in during the last 30% of draw progress
             let areaOpacity = Double(max(0, (drawProgress - 0.65) / 0.35))
