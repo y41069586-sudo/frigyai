@@ -281,24 +281,26 @@ private struct MacroSourcesCard: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(sources) { source in
-                    Link(destination: URL(string: source.url)!) {
-                        HStack(alignment: .top, spacing: 6) {
-                            Text("•")
-                                .font(.system(size: 13))
-                                .foregroundColor(FrigyBrand.textMuted)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(source.name)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(FrigyBrand.text)
-                                    .underline()
-                                Text(source.desc)
-                                    .font(.system(size: 10))
-                                    .foregroundColor(FrigyBrand.textMuted.opacity(0.7))
+                    if let url = URL(string: source.url) {
+                        Link(destination: url) {
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("•")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(FrigyBrand.textMuted)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(source.name)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(FrigyBrand.text)
+                                        .underline()
+                                    Text(source.desc)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(FrigyBrand.textMuted.opacity(0.7))
+                                }
+                                Spacer(minLength: 0)
                             }
-                            Spacer(minLength: 0)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

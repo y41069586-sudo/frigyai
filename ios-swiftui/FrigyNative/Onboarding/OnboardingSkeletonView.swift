@@ -237,6 +237,13 @@ struct OnboardingSkeletonView: View {
                     onNext: next
                 )
 
+            case .cameraPermission:
+                CameraPermissionStepView(
+                    progress: progress,
+                    onBack: canGoBack ? back : nil,
+                    onNext: next
+                )
+
             case .shoppingList:
                 ShoppingListIntroStepView(
                     progress: progress,

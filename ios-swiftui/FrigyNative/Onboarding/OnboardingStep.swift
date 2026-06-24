@@ -37,6 +37,7 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case allergies
     case weeklyPlanPreview = "weekly-plan-preview"
     case scanFridge = "scan-fridge"
+    case cameraPermission = "camera-permission"
     case shoppingList = "shopping-list"
     case referralCode = "referral-code"
     case cookingTime = "cooking-time"
@@ -87,6 +88,7 @@ enum OnboardingFlow {
         .allergies,
         .weeklyPlanPreview,
         .scanFridge,
+        .cameraPermission,
         .shoppingList,
         .notificationPrefs,
         .referralCode,
