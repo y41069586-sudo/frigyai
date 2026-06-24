@@ -180,10 +180,11 @@ private struct MintPaceSlider: View {
                         .frame(height: 10)
                         .realGlass(in: Capsule(), interactive: false, fallbackBorder: FrigyBrand.cardBorder.opacity(0.5))
 
-                    // Active track
+                    // Active track — ends at the thumb's center so the fill
+                    // tracks the knob exactly.
                     Capsule()
                         .fill(FrigyBrand.buttonGradient)
-                        .frame(width: Swift.max(CGFloat(pct) * w, 10), height: 10)
+                        .frame(width: Swift.max(CGFloat(pct) * (w - 26) + 13, 10), height: 10)
                         .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                         .shadow(color: Color(hex: "#4AE896").opacity(0.35), radius: 3, y: 1)
 
@@ -203,7 +204,10 @@ private struct MintPaceSlider: View {
                     DragGesture(minimumDistance: 0)
                         .onChanged { drag in
                             isActive = true
-                            let ratio = Swift.max(0, Swift.min(1, drag.location.x / w))
+                            // Map against the thumb's travel range (inset by its
+                            // radius on each side) so the knob lands exactly where
+                            // you drag — and under the matching tick number.
+                            let ratio = Swift.max(0, Swift.min(1, (drag.location.x - 13) / (w - 26)))
                             value = min + ratio * (max - min)
                         }
                         .onEnded { _ in isActive = false }
@@ -211,17 +215,22 @@ private struct MintPaceSlider: View {
             }
             .frame(height: 42)
 
-            // Tick labels
-            HStack {
+            // Tick labels — each sits under the thumb's actual position for that
+            // value (ticks aren't evenly spaced, e.g. 0,5 is not the midpoint of
+            // 0,1…1,0), so the highlighted number always lines up with the knob.
+            GeometryReader { geo in
+                let w = geo.size.width
                 ForEach(Array(ticks.enumerated()), id: \.offset) { _, tick in
                     let isActive = abs(tick - value) < 0.06
                     Text(String(format: "%.1f", tick))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(isActive ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
-                        .frame(maxWidth: .infinity)
+                        .fixedSize()
+                        .position(x: CGFloat(pct(tick)) * (w - 26) + 13, y: 8)
                         .animation(.easeInOut(duration: 0.15), value: isActive)
                 }
             }
+            .frame(height: 16)
             .padding(.top, 2)
         }
     }
