@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# Set iOS CFBundleVersion — independent from Codemagic CM_BUILD_NUMBER / Android versionCode.
+# Set iOS CFBundleVersion — independent from Android versionCode.
+#
+# Strategy: use CM_BUILD_NUMBER + IOS_BUILD_OFFSET so every Codemagic build
+# gets a unique, auto-incrementing number without manual bumps in codemagic.yaml.
+# IOS_BUILD_NUMBER acts as a hard floor (safety net only).
 set -euo pipefail
 
 ROOT="${CM_BUILD_DIR:-$(pwd)}"
-IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-51}"
-BUILD_NUM="$IOS_BUILD_NUMBER"
+IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-251}"
+IOS_BUILD_OFFSET="${IOS_BUILD_OFFSET:-200}"
 
-if [ -n "${CM_BUILD_NUMBER:-}" ] && [ "$CM_BUILD_NUMBER" -gt "$BUILD_NUM" ]; then
-  BUILD_NUM="$CM_BUILD_NUMBER"
+# Prefer CM_BUILD_NUMBER + offset (unique per Codemagic run) over the static floor.
+if [ -n "${CM_BUILD_NUMBER:-}" ]; then
+  CALCULATED=$((CM_BUILD_NUMBER + IOS_BUILD_OFFSET))
+  if [ "$CALCULATED" -gt "$IOS_BUILD_NUMBER" ]; then
+    BUILD_NUM="$CALCULATED"
+  else
+    BUILD_NUM="$IOS_BUILD_NUMBER"
+  fi
+else
+  BUILD_NUM="$IOS_BUILD_NUMBER"
 fi
 
-echo "Setting iOS CFBundleVersion to $BUILD_NUM (IOS_BUILD_NUMBER=$IOS_BUILD_NUMBER, CM_BUILD_NUMBER=${CM_BUILD_NUMBER:-n/a})"
+echo "Setting iOS CFBundleVersion to $BUILD_NUM (CM_BUILD_NUMBER=${CM_BUILD_NUMBER:-n/a} + offset=${IOS_BUILD_OFFSET}, floor=${IOS_BUILD_NUMBER})"
 
 patch_pbxproj() {
   local file="$1"

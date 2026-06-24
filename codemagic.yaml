@@ -232,10 +232,14 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
-        # Minimum build number — CM_BUILD_NUMBER wins when it exceeds this value.
-        # Uses floor 200+ so it never collides with ios-build (floor 100+).
-        # Only this workflow submits to TestFlight (ios-build does not).
-        IOS_BUILD_NUMBER: "250"
+        # Floor build number — actual number = CM_BUILD_NUMBER + IOS_BUILD_OFFSET
+        # (floor only used when CM_BUILD_NUMBER is unavailable or too low).
+        # Last uploaded: 250. Floor 251 ensures no collision on fallback.
+        IOS_BUILD_NUMBER: "251"
+        # Added to CM_BUILD_NUMBER so each Codemagic run gets a unique, auto-
+        # incrementing build number without manual bumps. Keep floor 200+ so
+        # it never collides with ios-build workflow (floor 100+).
+        IOS_BUILD_OFFSET: "200"
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-native-env.sh
