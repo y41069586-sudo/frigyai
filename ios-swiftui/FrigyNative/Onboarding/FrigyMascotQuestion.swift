@@ -13,7 +13,6 @@ struct FrigyMascotQuestion: View {
     let question: String
 
     @State private var typed = ""
-    @State private var showCursor = false
     @State private var typingTask: Task<Void, Never>? = nil
 
     // mascotSize kept for API compatibility — unused.
@@ -21,31 +20,16 @@ struct FrigyMascotQuestion: View {
         self.question = question
     }
 
-    private var isDone: Bool { typed.count >= question.count }
-
     var body: some View {
-        HStack(alignment: .bottom, spacing: 4) {
-            Text(typed)
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundColor(FrigyBrand.text)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Pen cursor — fades out once writing is complete.
-            Image(systemName: "pencil")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(FrigyBrand.primaryDark)
-                .opacity(isDone ? 0 : (showCursor ? 1 : 0.2))
-                .animation(.easeInOut(duration: 0.25), value: showCursor)
-                .animation(.easeOut(duration: 0.35), value: isDone)
-        }
-        .onAppear {
-            showCursor = true
-            runType()
-        }
-        .onDisappear { typingTask?.cancel() }
-        .onChange(of: question) { _, _ in runType() }
+        Text(typed)
+            .font(.system(size: 22, weight: .bold, design: .rounded))
+            .foregroundColor(FrigyBrand.text)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear { runType() }
+            .onDisappear { typingTask?.cancel() }
+            .onChange(of: question) { _, _ in runType() }
     }
 
     private func runType() {
