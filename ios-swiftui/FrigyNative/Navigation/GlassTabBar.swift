@@ -1,15 +1,10 @@
 import SwiftUI
 
-/// Bottom navigation pill. On iOS 26+ uses real Liquid Glass via GlassEffectContainer:
-/// each tab button has its own glass element (they merge when adjacent), and the
-/// tracker (+) circle is a separate tinted glass element positioned via .overlay
-/// so it can never be clipped or have its hit area blocked.
+/// Bottom navigation pill — three separate glass capsules on iOS 26+.
+/// The floating tracker (+) button lives in MainShellView so it always has
+/// the highest z-order and its hit area is never blocked by the tab bar.
 struct GlassTabBar: View {
     @Binding var selection: AppTab
-    var onTrackerTap: () -> Void
-    var mealCount: Int = 0
-
-    private let trackerSize: CGFloat = 60
 
     var body: some View {
         if #available(iOS 26, *) {
@@ -19,27 +14,17 @@ struct GlassTabBar: View {
         }
     }
 
-    // MARK: - iOS 26 — individual glass per button + overlay tracker
+    // MARK: - iOS 26 — individual glass per button
 
     @available(iOS 26, *)
     private var glassBody: some View {
-        HStack(spacing: 0) {
-            // Each button gets its own GlassEffectContainer so they render as
-            // three separate glass capsules, not one merged bar.
-            HStack(spacing: 8) {
-                GlassEffectContainer { glassTabButton(.home) }
-                GlassEffectContainer { glassTabButton(.plans) }
-                GlassEffectContainer { glassTabButton(.shopping) }
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-
-            Color.clear.frame(width: trackerSize + 12, height: 1)
+        HStack(spacing: 8) {
+            GlassEffectContainer { glassTabButton(.home) }
+            GlassEffectContainer { glassTabButton(.plans) }
+            GlassEffectContainer { glassTabButton(.shopping) }
         }
-        .overlay(alignment: .trailing) {
-            GlassEffectContainer { glassTrackerButton }
-                .offset(y: -14)
-        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
         .frame(maxWidth: 460)
@@ -76,33 +61,6 @@ struct GlassTabBar: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
-    @available(iOS 26, *)
-    private var glassTrackerButton: some View {
-        Button(action: onTrackerTap) {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "plus")
-                    .font(.system(size: 30, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .frame(width: trackerSize, height: trackerSize)
-                    .contentShape(Circle())
-                if mealCount > 0 {
-                    Text("\(mealCount)")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color(hex: "#EF4444")))
-                        .offset(x: 4, y: -2)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .frame(width: trackerSize, height: trackerSize)
-        .glassEffect(.regular.tint(FrigyBrand.primaryDeep).interactive(), in: .circle)
-        .shadow(color: FrigyBrand.primaryDeep.opacity(0.38), radius: 12, y: 6)
-        .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
-    }
-
     // MARK: - Pre-iOS 26 fallback
 
     private var legacyBody: some View {
@@ -110,10 +68,8 @@ struct GlassTabBar: View {
             legacyTabButton(.home)
             legacyTabButton(.plans)
             legacyTabButton(.shopping)
-            Color.clear.frame(width: trackerSize + 6, height: 48)
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 8)
+        .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .frame(maxWidth: 460)
         .background(
@@ -122,9 +78,6 @@ struct GlassTabBar: View {
                 .overlay(Capsule().stroke(Color.white.opacity(0.4), lineWidth: 1))
                 .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
         )
-        .overlay(alignment: .trailing) {
-            legacyTrackerButton.offset(x: 0, y: -14)
-        }
         .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }
@@ -156,32 +109,5 @@ struct GlassTabBar: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
-    private var legacyTrackerButton: some View {
-        Button(action: onTrackerTap) {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "plus")
-                    .font(.system(size: 30, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .frame(width: trackerSize, height: trackerSize)
-                    .background(Circle().fill(LinearGradient(
-                        colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                        startPoint: .topLeading, endPoint: .bottomTrailing
-                    )))
-                    .padding(5)
-                    .background(Circle().fill(.white))
-                    .shadow(color: FrigyBrand.primaryDeep.opacity(0.38), radius: 12, y: 6)
-                if mealCount > 0 {
-                    Text("\(mealCount)")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color(hex: "#EF4444")))
-                        .offset(x: 4, y: -2)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
-    }
 }
+
