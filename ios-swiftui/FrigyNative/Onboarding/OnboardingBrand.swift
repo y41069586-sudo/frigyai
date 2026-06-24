@@ -250,6 +250,8 @@ struct MintSegmentedControl: View {
     let selected: String
     let onSelect: (String) -> Void
 
+    @Namespace private var pillNS
+
     init(options: [(String, String)], selected: String, onSelect: @escaping (String) -> Void) {
         self.options = options.map { (id: $0.0, label: $0.1) }
         self.selected = selected
@@ -257,27 +259,34 @@ struct MintSegmentedControl: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(options, id: \.id) { opt in
                 let active = opt.id == selected
-                Button { onSelect(opt.id) } label: {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                        onSelect(opt.id)
+                    }
+                } label: {
                     Text(opt.label)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(active ? .white : FrigyBrand.primaryDark)
+                        .foregroundColor(active ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 36)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(active ? AnyShapeStyle(FrigyBrand.buttonGradient) : AnyShapeStyle(Color.clear))
-                        )
+                        .frame(height: 38)
+                        .background {
+                            if active {
+                                RoundedRectangle(cornerRadius: 11)
+                                    .fill(.white)
+                                    .shadow(color: FrigyBrand.primaryDark.opacity(0.18), radius: 8, y: 3)
+                                    .matchedGeometryEffect(id: "pill", in: pillNS)
+                            }
+                        }
                 }
                 .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.15), value: selected)
             }
         }
         .padding(3)
-        .background(FrigyBrand.borderMint.opacity(0.18), in: RoundedRectangle(cornerRadius: 13))
-        .overlay(RoundedRectangle(cornerRadius: 13).stroke(FrigyBrand.borderMint.opacity(0.4), lineWidth: 1))
+        .background(FrigyBrand.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.borderMint.opacity(0.45), lineWidth: 1))
     }
 }
 
