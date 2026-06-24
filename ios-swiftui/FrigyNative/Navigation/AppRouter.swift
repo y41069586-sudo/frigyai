@@ -174,7 +174,7 @@ final class AppRouter {
         UserDefaults.standard.removeObject(forKey: "frigy.cachedTargets.v1")
         tabCoordinator.popToRootAllTabs()
         onboardingCoordinator.resetForFreshOnboarding()
-        rootRoute = .auth
+        rootRoute = .onboarding(step: .splash)
     }
 
     // MARK: - Private

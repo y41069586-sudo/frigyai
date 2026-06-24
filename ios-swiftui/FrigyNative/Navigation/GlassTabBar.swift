@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Bottom navigation pill — three separate glass capsules on iOS 26+.
-/// The floating tracker (+) button lives in MainShellView so it always has
-/// the highest z-order and its hit area is never blocked by the tab bar.
+/// Bottom navigation pill with the tracker (+) button inline to the right of Shopping.
 struct GlassTabBar: View {
     @Binding var selection: AppTab
+    var mealCount: Int = 0
+    var onTrackerTap: (() -> Void)? = nil
 
     var body: some View {
         if #available(iOS 26, *) {
@@ -14,18 +14,26 @@ struct GlassTabBar: View {
         }
     }
 
-    // MARK: - iOS 26 — individual glass per button
+    // MARK: - iOS 26 — individual glass capsules + glass circle for +
 
     @available(iOS 26, *)
     private var glassBody: some View {
         HStack(spacing: 8) {
+            // Three tab buttons share remaining space equally
             GlassEffectContainer { glassTabButton(.home) }
             GlassEffectContainer { glassTabButton(.plans) }
             GlassEffectContainer { glassTabButton(.shopping) }
+
+            // Plus button — fixed width, right of Shopping
+            if let action = onTrackerTap {
+                GlassEffectContainer {
+                    glassPlusButton(mealCount: mealCount, action: action)
+                }
+                .shadow(color: FrigyBrand.primaryDeep.opacity(0.35), radius: 10, y: 5)
+            }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
         .padding(.horizontal, 16)
+        .padding(.vertical, 4)
         .padding(.bottom, 4)
         .frame(maxWidth: 460)
     }
@@ -61,6 +69,32 @@ struct GlassTabBar: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
+    @available(iOS 26, *)
+    private func glassPlusButton(mealCount: Int, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .frame(width: 52, height: 52)
+                    .contentShape(Circle())
+                if mealCount > 0 {
+                    Text("\(mealCount)")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color(hex: "#EF4444")))
+                        .offset(x: 3, y: -2)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(width: 52, height: 52)
+        .glassEffect(.regular.tint(FrigyBrand.primaryDeep).interactive(), in: .circle)
+        .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
+    }
+
     // MARK: - Pre-iOS 26 fallback
 
     private var legacyBody: some View {
@@ -68,6 +102,10 @@ struct GlassTabBar: View {
             legacyTabButton(.home)
             legacyTabButton(.plans)
             legacyTabButton(.shopping)
+
+            if let action = onTrackerTap {
+                legacyPlusButton(mealCount: mealCount, action: action)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -109,5 +147,30 @@ struct GlassTabBar: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
+    private func legacyPlusButton(mealCount: Int, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(LinearGradient(
+                        colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )))
+                if mealCount > 0 {
+                    Text("\(mealCount)")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color(hex: "#EF4444")))
+                        .offset(x: 3, y: -2)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(width: 52, height: 48)
+        .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
+    }
 }
-
