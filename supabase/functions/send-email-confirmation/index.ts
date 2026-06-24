@@ -1,0 +1,154 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+
+// ─── Frigy-branded HTML email ────────────────────────────────────────────────
+
+function buildEmailHTML(confirmationLink: string): string {
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Bestätige deine E-Mail – Frigy</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#F0FBF5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;-webkit-text-size-adjust:100%}
+    .wrap{max-width:520px;margin:48px auto 64px;padding:0 16px}
+    .card{background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 4px 40px rgba(0,120,70,.08)}
+    /* header */
+    .hdr{background:linear-gradient(135deg,#75FBB2 0%,#2EB56D 100%);padding:44px 40px 36px;text-align:center}
+    .logo{font-size:32px;font-weight:900;color:#fff;letter-spacing:-1px;line-height:1}
+    .logo span{opacity:.75;font-size:20px;font-weight:600;display:block;margin-top:4px;letter-spacing:0}
+    /* body */
+    .bdy{padding:40px 40px 36px}
+    .title{font-size:23px;font-weight:800;color:#1F2937;letter-spacing:-.5px;margin-bottom:12px}
+    .txt{font-size:15px;color:#6B7280;line-height:1.65;margin-bottom:32px}
+    /* CTA button */
+    .cta{display:block;background:linear-gradient(135deg,#75FBB2,#2EB56D);border-radius:16px;padding:17px 28px;text-align:center;text-decoration:none;font-size:17px;font-weight:800;color:#0a4a28 !important;letter-spacing:-.3px;margin-bottom:20px}
+    .cta:hover{opacity:.92}
+    /* hint */
+    .hint{font-size:12.5px;color:#9CA3AF;line-height:1.55;text-align:center;padding:0 8px}
+    .hint a{color:#2EB56D;text-decoration:none}
+    /* divider */
+    .div{height:1px;background:#F0F4F2;margin:32px 0}
+    /* link fallback */
+    .fallback{font-size:12px;color:#9CA3AF;word-break:break-all;text-align:center}
+    /* footer */
+    .ftr{padding:24px 40px 32px;text-align:center}
+    .ftr p{font-size:11.5px;color:#B0B9B4;line-height:1.6}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="hdr">
+      <div class="logo">🥗 Frigy<span>Dein KI-Ernährungsplan</span></div>
+    </div>
+    <div class="bdy">
+      <p class="title">Bestätige deine E-Mail-Adresse</p>
+      <p class="txt">
+        Fast geschafft! Tippe einmal auf den Button – danach wirst du direkt zur App
+        weitergeleitet und kannst sofort mit deinem personalisierten Ernährungsplan starten.
+      </p>
+      <a href="${confirmationLink}" class="cta">✅ &nbsp;Jetzt bestätigen &amp; App öffnen</a>
+      <p class="hint">
+        Der Link ist 24 Stunden gültig. Falls du dich nicht bei Frigy registriert hast,
+        kannst du diese E-Mail einfach ignorieren.
+      </p>
+      <div class="div"></div>
+      <p class="fallback">Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
+        <a href="${confirmationLink}" style="color:#2EB56D">${confirmationLink}</a>
+      </p>
+    </div>
+    <div class="ftr">
+      <p>Du erhältst diese E-Mail, weil du dich bei Frigy registriert hast.<br>
+      © ${new Date().getFullYear()} Frigy · Alle Rechte vorbehalten</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+}
+
+// ─── CORS ────────────────────────────────────────────────────────────────────
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
+// ─── Handler ─────────────────────────────────────────────────────────────────
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (req.method !== "POST") return json({ success: false, error: "Method not allowed" }, 405);
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } },
+  );
+
+  try {
+    const body = await req.json().catch(() => ({}));
+    const email = String(body.email ?? "").trim().toLowerCase();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return json({ success: false, error: "Ungültige E-Mail-Adresse" }, 400);
+    }
+
+    // Generate a Supabase signup-confirmation link that redirects back to the app.
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: "signup",
+      email,
+      options: { redirectTo: "frigy://callback" },
+    });
+
+    if (linkError || !linkData?.properties?.action_link) {
+      console.error("[send-email-confirmation] generateLink:", linkError?.message);
+      // Fallback: still return success so iOS doesn't show an error to the user —
+      // Supabase already sent its own email when signUp was called.
+      return json({ success: true, fallback: true });
+    }
+
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendKey) {
+      console.warn("[send-email-confirmation] RESEND_API_KEY not set — skipping custom email");
+      return json({ success: true, fallback: true });
+    }
+
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Frigy <noreply@frigy.app>",
+        to: [email],
+        subject: "✅ Bestätige deine E-Mail-Adresse – Frigy",
+        html: buildEmailHTML(linkData.properties.action_link),
+      }),
+    });
+
+    if (!emailRes.ok) {
+      const errText = await emailRes.text();
+      console.error("[send-email-confirmation] Resend error:", errText);
+      return json({ success: false, error: "E-Mail konnte nicht gesendet werden" }, 500);
+    }
+
+    return json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[send-email-confirmation] ERROR:", msg);
+    return json({ success: false, error: msg }, 500);
+  }
+});

@@ -161,11 +161,33 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func signUpWithEmail(email: String, password: String) async throws -> UserSession {
-        let response = try await client.auth.signUp(email: email, password: password)
+        // Pass redirectTo so the Supabase confirmation email contains a frigy:// deep link.
+        let response = try await client.auth.signUp(
+            email: email,
+            password: password,
+            redirectTo: SupabaseConfig.oauthRedirectURL
+        )
         guard let session = response.session else {
+            // User created but not yet confirmed — send Frigy-branded email.
+            Task { await sendBrandedConfirmationEmail(email: email) }
             throw AuthServiceError.emailVerificationRequired
         }
         return UserSession(userId: session.user.id.uuidString, email: session.user.email ?? "")
+    }
+
+    private func sendBrandedConfirmationEmail(email: String) async {
+        guard SupabaseConfig.isConfigured,
+              let base = SupabaseConfig.urlString,
+              let anonKey = SupabaseConfig.anonKey,
+              let url = URL(string: "\(base)/functions/v1/send-email-confirmation") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 15
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["email": email])
+        _ = try? await URLSession.shared.data(for: req)
     }
 
     func signOut() async throws {

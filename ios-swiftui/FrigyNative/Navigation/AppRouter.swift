@@ -225,8 +225,16 @@ final class AppRouter {
                 rootRoute = .main
                 flushPendingDeepLinkIfNeeded()
             } else {
+                // Auth callback arrived during onboarding (email confirmation or OAuth).
+                // Restore the saved step, mark auth as done, then advance past accountCreation.
                 onboardingCoordinator.resumeFromLastStep()
-                rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
+                onboardingCoordinator.didAuthenticate()
+                if onboardingCoordinator.currentStep == .accountCreation {
+                    // next() evaluates rules and moves to the paywall step.
+                    onboardingNext()
+                } else {
+                    rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
+                }
             }
         } catch {
             authStatusMessage = error.localizedDescription
