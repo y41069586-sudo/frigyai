@@ -101,7 +101,7 @@ struct WeightStepView: View {
                             .keyboardType(.decimalPad)
                             .focused($isFocused)
                             .frame(maxWidth: .infinity)
-                            .onChange(of: inputText) { _ in
+                            .onChange(of: inputText) { _, _ in
                                 commitInput()
                             }
 

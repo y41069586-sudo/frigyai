@@ -151,7 +151,7 @@ struct HomeDashboardView: View {
             if let fireDate = Calendar.current.date(from: comps) {
                 let trigger = UNTimeIntervalNotificationTrigger(
                     timeInterval: max(60, fireDate.timeIntervalSinceNow), repeats: false)
-                center.add(UNNotificationRequest(
+                await center.add(UNNotificationRequest(
                     identifier: "frigy.calorie.overage", content: content, trigger: trigger))
             }
         }

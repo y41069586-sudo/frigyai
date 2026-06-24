@@ -90,7 +90,7 @@ struct HeightStepView: View {
                             .keyboardType(isMetric ? .numberPad : .numbersAndPunctuation)
                             .focused($isFocused)
                             .frame(maxWidth: .infinity)
-                            .onChange(of: inputText) { _ in
+                            .onChange(of: inputText) { _, _ in
                                 commitInput()
                             }
 

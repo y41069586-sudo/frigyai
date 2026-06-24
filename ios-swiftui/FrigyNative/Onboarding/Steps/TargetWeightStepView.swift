@@ -115,7 +115,7 @@ struct TargetWeightStepView: View {
                             .keyboardType(.decimalPad)
                             .focused($isFocused)
                             .frame(maxWidth: .infinity)
-                            .onChange(of: inputText) { _ in commitInput() }
+                            .onChange(of: inputText) { _, _ in commitInput() }
 
                         Text(unitLabel)
                             .font(.system(size: 18, weight: .semibold))

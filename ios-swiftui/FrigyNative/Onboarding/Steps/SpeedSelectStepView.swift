@@ -186,7 +186,7 @@ private struct MintPaceSlider: View {
                     // Active track
                     Capsule()
                         .fill(FrigyBrand.buttonGradient)
-                        .frame(width: max(CGFloat(pct) * w, 10), height: 10)
+                        .frame(width: Swift.max(CGFloat(pct) * w, 10), height: 10)
                         .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                         .shadow(color: Color(hex: "#4AE896").opacity(0.35), radius: 3, y: 1)
 
