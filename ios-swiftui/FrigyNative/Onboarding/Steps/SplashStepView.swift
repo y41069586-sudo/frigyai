@@ -35,19 +35,21 @@ struct SplashStepView: View {
                             .lineLimit(1)
 
                         // Second line with mint highlight
-                        ZStack(alignment: .bottomLeading) {
-                            // Mint highlight bar behind text
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(hex: "#75FBB2").opacity(0.45))
-                                .frame(height: 14)
-                                .offset(y: -4)
-
-                            Text("Leb leichter.")
-                                .font(.system(size: 43, weight: .heavy))
-                                .foregroundColor(.black)
-                                .tracking(-3.5)
-                                .lineLimit(1)
-                        }
+                        Text("Leb leichter.")
+                            .font(.system(size: 43, weight: .heavy))
+                            .foregroundColor(.black)
+                            .tracking(-3.5)
+                            .lineLimit(1)
+                            .fixedSize()
+                            .background(alignment: .bottom) {
+                                // Mint highlight bar — sized to the text width, not the
+                                // full column, so it no longer stretches edge-to-edge.
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color(hex: "#75FBB2").opacity(0.45))
+                                    .frame(height: 14)
+                                    .padding(.horizontal, -2)
+                                    .offset(y: -3)
+                            }
                     }
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)

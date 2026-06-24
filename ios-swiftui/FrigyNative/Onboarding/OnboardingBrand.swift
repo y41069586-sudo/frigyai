@@ -231,6 +231,8 @@ struct OnboardingStepScaffold<Content: View>: View {
                 OnboardingProgressBar(fraction: progress)
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
+                    // Breathing room so the question never sits right under the bar.
+                    .padding(.bottom, 20)
             }
 
             content

@@ -33,8 +33,8 @@ struct SpeedSelectStepView: View {
     private var unitLabel: String { isMetric ? "kg" : "lbs" }
 
     /// Discrete step in display units so the slider lands on clean values
-    /// (e.g. exactly 0,5 kg) instead of drifting to 0,6 from free dragging.
-    private var displayStep: Double { isMetric ? 0.05 : 0.1 }
+    /// (exactly 0,5 kg — not 0,55) instead of drifting from free dragging.
+    private var displayStep: Double { isMetric ? 0.1 : 0.1 }
 
     private func snapDisplay(_ v: Double) -> Double {
         let snapped = (v / displayStep).rounded() * displayStep
@@ -175,24 +175,28 @@ private struct MintPaceSlider: View {
                 let pct = pct(value)
 
                 ZStack(alignment: .leading) {
-                    // Track background
+                    // Track background — liquid glass capsule
                     Capsule()
-                        .fill(FrigyBrand.selectedBg)
-                        .frame(height: 7)
+                        .fill(.clear)
+                        .frame(height: 10)
+                        .realGlass(in: Capsule(), interactive: false, fallbackBorder: FrigyBrand.cardBorder.opacity(0.5))
 
                     // Active track
                     Capsule()
                         .fill(FrigyBrand.buttonGradient)
-                        .frame(width: CGFloat(pct) * w, height: 7)
+                        .frame(width: max(CGFloat(pct) * w, 10), height: 10)
+                        .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                         .shadow(color: Color(hex: "#4AE896").opacity(0.35), radius: 3, y: 1)
 
-                    // Thumb
+                    // Thumb — liquid glass circle
                     Circle()
-                        .fill(Color.white)
-                        .overlay(Circle().stroke(FrigyBrand.primary, lineWidth: 3))
-                        .frame(width: 22, height: 22)
+                        .fill(.clear)
+                        .frame(width: 26, height: 26)
+                        .realGlass(in: Circle(), interactive: true)
+                        .overlay(Circle().stroke(FrigyBrand.primary, lineWidth: 2.5))
                         .shadow(color: Color(hex: "#4AE896").opacity(0.55), radius: 6, y: 2)
-                        .offset(x: CGFloat(pct) * (w - 22))
+                        .offset(x: CGFloat(pct) * (w - 26))
+                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pct)
                 }
                 .frame(height: 22)
                 .contentShape(Rectangle().size(CGSize(width: w, height: 42)).offset(y: -10))

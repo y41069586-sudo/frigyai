@@ -68,7 +68,7 @@ struct MacroPreviewStepView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 13, weight: .semibold))
-                            Text(draft.macrosManuallyEdited ? "Werte angepasst – bearbeiten" : "Werte anpassen")
+                            Text("Werte anpassen")
                                 .font(.system(size: 14, weight: .semibold))
                         }
                         .foregroundColor(FrigyBrand.primaryDeep)
@@ -83,9 +83,7 @@ struct MacroPreviewStepView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(FrigyBrand.primaryDark)
-                        Text(draft.macrosManuallyEdited
-                             ? "Manuell angepasst"
-                             : "Basierend auf deinen Angaben personalisiert")
+                        Text("Basierend auf deinen Angaben personalisiert")
                             .font(.system(size: 13))
                             .foregroundColor(FrigyBrand.textMuted)
                     }
@@ -94,6 +92,10 @@ struct MacroPreviewStepView: View {
                     .background(FrigyBrand.selectedBg)
                     .clipShape(Capsule())
                     .padding(.horizontal, 24)
+
+                    // Scientific sources
+                    MacroSourcesCard()
+                        .padding(.horizontal, 24)
 
                     Spacer().frame(height: 100)
                 }
@@ -154,14 +156,17 @@ private struct MacroEditorSheet: View {
     @State private var carbs: Int = 0
     @State private var fat: Int = 0
 
+    @FocusState private var focusedField: Field?
+    private enum Field { case calories, protein, carbs, fat }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    stepperRow(title: "Kalorien", unit: "kcal", value: $calories, step: 10, range: 800...6000, color: FrigyBrand.primaryDeep)
-                    stepperRow(title: "Protein", unit: "g", value: $protein, step: 5, range: 0...500, color: Color(hex: "#FF6B6B"))
-                    stepperRow(title: "Kohlenhydrate", unit: "g", value: $carbs, step: 5, range: 0...800, color: Color(hex: "#E0B400"))
-                    stepperRow(title: "Fett", unit: "g", value: $fat, step: 5, range: 0...300, color: FrigyBrand.primaryDeep)
+                    inputRow(title: "Kalorien", unit: "kcal", value: $calories, range: 800...6000, color: FrigyBrand.primaryDeep, field: .calories)
+                    inputRow(title: "Protein", unit: "g", value: $protein, range: 0...500, color: Color(hex: "#FF6B6B"), field: .protein)
+                    inputRow(title: "Kohlenhydrate", unit: "g", value: $carbs, range: 0...800, color: Color(hex: "#E0B400"), field: .carbs)
+                    inputRow(title: "Fett", unit: "g", value: $fat, range: 0...300, color: FrigyBrand.primaryDeep, field: .fat)
 
                     Button {
                         var p = draft
@@ -180,6 +185,14 @@ private struct MacroEditorSheet: View {
                     .padding(.top, 4)
                 }
                 .padding(20)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Fertig") { focusedField = nil }
+                        .fontWeight(.semibold)
+                }
             }
             .background(FrigyBrand.bg.ignoresSafeArea())
             .navigationTitle("Plan anpassen")
@@ -209,46 +222,90 @@ private struct MacroEditorSheet: View {
         }
     }
 
-    private func stepperRow(title: String, unit: String, value: Binding<Int>, step: Int, range: ClosedRange<Int>, color: Color) -> some View {
+    private func inputRow(title: String, unit: String, value: Binding<Int>, range: ClosedRange<Int>, color: Color, field: Field) -> some View {
         HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(FrigyBrand.text)
-                Text("\(value.wrappedValue) \(unit)")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(color)
-                    .contentTransition(.numericText())
-            }
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(FrigyBrand.text)
             Spacer()
-            HStack(spacing: 0) {
-                stepButton(systemName: "minus") {
-                    value.wrappedValue = max(range.lowerBound, value.wrappedValue - step)
-                }
-                Divider().frame(height: 24)
-                stepButton(systemName: "plus") {
-                    value.wrappedValue = min(range.upperBound, value.wrappedValue + step)
-                }
-            }
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(FrigyBrand.cardBorder, lineWidth: 1))
+            // Editable number field — number-pad keyboard, clamped to range on commit.
+            TextField("0", value: Binding(
+                get: { value.wrappedValue },
+                set: { value.wrappedValue = Swift.max(range.lowerBound, Swift.min(range.upperBound, $0)) }
+            ), format: .number)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundColor(color)
+                .frame(minWidth: 64)
+                .focused($focusedField, equals: field)
+            Text(unit)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(FrigyBrand.textMuted)
+                .frame(width: 36, alignment: .leading)
         }
         .padding(14)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(FrigyBrand.cardBorder, lineWidth: 1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(focusedField == field ? FrigyBrand.primary : FrigyBrand.cardBorder,
+                        lineWidth: focusedField == field ? 1.5 : 1)
+        )
+    }
+}
+
+// MARK: - Scientific sources card
+
+private struct MacroSourcesCard: View {
+    private struct Source: Identifiable {
+        let id = UUID()
+        let name: String
+        let desc: String
+        let url: String
     }
 
-    private func stepButton(systemName: String, action: @escaping () -> Void) -> some View {
-        Button {
-            withAnimation(.snappy(duration: 0.2)) { action() }
-        } label: {
-            Image(systemName: systemName)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(FrigyBrand.primaryDeep)
-                .frame(width: 46, height: 44)
+    private let sources: [Source] = [
+        Source(name: "Mifflin-St Jeor Formel (BMR)", desc: "Grundumsatz-Berechnung", url: "https://pubmed.ncbi.nlm.nih.gov/2305711/"),
+        Source(name: "TDEE Aktivitätsfaktoren", desc: "Gesamtenergieverbrauch", url: "https://pubmed.ncbi.nlm.nih.gov/8878356/"),
+        Source(name: "Protein: 2g/kg Körpergewicht", desc: "ISSN Protein-Empfehlung", url: "https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8"),
+        Source(name: "Defizit: 7700 kcal/kg", desc: "Energiebilanz-Regel", url: "https://pubmed.ncbi.nlm.nih.gov/21872751/"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Berechnung basiert auf folgenden wissenschaftlichen Formeln:")
+                .font(.system(size: 13))
+                .foregroundColor(FrigyBrand.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(sources) { source in
+                    Link(destination: URL(string: source.url)!) {
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("•")
+                                .font(.system(size: 13))
+                                .foregroundColor(FrigyBrand.textMuted)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(source.name)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(FrigyBrand.text)
+                                    .underline()
+                                Text(source.desc)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(FrigyBrand.textMuted.opacity(0.7))
+                            }
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }
 }
