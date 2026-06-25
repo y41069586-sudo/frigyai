@@ -222,7 +222,7 @@ workflows:
         - frigy
       ios_signing:
         provisioning_profiles:
-          - Frigy
+          - FrigyAI
         certificates:
           - frigy_distribution
       vars:
