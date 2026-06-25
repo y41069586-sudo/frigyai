@@ -3,25 +3,34 @@ import UIKit
 
 // MARK: - Model
 
-struct DayPlan: Identifiable {
-    let id = UUID()
+struct DayPlan: Identifiable, Codable {
+    let id: UUID
     let weekday: String
     let shortDay: String
     let isToday: Bool
     var meals: [PlannedMeal]
     var totalCal: Int { meals.reduce(0) { $0 + $1.calories } }
+    init(id: UUID = UUID(), weekday: String, shortDay: String, isToday: Bool, meals: [PlannedMeal]) {
+        self.id = id; self.weekday = weekday; self.shortDay = shortDay
+        self.isToday = isToday; self.meals = meals
+    }
 }
 
-struct PlannedMeal: Identifiable {
-    let id = UUID()
+struct PlannedMeal: Identifiable, Codable {
+    let id: UUID
     let category: MealCategory
     let name: String
     let calories: Int
     let protein: Int
     let carbs: Int
     let fat: Int
-    let duration: Int // minutes
+    let duration: Int
     let tags: [String]
+    init(id: UUID = UUID(), category: MealCategory, name: String, calories: Int, protein: Int, carbs: Int, fat: Int, duration: Int, tags: [String]) {
+        self.id = id; self.category = category; self.name = name
+        self.calories = calories; self.protein = protein; self.carbs = carbs
+        self.fat = fat; self.duration = duration; self.tags = tags
+    }
 }
 
 // MARK: - View
@@ -33,10 +42,12 @@ struct PlannedMeal: Identifiable {
 //   - each meal: type label + kcal (right), name, P/K/F macros, "Gegessen" button
 // Web tokens: --primary = #75FBB2, macros = red-400/amber-400/blue-400.
 
+private let weekPlanKey = "frigy.weekPlan.v1"
+
 struct MealPlansView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
-    @State private var weekPlan: [DayPlan] = makeDemoWeek()
+    @State private var weekPlan: [DayPlan] = Self.loadSavedPlan()
     @State private var isGenerating = false
     @State private var bannerMessage: String?
     @State private var bannerIsError = false
@@ -44,6 +55,29 @@ struct MealPlansView: View {
     @State private var toastMessage: String?
     @State private var selectedTemplate: FoodTemplate?
     @State private var showFridgeScan = false
+
+    private static func loadSavedPlan() -> [DayPlan] {
+        if let data = UserDefaults.standard.data(forKey: weekPlanKey),
+           let saved = try? JSONDecoder().decode([DayPlan].self, from: data),
+           !saved.isEmpty {
+            return alignToCurrentWeek(saved)
+        }
+        return makeDemoWeek()
+    }
+
+    private static func alignToCurrentWeek(_ saved: [DayPlan]) -> [DayPlan] {
+        let fresh = makeDemoWeek()
+        return fresh.enumerated().map { (i, day) in
+            let meals = i < saved.count ? saved[i].meals : []
+            return DayPlan(weekday: day.weekday, shortDay: day.shortDay, isToday: day.isToday, meals: meals)
+        }
+    }
+
+    private func savePlan() {
+        if let data = try? JSONEncoder().encode(weekPlan) {
+            UserDefaults.standard.set(data, forKey: weekPlanKey)
+        }
+    }
 
     private let proteinClr = Color(hex: "#F87171")
     private let carbsClr   = Color(hex: "#FBBF24")
@@ -377,6 +411,7 @@ struct MealPlansView: View {
                                isToday: existing.isToday, meals: meals)
             }
             eatenMealIDs = []
+            savePlan()
             bannerIsError = false
             bannerMessage = "Plan erfolgreich erstellt!"
             Task {

@@ -29,7 +29,7 @@ struct LoggedMeal: Identifiable {
     }
 }
 
-enum MealCategory: String, CaseIterable {
+enum MealCategory: String, CaseIterable, Codable {
     case breakfast = "Frühstück"
     case lunch     = "Mittagessen"
     case dinner    = "Abendessen"
