@@ -43,6 +43,8 @@
 	<string>$(OAUTH_REDIRECT_SCHEME)</string>
 	<key>OAUTH_CALLBACK_HOST</key>
 	<string>$(OAUTH_CALLBACK_HOST)</string>
+	<key>PAYWALL_BYPASS_EMAILS</key>
+	<string>$(PAYWALL_BYPASS_EMAILS)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Frigy braucht die Kamera, um Barcodes zu scannen und Fotos deiner Mahlzeiten für die KI-Analyse aufzunehmen.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

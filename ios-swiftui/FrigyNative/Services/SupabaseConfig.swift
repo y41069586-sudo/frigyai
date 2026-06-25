@@ -39,6 +39,14 @@ enum SupabaseConfig {
             ?? URL(string: "frigy://callback")!
     }
 
+    /// Comma-separated emails that bypass the paywall (dev/tester accounts).
+    /// Set PAYWALL_BYPASS_EMAILS in Secrets.xcconfig — never hardcode here.
+    static var paywallBypassEmails: Set<String> {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "PAYWALL_BYPASS_EMAILS") as? String,
+              !raw.isEmpty else { return [] }
+        return Set(raw.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() })
+    }
+
     static var isConfigured: Bool {
         url != nil && anonKey != nil
     }

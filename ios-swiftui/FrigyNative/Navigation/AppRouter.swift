@@ -179,11 +179,8 @@ final class AppRouter {
 
     // MARK: - Private
 
-    // Accounts that always get premium access — dev/tester bypass.
-    static let paywallBypassEmails: Set<String> = ["yousef0087mohamed@gmail.com"]
-
     func isPaywallBypassed(for email: String) -> Bool {
-        Self.paywallBypassEmails.contains(email.lowercased())
+        SupabaseConfig.paywallBypassEmails.contains(email.lowercased())
     }
 
     private func routeAfterOnboarding() async throws {
