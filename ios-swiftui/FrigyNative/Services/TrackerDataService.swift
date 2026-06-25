@@ -427,7 +427,7 @@ final class TrackerDataService {
     func loadShoppingItems() async -> [ShoppingItem]? {
         #if canImport(Supabase)
         guard let ctx = await context() else { return nil }
-        guard let rows: [ShoppingItemRow] = try? await ctx.client
+        guard let rows: [ShoppingItemRecord] = try? await ctx.client
             .from("shopping_items")
             .select()
             .eq("user_id", value: ctx.userId)
@@ -825,7 +825,7 @@ private struct ChatReply: Decodable {
     let message: String
 }
 
-private struct ShoppingItemRow: Decodable {
+private struct ShoppingItemRecord: Decodable {
     let id: String
     let name: String
     let amount: String
