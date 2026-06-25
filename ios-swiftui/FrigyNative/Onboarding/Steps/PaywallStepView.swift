@@ -200,36 +200,93 @@ struct PaywallStepView: View {
         }
     }
 
-    // MARK: - Features (shown for yearly)
+    // MARK: - Yearly savings section
 
     private var featuresSection: some View {
-        let feats: [(String, String)] = [
-            ("Einfaches Food-Scanning",
-             "Tracke deine Kalorien mit nur einem Bild"),
-            ("Erreiche deine Ziele Schritt für Schritt",
-             "Klare Mahlzeiten und Makros – ohne medizinische Versprechen"),
-            ("Verfolge deinen Fortschritt",
-             "Bleib auf Kurs mit personalisierten Einblicken"),
-        ]
-        return VStack(spacing: 18) {
-            ForEach(feats, id: \.0) { (title, desc) in
-                HStack(alignment: .top, spacing: 12) {
+        VStack(spacing: 16) {
+            // Savings highlight card
+            VStack(spacing: 12) {
+                HStack(spacing: 10) {
                     ZStack {
-                        Circle().fill(primary).frame(width: 28, height: 28)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 13, weight: .black))
-                            .foregroundColor(textMain)
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(primaryDark.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "tag.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(primaryDark)
                     }
-                    .padding(.top, 1)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(.system(size: 15, weight: .bold))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Bestes Angebot")
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(textMain)
-                        Text(desc)
-                            .font(.system(size: 14))
-                            .foregroundColor(textMuted)
+                        if let perMonth = yearlyPkg?.pricePerMonthString {
+                            Text("Nur \(perMonth) pro Monat")
+                                .font(.system(size: 13))
+                                .foregroundColor(textMuted)
+                        }
                     }
                     Spacer()
+                    Text("JÄHRLICH")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(primaryDeep))
+                }
+
+                Divider()
+
+                // Price breakdown
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Jährliche Abrechnung")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(textMuted)
+                        Text(yearlyPkg?.priceString ?? "—")
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundColor(textMain)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Im Vergleich zu monatlich")
+                            .font(.system(size: 11))
+                            .foregroundColor(textMuted)
+                        if let monthly = monthlyPkg?.priceString {
+                            Text("\(monthly) × 12")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color(hex: "#EF4444"))
+                                .strikethrough(color: Color(hex: "#EF4444"))
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .background(Color(hex: "#F0FDF4"))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color(hex: "#BCFDDC"), lineWidth: 1.5))
+
+            // Feature list
+            VStack(spacing: 14) {
+                ForEach([
+                    ("checkmark.circle.fill", "Alle Premium-Funktionen", "KI-Scan, Tracker, Wochenpläne & mehr"),
+                    ("arrow.clockwise.circle.fill", "Jederzeit kündbar", "Über deine App-Store-Einstellungen"),
+                    ("lock.shield.fill", "Einmalig pro Jahr abgerechnet", "Keine monatlichen Abbuchungen"),
+                ], id: \.0) { icon, title, desc in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: icon)
+                            .font(.system(size: 22))
+                            .foregroundColor(primaryDark)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(textMain)
+                            Text(desc)
+                                .font(.system(size: 13))
+                                .foregroundColor(textMuted)
+                        }
+                        Spacer()
+                    }
                 }
             }
         }
