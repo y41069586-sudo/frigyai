@@ -8,7 +8,7 @@ struct SpeedSelectStepView: View {
 
     @State private var draft: UserProfileDraft
     @State private var isMetric: Bool = true
-    @State private var sliderActive: Bool = false
+    @State private var appeared = false
 
     private let kgPerLb = 0.45359237
     private let minKg = 0.1
@@ -19,9 +19,7 @@ struct SpeedSelectStepView: View {
         self.progress = progress
         self.onBack = onBack
         self.onNext = onNext
-        _draft = State(initialValue: profile)
-        // Start at 0.1 kg/week (leftmost, gentlest); keep a prior in-range choice.
-        let weekly = max(0.1, min(0.9, profile.weeklyGoalKg > 0 ? profile.weeklyGoalKg : 0.1))
+        let weekly = max(0.1, min(0.9, profile.weeklyGoalKg > 0 ? profile.weeklyGoalKg : 0.5))
         var d = profile
         d.weeklyGoalKg = weekly
         _draft = State(initialValue: d)
@@ -33,31 +31,38 @@ struct SpeedSelectStepView: View {
     private var displayMax: Double { isMetric ? maxKg : maxKg / kgPerLb }
     private var unitLabel: String { isMetric ? "kg" : "lbs" }
 
-    /// Discrete step in display units so the slider lands on clean values
-    /// (exactly 0,5 kg — not 0,55) instead of drifting from free dragging.
-    private var displayStep: Double { isMetric ? 0.1 : 0.1 }
-
     private func snapDisplay(_ v: Double) -> Double {
-        let snapped = (v / displayStep).rounded() * displayStep
-        return max(displayMin, min(displayMax, snapped))
+        let step = 0.1
+        let s = (v / step).rounded() * step
+        return max(displayMin, min(displayMax, s))
     }
 
-    /// Formats a display value with the fewest decimals needed (0,5 — not 0,50).
     private func formatValue(_ v: Double) -> String {
         let snapped = snapDisplay(v)
-        let twoDecimals = String(format: "%.2f", snapped)
-        if twoDecimals.hasSuffix("0") {
-            return String(format: "%.1f", snapped)
+        return String(format: "%.1f", snapped)
+    }
+
+    private var pct: Double {
+        guard maxKg > minKg else { return 0 }
+        return max(0, min(1, (kgPerWeek - minKg) / (maxKg - minKg)))
+    }
+
+    private var speedLabel: String {
+        switch pct {
+        case ..<0.34: return draft.goalMode == "gain" ? "Sanfter Aufbau" : "Sanfter Start"
+        case ..<0.67: return "Optimales Tempo"
+        default:      return draft.goalMode == "gain" ? "Intensiver Aufbau" : "Schnelle Abnahme"
         }
-        return twoDecimals
     }
 
-    private var directionLabel: String {
-        draft.goalMode == "gain" ? "Geschwindigkeit der Gewichtszunahme pro Woche"
-            : "Geschwindigkeit der Gewichtsabnahme pro Woche"
+    private var speedEmoji: String {
+        switch pct {
+        case ..<0.34: return "🐢"
+        case ..<0.67: return "💪"
+        default:      return "🔥"
+        }
     }
 
-    // Skip this step for maintain goal
     private var isMaintain: Bool { draft.goalMode == "maintain" }
 
     var body: some View {
@@ -72,7 +77,6 @@ struct SpeedSelectStepView: View {
 
     private var content: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            // Question
             FrigyMascotQuestion("Wie schnell möchtest du dein Ziel erreichen?")
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
@@ -80,51 +84,92 @@ struct SpeedSelectStepView: View {
 
             Spacer()
 
-            VStack(spacing: 0) {
-                // Subtitle label
-                Text(directionLabel)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .foregroundColor(FrigyBrand.textMuted)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
+            VStack(spacing: 28) {
+                // Value + emoji badge
+                VStack(spacing: 8) {
+                    ZStack {
+                        // Outer glow ring
+                        Circle()
+                            .fill(paceColor(pct).opacity(0.12))
+                            .frame(width: 130, height: 130)
+                            .animation(.easeInOut(duration: 0.3), value: pct)
 
-                // Large value display
-                HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(formatValue(displayValue))
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(FrigyBrand.text)
-                        // Smooth, fast iOS rolling-number transition as the slider moves.
-                        .contentTransition(.numericText())
-                        .animation(.snappy(duration: 0.18), value: displayValue)
-                        .scaleEffect(sliderActive ? 1.06 : 1)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: sliderActive)
-                    Text(unitLabel)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(FrigyBrand.primaryDeep)
-                }
-                .padding(.top, 16)
-                .padding(.bottom, 28)
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 106, height: 106)
+                            .shadow(color: paceColor(pct).opacity(0.3), radius: 18, y: 6)
+                            .animation(.easeInOut(duration: 0.3), value: pct)
 
-                // Mint slider
-                MintPaceSlider(
-                    value: Binding(
-                        get: { displayValue },
-                        set: { newVal in
-                            // Store raw value during drag — slider snaps on release
-                            let kg = isMetric ? newVal : newVal * kgPerLb
-                            draft.weeklyGoalKg = max(minKg, min(maxKg, kg))
+                        VStack(spacing: 2) {
+                            Text(speedEmoji)
+                                .font(.system(size: 28))
+                                .animation(.none, value: speedEmoji)
+
+                            HStack(alignment: .lastTextBaseline, spacing: 3) {
+                                Text(formatValue(displayValue))
+                                    .font(.system(size: 26, weight: .black, design: .rounded))
+                                    .foregroundColor(FrigyBrand.text)
+                                    .contentTransition(.numericText())
+                                    .animation(.snappy(duration: 0.16), value: displayValue)
+                                Text(unitLabel)
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(FrigyBrand.textMuted)
+                            }
                         }
-                    ),
-                    min: displayMin,
-                    max: displayMax,
-                    ticks: isMetric ? [0.1, 0.5, 0.9] : [
-                        (minKg / kgPerLb * 10).rounded() / 10,
-                        (0.5 / kgPerLb * 10).rounded() / 10,
-                        (maxKg / kgPerLb * 10).rounded() / 10,
-                    ],
-                    isActive: $sliderActive
-                )
+                    }
+                    .scaleEffect(appeared ? 1 : 0.7)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.65).delay(0.1), value: appeared)
+
+                    Text(speedLabel)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(paceColor(pct))
+                        .animation(.easeInOut(duration: 0.25), value: speedLabel)
+                        .contentTransition(.opacity)
+                }
+
+                // Slider card
+                VStack(spacing: 20) {
+                    PaceSlider(
+                        value: Binding(
+                            get: { displayValue },
+                            set: { newVal in
+                                let kg = isMetric ? newVal : newVal * kgPerLb
+                                draft.weeklyGoalKg = max(minKg, min(maxKg, kg))
+                            }
+                        ),
+                        minVal: displayMin,
+                        maxVal: displayMax,
+                        pace: pct
+                    )
+
+                    // Pole labels
+                    HStack {
+                        Label(draft.goalMode == "gain" ? "Sanft" : "Langsam", systemImage: "tortoise.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(paceColor(0))
+                        Spacer()
+                        Label(draft.goalMode == "gain" ? "Intensiv" : "Schnell", systemImage: "hare.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(paceColor(1))
+                    }
+                    .padding(.horizontal, 4)
+                }
                 .padding(.horizontal, 24)
+                .padding(.vertical, 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(.white)
+                        .shadow(color: FrigyBrand.primaryDark.opacity(0.08), radius: 16, y: 6)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(FrigyBrand.cardBorder, lineWidth: 1)
+                )
+                .padding(.horizontal, 20)
+                .scaleEffect(appeared ? 1 : 0.88)
+                .opacity(appeared ? 1 : 0)
+                .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.2), value: appeared)
 
                 // Unit toggle
                 MintSegmentedControl(
@@ -133,61 +178,69 @@ struct SpeedSelectStepView: View {
                 ) { id in
                     isMetric = (id == "metric")
                 }
-                .padding(.top, 32)
                 .padding(.horizontal, 20)
+                .opacity(appeared ? 1 : 0)
+                .animation(.easeOut(duration: 0.4).delay(0.3), value: appeared)
             }
 
             Spacer()
 
-            // Bottom bar
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
-                OnboardingContinueButton(action: {
-                    onNext(draft)
-                })
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, max(20, 16))
-                .background(FrigyBrand.bg)
+                OnboardingContinueButton { onNext(draft) }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, max(20, 16))
+                    .background(FrigyBrand.bg)
             }
+        }
+        .onAppear { appeared = true }
+    }
+
+    private func paceColor(_ p: Double) -> Color {
+        func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double { a + (b - a) * t }
+        let g = (r: 0.22, g: 0.83, b: 0.49)
+        let o = (r: 1.00, g: 0.62, b: 0.20)
+        let r = (r: 0.98, g: 0.27, b: 0.27)
+        if p < 0.5 {
+            let t = p / 0.5
+            return Color(red: lerp(g.r, o.r, t), green: lerp(g.g, o.g, t), blue: lerp(g.b, o.b, t))
+        } else {
+            let t = (p - 0.5) / 0.5
+            return Color(red: lerp(o.r, r.r, t), green: lerp(o.g, r.g, t), blue: lerp(o.b, r.b, t))
         }
     }
 }
 
-// MARK: - MintPaceSlider
+// MARK: - PaceSlider
 
-private struct MintPaceSlider: View {
+private struct PaceSlider: View {
     @Binding var value: Double
-    let min: Double
-    let max: Double
-    let ticks: [Double]
-    @Binding var isActive: Bool
+    let minVal: Double
+    let maxVal: Double
+    let pace: Double
 
-    // Smooth live position during drag; nil = use value binding
     @State private var liveVal: Double? = nil
+    @State private var isActive = false
 
     private var renderVal: Double { liveVal ?? value }
+
+    private func pct(_ v: Double) -> Double {
+        guard maxVal > minVal else { return 0 }
+        return max(0, min(1, (v - minVal) / (maxVal - minVal)))
+    }
 
     private func snap(_ v: Double) -> Double {
         let step = 0.1
         let s = (v / step).rounded() * step
-        return Swift.max(min, Swift.min(max, s))
+        return max(minVal, min(maxVal, s))
     }
 
-    private func pct(_ v: Double) -> Double {
-        guard max > min else { return 0 }
-        return Swift.max(0, Swift.min(1, (v - min) / (max - min)))
-    }
-
-    // Pace scale: green (gentle) → orange (moderate) → red (aggressive).
-    private static let green  = (r: 0.22, g: 0.83, b: 0.49)   // #39D47F
-    private static let orange = (r: 1.00, g: 0.62, b: 0.20)   // #FF9E33
-    private static let red    = (r: 0.98, g: 0.27, b: 0.27)   // #FA4545
-
-    /// Smoothly interpolated colour for a 0…1 position along the track.
-    private func paceColor(_ p: Double) -> Color {
+    private func color(_ p: Double) -> Color {
         func lerp(_ a: Double, _ b: Double, _ t: Double) -> Double { a + (b - a) * t }
-        let g = Self.green, o = Self.orange, r = Self.red
+        let g = (r: 0.22, g: 0.83, b: 0.49)
+        let o = (r: 1.00, g: 0.62, b: 0.20)
+        let r = (r: 0.98, g: 0.27, b: 0.27)
         if p < 0.5 {
             let t = p / 0.5
             return Color(red: lerp(g.r, o.r, t), green: lerp(g.g, o.g, t), blue: lerp(g.b, o.b, t))
@@ -197,110 +250,80 @@ private struct MintPaceSlider: View {
         }
     }
 
-    /// Full green→orange→red gradient across the whole track length.
-    private var paceGradient: LinearGradient {
+    private var trackGradient: LinearGradient {
         LinearGradient(
-            colors: [paceColor(0), paceColor(0.5), paceColor(1)],
+            colors: [color(0), color(0.33), color(0.66), color(1)],
             startPoint: .leading, endPoint: .trailing
         )
     }
 
+    private let thumbSize: CGFloat = 32
+    private let trackH: CGFloat = 18
+
     var body: some View {
-        VStack(spacing: 4) {
-            GeometryReader { geo in
-                let w = geo.size.width
-                let p = pct(renderVal)
+        GeometryReader { geo in
+            let w = geo.size.width
+            let p = CGFloat(pct(renderVal))
+            let thumbX = p * (w - thumbSize)
 
-                ZStack(alignment: .leading) {
-                    // Track background
-                    Capsule()
-                        .fill(paceGradient)
-                        .opacity(0.28)
-                        .frame(height: 12)
-                        .overlay(Capsule().stroke(Color.white.opacity(0.45), lineWidth: 1).blendMode(.overlay))
-                        .overlay(Capsule().stroke(FrigyBrand.cardBorder.opacity(0.45), lineWidth: 1))
+            ZStack(alignment: .leading) {
+                // Track background (faded)
+                Capsule()
+                    .fill(trackGradient)
+                    .opacity(0.2)
+                    .frame(height: trackH)
 
-                    // Active fill
-                    Capsule()
-                        .fill(paceGradient)
-                        .frame(height: 12)
-                        .mask(alignment: .leading) {
-                            Capsule()
-                                .frame(width: Swift.max(CGFloat(p) * (w - 28) + 14, 12), height: 12)
-                        }
-                        .overlay(
-                            Capsule()
-                                .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                                .blendMode(.overlay)
-                                .frame(width: Swift.max(CGFloat(p) * (w - 28) + 14, 12), height: 12),
-                            alignment: .leading
-                        )
-                        .shadow(color: paceColor(p).opacity(0.4), radius: 4, y: 1)
+                // Active fill
+                Capsule()
+                    .fill(trackGradient)
+                    .frame(width: max(thumbSize / 2, thumbX + thumbSize / 2), height: trackH)
+                    .shadow(color: color(Double(p)).opacity(0.35), radius: 6, y: 2)
 
-                    // Thumb
-                    ZStack {
-                        Circle()
-                            .fill(.clear)
-                            .frame(width: 28, height: 28)
-                            .realGlass(in: Circle(), interactive: true)
-                        Circle()
-                            .stroke(paceColor(p), lineWidth: 3)
-                            .frame(width: 28, height: 28)
-                        Circle()
-                            .stroke(Color.white.opacity(0.55), lineWidth: 1)
-                            .frame(width: 28, height: 28)
-                            .blendMode(.overlay)
-                        Circle()
-                            .fill(paceColor(p))
-                            .frame(width: 9, height: 9)
+                // Thumb
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .frame(width: thumbSize, height: thumbSize)
+                        .shadow(color: color(Double(p)).opacity(isActive ? 0.5 : 0.3),
+                                radius: isActive ? 12 : 6, y: isActive ? 4 : 2)
+
+                    Circle()
+                        .stroke(color(Double(p)), lineWidth: 3)
+                        .frame(width: thumbSize, height: thumbSize)
+
+                    Circle()
+                        .fill(color(Double(p)))
+                        .frame(width: 10, height: 10)
+                }
+                .scaleEffect(isActive ? 1.2 : 1)
+                .animation(.spring(response: 0.28, dampingFraction: 0.6), value: isActive)
+                .offset(x: thumbX)
+            }
+            .frame(height: thumbSize)
+            .contentShape(Rectangle().size(CGSize(width: w, height: 52)).offset(y: -10))
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        isActive = true
+                        let ratio = max(0, min(1, (drag.location.x - thumbSize / 2) / (w - thumbSize)))
+                        let raw = minVal + ratio * (maxVal - minVal)
+                        liveVal = raw
+                        value = raw
                     }
-                    .scaleEffect(isActive ? 1.18 : 1)
-                    .shadow(color: paceColor(p).opacity(0.55), radius: isActive ? 9 : 6, y: 2)
-                    .offset(x: CGFloat(p) * (w - 28))
-                    .animation(.spring(response: 0.32, dampingFraction: 0.6), value: isActive)
-                }
-                .frame(height: 28)
-                .contentShape(Rectangle().size(CGSize(width: w, height: 42)).offset(y: -10))
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { drag in
-                            isActive = true
-                            let ratio = Swift.max(0, Swift.min(1, (drag.location.x - 14) / (w - 28)))
-                            let raw = min + ratio * (max - min)
-                            liveVal = raw           // smooth visual
-                            value = raw             // propagate raw for number display
+                    .onEnded { _ in
+                        let snapped = snap(renderVal)
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) {
+                            liveVal = snapped
                         }
-                        .onEnded { _ in
-                            let snapped = snap(renderVal)
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                                liveVal = snapped
-                            }
-                            value = snapped
-                            isActive = false
-                            // Clear override after spring settles
-                            Task {
-                                try? await Task.sleep(nanoseconds: 600_000_000)
-                                liveVal = nil
-                            }
+                        value = snapped
+                        isActive = false
+                        Task {
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            liveVal = nil
                         }
-                )
-            }
-            .frame(height: 42)
-
-            GeometryReader { geo in
-                let w = geo.size.width
-                ForEach(Array(ticks.enumerated()), id: \.offset) { _, tick in
-                    let highlighted = abs(tick - renderVal) < 0.06
-                    Text(String(format: "%.1f", tick))
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(highlighted ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
-                        .fixedSize()
-                        .position(x: CGFloat(pct(tick)) * (w - 28) + 14, y: 8)
-                        .animation(.easeInOut(duration: 0.15), value: highlighted)
-                }
-            }
-            .frame(height: 16)
-            .padding(.top, 2)
+                    }
+            )
         }
+        .frame(height: thumbSize)
     }
 }
