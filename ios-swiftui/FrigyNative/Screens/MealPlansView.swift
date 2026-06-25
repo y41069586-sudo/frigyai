@@ -56,6 +56,7 @@ struct MealPlansView: View {
     @State private var toastMessage: String?
     @State private var selectedTemplate: FoodTemplate?
     @State private var showFridgeScan = false
+    @ObservedObject private var healthKit = HealthKitService.shared
 
     private static func loadSavedPlan() -> [DayPlan] {
         if let data = UserDefaults.standard.data(forKey: weekPlanKey),
@@ -286,7 +287,7 @@ struct MealPlansView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(day.weekday)
                 .font(.system(size: 17, weight: .bold))
-                .foregroundColor(FrigyBrand.primary)
+                .foregroundColor(FrigyBrand.text)
 
             if day.meals.isEmpty {
                 Text("Noch kein Plan für diesen Tag")
@@ -297,6 +298,18 @@ struct MealPlansView: View {
                 ForEach(day.meals) { meal in
                     mealTile(meal)
                 }
+                if day.isToday && healthKit.activeCaloriesToday > 0 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(hex: "#F97316"))
+                        Text("+\(healthKit.activeCaloriesToday) kcal Aktivitätsbonus")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(FrigyBrand.textMuted)
+                    }
+                    .padding(.horizontal, 4)
+                    .padding(.top, 4)
+                }
             }
         }
         .padding(14)
@@ -305,7 +318,7 @@ struct MealPlansView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(FrigyBrand.primary.opacity(day.isToday ? 0.35 : 0.2), lineWidth: day.isToday ? 2 : 1)
+                .stroke(Color(UIColor.separator).opacity(day.isToday ? 0.5 : 0.2), lineWidth: day.isToday ? 1.5 : 1)
         )
         .shadow(color: .black.opacity(0.03), radius: 6, y: 2)
     }
@@ -322,7 +335,7 @@ struct MealPlansView: View {
                 Spacer()
                 Text("\(meal.calories)")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(FrigyBrand.primary)
+                    .foregroundColor(FrigyBrand.textMuted)
             }
 
             Text(meal.name)
@@ -352,8 +365,8 @@ struct MealPlansView: View {
                 .frame(height: 32)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(eatenMealIDs.contains(meal.id) ? FrigyBrand.primary.opacity(0.15) : Color.clear)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
+                        .fill(eatenMealIDs.contains(meal.id) ? Color(UIColor.tertiarySystemFill) : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(FrigyBrand.cardBorder, lineWidth: 1))
                 )
                 .contentShape(Rectangle())
             }
@@ -362,7 +375,7 @@ struct MealPlansView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(FrigyBrand.selectedBg.opacity(0.45)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(UIColor.secondarySystemFill)))
     }
 
     // MARK: - Actions
@@ -379,6 +392,7 @@ struct MealPlansView: View {
         )
         if ok {
             eatenMealIDs.insert(meal.id)
+            NotificationCenter.default.post(name: .trackerDidAddEntry, object: nil)
             toastMessage = "✓ \(meal.name) geloggt"
             Task {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -439,6 +453,12 @@ struct MealPlansView: View {
         }
         isGenerating = false
     }
+}
+
+// MARK: - Notification names
+
+extension Notification.Name {
+    static let trackerDidAddEntry = Notification.Name("frigy.trackerDidAddEntry")
 }
 
 // MARK: - Demo data

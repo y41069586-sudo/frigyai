@@ -200,6 +200,12 @@ struct HomeDashboardView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .trackerDidAddEntry)) { _ in
+            Task {
+                try? await Task.sleep(for: .milliseconds(700))
+                await reload()
+            }
+        }
         .sheet(isPresented: $showEditTargets) { NutritionGoalsView() }
         .overlay(alignment: .top) {
             if loadError {
