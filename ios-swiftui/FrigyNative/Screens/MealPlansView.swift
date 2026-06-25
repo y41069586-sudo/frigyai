@@ -180,18 +180,6 @@ struct MealPlansView: View {
                     .foregroundColor(foreground)
 
                 Spacer()
-
-                Button { showFridgeScan = true } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(primary.opacity(0.15))
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "refrigerator.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "#39D47F"))
-                    }
-                }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -201,34 +189,58 @@ struct MealPlansView: View {
         .background(.regularMaterial)
     }
 
-    // MARK: - Generate button (web gradient pill, dark text)
+    // MARK: - Action buttons row
 
     private var generateButton: some View {
-        Button {
-            Task { await generatePlan() }
-        } label: {
-            HStack(spacing: 8) {
-                if isGenerating {
-                    ProgressView().tint(Color(hex: "#082013"))
-                    Text("Wird erstellt…")
-                } else {
-                    Image(systemName: "sparkles")
-                    Text("Wochenplan erstellen")
+        HStack(spacing: 10) {
+            // Wochenplan erstellen
+            Button {
+                Task { await generatePlan() }
+            } label: {
+                HStack(spacing: 7) {
+                    if isGenerating {
+                        ProgressView().tint(Color(hex: "#082013")).scaleEffect(0.85)
+                        Text("Wird erstellt…")
+                    } else {
+                        Image(systemName: "sparkles")
+                        Text("Wochenplan erstellen")
+                    }
                 }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Color(hex: "#082013"))
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundColor(Color(hex: "#082013"))
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .background(
-                LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .buttonStyle(.plain)
+            .disabled(isGenerating)
+            .opacity(isGenerating ? 0.7 : 1)
+
+            // Zutaten erkennen
+            Button { showFridgeScan = true } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "camera.viewfinder")
+                    Text("Zutaten erkennen")
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Color(hex: "#39D47F"))
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(hex: "#39D47F").opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color(hex: "#39D47F").opacity(0.4), lineWidth: 1.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
-        .disabled(isGenerating)
-        .opacity(isGenerating ? 0.7 : 1)
     }
 
     // MARK: - Day card (web Card: weekday header + stacked meals)
