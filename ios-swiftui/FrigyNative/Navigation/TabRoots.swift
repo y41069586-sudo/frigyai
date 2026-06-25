@@ -966,6 +966,27 @@ struct SubscriptionView: View {
                         .padding(.horizontal, 20)
                     }
 
+                    // Redeem offer code (influencer/promo codes from App Store Connect)
+                    Button {
+                        router.subscriptionService.redeemOfferCode()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "gift.fill")
+                                .font(.system(size: 15))
+                                .foregroundColor(FrigyBrand.primaryDark)
+                            Text("Gutscheincode einlösen")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(FrigyBrand.primaryDark)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(FrigyBrand.selectedBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.borderMint, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+
                     Spacer().frame(height: 32)
                 }
             }

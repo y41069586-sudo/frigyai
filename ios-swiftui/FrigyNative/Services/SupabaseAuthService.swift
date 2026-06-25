@@ -47,11 +47,14 @@ protocol SubscriptionServiceProtocol {
     func identify(userId: String) async
     /// Detach the current store identity (called on sign-out).
     func clearIdentity() async
+    /// Opens the App Store's native "Offer Code einlösen" sheet (iOS 14+).
+    func redeemOfferCode()
 }
 
 extension SubscriptionServiceProtocol {
     func identify(userId: String) async {}
     func clearIdentity() async {}
+    func redeemOfferCode() {}
 }
 
 @MainActor

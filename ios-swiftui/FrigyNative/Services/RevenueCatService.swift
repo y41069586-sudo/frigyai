@@ -118,5 +118,12 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         // logOut throws when the current user is already anonymous — ignore.
         _ = try? await Purchases.shared.logOut()
     }
+
+    /// Opens the native App Store "Offer Code einlösen" sheet so influencer/promo
+    /// codes from App Store Connect can be redeemed directly inside the app.
+    func redeemOfferCode() {
+        guard RevenueCatConfig.isConfigured, Purchases.isConfigured else { return }
+        Purchases.shared.presentCodeRedemptionSheet()
+    }
 }
 #endif
