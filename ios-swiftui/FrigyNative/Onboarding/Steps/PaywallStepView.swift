@@ -377,34 +377,50 @@ struct PaywallStepView: View {
                 .disabled(isPurchasing || isRestoring || selectedPkg == nil)
                 .padding(.top, 16)
 
-                // Restore purchases
-                Button {
-                    isRestoring = true
-                    Task {
-                        let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
-                        if ok {
-                            router.isPremium = true
-                            // Cancel any pending trial notification — user is already premium.
-                            UNUserNotificationCenter.current()
-                                .removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
+                // Restore + Redeem row
+                HStack(spacing: 24) {
+                    Button {
+                        isRestoring = true
+                        Task {
+                            let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
+                            if ok {
+                                router.isPremium = true
+                                UNUserNotificationCenter.current()
+                                    .removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
+                            }
+                            isRestoring = false
+                            if ok { onNext() }
                         }
-                        isRestoring = false
-                        if ok { onNext() }
-                    }
-                } label: {
-                    Group {
-                        if isRestoring {
-                            ProgressView().progressViewStyle(.circular).scaleEffect(0.8)
-                        } else {
-                            Text("Käufe wiederherstellen")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(FrigyBrand.text)
-                                .underline()
+                    } label: {
+                        Group {
+                            if isRestoring {
+                                ProgressView().progressViewStyle(.circular).scaleEffect(0.8)
+                            } else {
+                                Text("Käufe wiederherstellen")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(FrigyBrand.text)
+                                    .underline()
+                            }
                         }
+                        .frame(height: 40)
                     }
-                    .frame(height: 40)
+                    .buttonStyle(.plain)
+
+                    Text("·")
+                        .foregroundColor(FrigyBrand.textMuted)
+                        .font(.system(size: 14))
+
+                    Button {
+                        router.subscriptionService.redeemOfferCode()
+                    } label: {
+                        Text("Code einlösen")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(FrigyBrand.primaryDark)
+                            .underline()
+                            .frame(height: 40)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
                 .padding(.top, 4)
 
                 // Legal footer
