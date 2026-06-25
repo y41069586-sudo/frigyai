@@ -24,7 +24,10 @@ struct PaywallStepView: View {
     private var monthlyPkg: SubscriptionPackage? { packages.first { !$0.isYearly } }
     private var yearlyPkg:  SubscriptionPackage? { packages.first {  $0.isYearly } }
     private var selectedPkg: SubscriptionPackage? { packages.first { $0.id == selectedId } }
-    private var isMonthly: Bool { selectedPkg?.isYearly == false || packages.isEmpty }
+    private var isMonthly: Bool {
+        if packages.isEmpty { return selectedId != "yearly" }
+        return selectedPkg?.isYearly == false
+    }
 
     // Trial is always shown for monthly; RevenueCat handles actual eligibility at checkout.
     private let trialEligible = true
@@ -117,10 +120,17 @@ struct PaywallStepView: View {
 
             packagesLoading = true
             packages = await router.subscriptionService.availablePackages()
-            if let first = packages.first(where: { !$0.isYearly }) {
-                selectedId = first.id
-            } else if let first = packages.first {
-                selectedId = first.id
+            // If user already explicitly tapped "Jährlich" during loading, resolve to
+            // the real package id and keep it selected. Otherwise default to monthly.
+            let userPickedYearly = selectedId == "yearly"
+            if userPickedYearly {
+                if let yPkg = packages.first(where: { $0.isYearly }) { selectedId = yPkg.id }
+            } else {
+                if let first = packages.first(where: { !$0.isYearly }) {
+                    selectedId = first.id
+                } else if let first = packages.first {
+                    selectedId = first.id
+                }
             }
             packagesLoading = false
         }
