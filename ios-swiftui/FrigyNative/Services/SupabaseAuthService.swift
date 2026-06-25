@@ -24,10 +24,11 @@ protocol AuthServiceProtocol {
 
 /// A purchasable subscription option with a store-localized price string.
 struct SubscriptionPackage: Identifiable, Equatable {
-    let id: String          // RevenueCat package identifier
-    let title: String       // e.g. "Monatlich" / "Jährlich"
-    let priceString: String // store-localized, e.g. "4,99 €"
-    let period: String      // "Monat" / "Jahr"
+    let id: String                      // RevenueCat package identifier
+    let title: String                   // e.g. "Monatlich" / "Jährlich"
+    let priceString: String             // store-localized total, e.g. "4,99 €"
+    let pricePerMonthString: String?    // store-localized monthly breakdown, e.g. "3,33 €" for yearly
+    let period: String                  // "Monat" / "Jahr"
     let isYearly: Bool
 }
 
@@ -66,8 +67,8 @@ final class MockSubscriptionService: SubscriptionServiceProtocol {
     func availablePackages() async -> [SubscriptionPackage] {
         // Fallback prices shown only when RevenueCat isn't configured (e.g. simulator).
         [
-            SubscriptionPackage(id: "monthly", title: "Monatlich", priceString: "4,99 €", period: "Monat", isYearly: false),
-            SubscriptionPackage(id: "yearly", title: "Jährlich", priceString: "39,99 €", period: "Jahr", isYearly: true),
+            SubscriptionPackage(id: "monthly", title: "Monatlich", priceString: "4,99 €", pricePerMonthString: nil, period: "Monat", isYearly: false),
+            SubscriptionPackage(id: "yearly", title: "Jährlich", priceString: "39,99 €", pricePerMonthString: "3,33 €", period: "Jahr", isYearly: true),
         ]
     }
     func purchase(_ package: SubscriptionPackage) async throws -> Bool { false }

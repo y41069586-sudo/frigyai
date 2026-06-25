@@ -106,31 +106,6 @@ struct CelebrationStepView: View {
                 .offset(y: appeared ? 0 : 16)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.18), value: appeared)
 
-                Spacer().frame(height: 32)
-
-                // Stats row
-                HStack(spacing: 0) {
-                    statChip(icon: "person.2.fill", label: "50.000+", sublabel: "Nutzer")
-                    Divider().frame(height: 36)
-                    statChip(icon: "star.fill", label: "4.9", sublabel: "Bewertung")
-                    Divider().frame(height: 36)
-                    statChip(icon: "chart.line.uptrend.xyaxis", label: "–8 kg", sublabel: "Ø Ergebnis")
-                }
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(.white.opacity(0.85))
-                        .shadow(color: FrigyBrand.primaryDark.opacity(0.07), radius: 12, y: 4)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(FrigyBrand.cardBorder, lineWidth: 1)
-                )
-                .padding(.horizontal, 28)
-                .opacity(appeared ? 1 : 0)
-                .scaleEffect(appeared ? 1 : 0.88)
-                .animation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.28), value: appeared)
-
                 Spacer()
 
                 OnboardingContinueButton("Frigy starten", action: onNext)
@@ -145,23 +120,6 @@ struct CelebrationStepView: View {
         }
     }
 
-    private func statChip(icon: String, label: String, sublabel: String) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 5) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(FrigyBrand.primaryDark)
-                Text(label)
-                    .font(.system(size: 15, weight: .black, design: .rounded))
-                    .foregroundColor(FrigyBrand.text)
-            }
-            Text(sublabel)
-                .font(.system(size: 11))
-                .foregroundColor(FrigyBrand.textMuted)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-    }
 }
 
 // MARK: - Particle model

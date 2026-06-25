@@ -59,10 +59,22 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
             cachedPackages = current.availablePackages
             return current.availablePackages.map { pkg in
                 let isYearly = pkg.packageType == .annual
+                var perMonth: String? = nil
+                if isYearly {
+                    let formatter = pkg.storeProduct.priceFormatter ?? {
+                        let f = NumberFormatter()
+                        f.numberStyle = .currency
+                        f.locale = Locale.current
+                        return f
+                    }()
+                    let monthly = (pkg.storeProduct.price as Decimal) / 12
+                    perMonth = formatter.string(from: monthly as NSDecimalNumber)
+                }
                 return SubscriptionPackage(
                     id: pkg.identifier,
                     title: isYearly ? "Jährlich" : "Monatlich",
                     priceString: pkg.storeProduct.localizedPriceString,
+                    pricePerMonthString: perMonth,
                     period: isYearly ? "Jahr" : "Monat",
                     isYearly: isYearly
                 )

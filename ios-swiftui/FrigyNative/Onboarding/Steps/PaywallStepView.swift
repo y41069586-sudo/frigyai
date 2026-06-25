@@ -384,7 +384,7 @@ struct PaywallStepView: View {
         } label: {
             ZStack(alignment: .top) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(title)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(textSub)
@@ -400,6 +400,11 @@ struct PaywallStepView: View {
                                 .foregroundColor(textMain)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
+                            if let perMonth = pkg?.pricePerMonthString {
+                                Text("\(perMonth) / Monat")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(primaryDeep)
+                            }
                         }
                     }
 
