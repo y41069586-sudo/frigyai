@@ -79,6 +79,16 @@ struct MealPlansView: View {
         }
     }
 
+    /// Loads the user's onboarding/profile draft so the meal plan can respect
+    /// their dietary preferences and allergies.
+    private static func loadProfileDraft() -> UserProfileDraft? {
+        guard let data = UserDefaults.standard.data(forKey: "onboardingPersistedState"),
+              let state = try? JSONDecoder().decode(OnboardingPersistedState.self, from: data) else {
+            return nil
+        }
+        return state.context.userProfile
+    }
+
     private let proteinClr = Color(hex: "#F87171")
     private let carbsClr   = Color(hex: "#FBBF24")
     private let fatClr     = Color(hex: "#60A5FA")
@@ -386,11 +396,15 @@ struct MealPlansView: View {
         isGenerating = true
         bannerMessage = nil
         let targets = await TrackerDataService.shared.loadTargets()
+        let profile = Self.loadProfileDraft()
         if let generatedDays = await TrackerDataService.shared.generateMealPlan(
             calories: targets.calories,
             protein: targets.protein,
             carbs: targets.carbs,
-            fat: targets.fat
+            fat: targets.fat,
+            dietaryPreferences: profile?.dietaryPreferences ?? [],
+            allergies: profile?.allergies ?? [],
+            healthGoals: profile?.healthGoals ?? []
         ) {
             weekPlan = weekPlan.enumerated().map { (i, existing) in
                 guard i < generatedDays.count else { return existing }

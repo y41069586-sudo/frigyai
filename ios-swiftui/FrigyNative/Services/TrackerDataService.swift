@@ -510,7 +510,11 @@ final class TrackerDataService {
     // MARK: - Meal plan generation
 
     /// Calls the `generate-meal-plan` edge function. Returns parsed 7-day plan on success, nil on failure.
-    func generateMealPlan(calories: Int, protein: Int, carbs: Int, fat: Int) async -> [GeneratedDayPlan]? {
+    /// Passes the user's dietary preferences, allergies and health goals so the plan
+    /// respects them (a vegan never gets meat; an allergic user never gets unsafe meals).
+    func generateMealPlan(calories: Int, protein: Int, carbs: Int, fat: Int,
+                          dietaryPreferences: [String] = [], allergies: [String] = [],
+                          healthGoals: [String] = []) async -> [GeneratedDayPlan]? {
         #if canImport(Supabase)
         guard SupabaseConfig.isConfigured,
               let base = SupabaseConfig.urlString,
@@ -525,7 +529,8 @@ final class TrackerDataService {
         request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try? JSONEncoder().encode(MealPlanRequest(
             dailyCalories: calories, dailyProtein: protein,
-            dailyCarbs: carbs, dailyFat: fat, mealsPerDay: 4
+            dailyCarbs: carbs, dailyFat: fat, mealsPerDay: 4,
+            dietaryPreferences: dietaryPreferences, allergies: allergies, healthGoals: healthGoals
         ))
 
         do {
@@ -794,6 +799,9 @@ private struct MealPlanRequest: Encodable {
     let dailyCarbs: Int
     let dailyFat: Int
     let mealsPerDay: Int
+    let dietaryPreferences: [String]
+    let allergies: [String]
+    let healthGoals: [String]
 }
 
 private struct MealPlanResponse: Decodable {
