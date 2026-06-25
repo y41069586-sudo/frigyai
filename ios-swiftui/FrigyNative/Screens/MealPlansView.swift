@@ -287,7 +287,7 @@ struct MealPlansView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(day.weekday)
                 .font(.system(size: 17, weight: .bold))
-                .foregroundColor(FrigyBrand.text)
+                .foregroundColor(FrigyBrand.primary)
 
             if day.meals.isEmpty {
                 Text("Noch kein Plan für diesen Tag")
@@ -318,7 +318,7 @@ struct MealPlansView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(UIColor.separator).opacity(day.isToday ? 0.5 : 0.2), lineWidth: day.isToday ? 1.5 : 1)
+                .stroke(FrigyBrand.primary.opacity(day.isToday ? 0.35 : 0.2), lineWidth: day.isToday ? 2 : 1)
         )
         .shadow(color: .black.opacity(0.03), radius: 6, y: 2)
     }
@@ -335,7 +335,7 @@ struct MealPlansView: View {
                 Spacer()
                 Text("\(meal.calories)")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(FrigyBrand.textMuted)
+                    .foregroundColor(FrigyBrand.primary)
             }
 
             Text(meal.name)
@@ -365,8 +365,8 @@ struct MealPlansView: View {
                 .frame(height: 32)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(eatenMealIDs.contains(meal.id) ? Color(UIColor.tertiarySystemFill) : Color.clear)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(FrigyBrand.cardBorder, lineWidth: 1))
+                        .fill(eatenMealIDs.contains(meal.id) ? FrigyBrand.primary.opacity(0.15) : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
                 )
                 .contentShape(Rectangle())
             }
