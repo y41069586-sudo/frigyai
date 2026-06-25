@@ -40,6 +40,18 @@ protocol SubscriptionServiceProtocol {
     func availablePackages() async -> [SubscriptionPackage]
     /// Purchase a package; returns true when the premium entitlement is active afterwards.
     func purchase(_ package: SubscriptionPackage) async throws -> Bool
+    /// Link the current store identity to the given Supabase user ID. This MUST run
+    /// before any purchase so the entitlement is attached to the Supabase user (not an
+    /// anonymous store ID); otherwise the server, which looks up RevenueCat by Supabase
+    /// user ID, will never see the purchase and premium features stay locked.
+    func identify(userId: String) async
+    /// Detach the current store identity (called on sign-out).
+    func clearIdentity() async
+}
+
+extension SubscriptionServiceProtocol {
+    func identify(userId: String) async {}
+    func clearIdentity() async {}
 }
 
 @MainActor

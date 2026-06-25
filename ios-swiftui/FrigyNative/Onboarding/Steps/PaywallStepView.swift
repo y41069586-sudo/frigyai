@@ -102,12 +102,17 @@ struct PaywallStepView: View {
             bottomBar
         }
         .task {
-            // Dev/tester account — skip paywall entirely.
-            if let session = try? await router.authService.currentSession(),
-               router.isPaywallBypassed(for: session.email) {
-                router.isPremium = true
-                onNext()
-                return
+            // Link the store identity to this Supabase user BEFORE any purchase, so the
+            // entitlement attaches to the right account and the backend recognizes it.
+            if let session = try? await router.authService.currentSession() {
+                await router.subscriptionService.identify(userId: session.userId)
+
+                // Dev/tester account — skip paywall entirely.
+                if router.isPaywallBypassed(for: session.email) {
+                    router.isPremium = true
+                    onNext()
+                    return
+                }
             }
 
             packagesLoading = true

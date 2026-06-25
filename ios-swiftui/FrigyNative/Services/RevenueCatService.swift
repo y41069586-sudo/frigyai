@@ -101,5 +101,22 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         let info = try await Purchases.shared.restorePurchases()
         return info.entitlements[RevenueCatConfig.entitlementId]?.isActive == true
     }
+
+    /// Alias the RevenueCat app user ID to the Supabase user ID. Without this the
+    /// purchase lands on an anonymous RevenueCat user, and the backend
+    /// (`check-subscription` → RevenueCat REST lookup keyed by Supabase user ID)
+    /// never finds the entitlement, so premium features stay locked after payment.
+    func identify(userId: String) async {
+        guard RevenueCatConfig.isConfigured, Purchases.isConfigured, !userId.isEmpty else { return }
+        // No-op if already identified as this user (avoids a redundant network call).
+        if Purchases.shared.appUserID == userId { return }
+        _ = try? await Purchases.shared.logIn(userId)
+    }
+
+    func clearIdentity() async {
+        guard RevenueCatConfig.isConfigured, Purchases.isConfigured else { return }
+        // logOut throws when the current user is already anonymous — ignore.
+        _ = try? await Purchases.shared.logOut()
+    }
 }
 #endif

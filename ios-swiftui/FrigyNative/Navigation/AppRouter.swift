@@ -45,6 +45,12 @@ final class AppRouter {
         do {
             let session = try await authService.restoreSession()
 
+            // Link the store identity to this Supabase user as early as possible so a
+            // purchase made later in this session attaches to the right account.
+            if let session {
+                await subscriptionService.identify(userId: session.userId)
+            }
+
             // Returning user with active session who already completed onboarding → main app
             if session != nil, onboardingCoordinator.isComplete {
                 try await routeAfterOnboarding()
@@ -170,6 +176,8 @@ final class AppRouter {
 
     func signOut() async {
         try? await authService.signOut()
+        await subscriptionService.clearIdentity()
+        isPremium = false
         UserDefaults.standard.removeObject(forKey: "pendingReferralCode")
         UserDefaults.standard.removeObject(forKey: "frigy.cachedTargets.v1")
         tabCoordinator.popToRootAllTabs()
@@ -188,6 +196,9 @@ final class AppRouter {
             rootRoute = .auth
             return
         }
+
+        // Ensure the store identity is linked before we read premium state.
+        await subscriptionService.identify(userId: session.userId)
 
         if isPaywallBypassed(for: session.email) {
             isPremium = true
@@ -211,11 +222,15 @@ final class AppRouter {
 
     private func completeAuthFlowAfterCallback() async {
         do {
-            guard try await authService.currentSession() != nil else {
+            guard let session = try await authService.currentSession() else {
                 authStatusMessage = "Session not available after OAuth callback."
                 rootRoute = .auth
                 return
             }
+
+            // Link the store identity right after authentication so the upcoming
+            // paywall purchase attaches to this Supabase user.
+            await subscriptionService.identify(userId: session.userId)
 
             if onboardingCoordinator.isComplete {
                 isPremium = try await subscriptionService.refreshPremiumState()
