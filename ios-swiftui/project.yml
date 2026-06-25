@@ -72,6 +72,8 @@ targets:
         MARKETING_VERSION: 1.0.0
         ENABLE_PREVIEWS: YES
     dependencies:
+      - sdk: HealthKit.framework
+        embed: false
       - package: ChottuLinkSDK
         product: ChottuLinkSDK
       - package: Supabase
@@ -109,6 +111,7 @@ targets:
         NSCameraUsageDescription: "Frigy braucht die Kamera, um Barcodes zu scannen und Fotos deiner Mahlzeiten für die KI-Analyse aufzunehmen."
         NSPhotoLibraryUsageDescription: "Wähle Fotos deiner Mahlzeiten aus der Bibliothek aus, damit Frigy die Nährwerte per KI berechnen kann."
         NSUserNotificationsUsageDescription: "Frigy sendet dir Erinnerungen für deine Mahlzeiten und Fortschritts-Updates."
+        NSHealthShareUsageDescription: "Frigy liest deine Schritt- und Aktivitätsdaten aus Apple Health, um dein Kalorienbudget präziser zu berechnen."
         UIBackgroundModes:
           - remote-notification
         # Export compliance — app uses HTTPS/TLS only, no proprietary encryption

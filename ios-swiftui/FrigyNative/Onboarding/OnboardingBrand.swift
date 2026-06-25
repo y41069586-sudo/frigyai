@@ -6,12 +6,12 @@ enum FrigyBrand {
     static let primary      = Color(hex: "#75FBB2")
     static let primaryDark  = Color(hex: "#39D47F")
     static let primaryDeep  = Color(hex: "#2EB56D")
-    static let bg           = Color(hex: "#FBFFFD")
-    static let selectedBg   = Color(hex: "#DCFEEF")
-    static let text         = Color(hex: "#1F2937")
-    static let textMuted    = Color(hex: "#6B7280")
-    static let borderMint   = Color(hex: "#6EECC0")
-    static let cardBorder   = Color(hex: "#BCFDDC")
+    static let bg           = Color(adaptive: "#FBFFFD", dark: "#0A150E")
+    static let selectedBg   = Color(adaptive: "#DCFEEF", dark: "#152A1E")
+    static let text         = Color(adaptive: "#1F2937", dark: "#F9FAFB")
+    static let textMuted    = Color(adaptive: "#6B7280", dark: "#9CA3AF")
+    static let borderMint   = Color(adaptive: "#6EECC0", dark: "#2D6B4A")
+    static let cardBorder   = Color(adaptive: "#BCFDDC", dark: "#1A3328")
 
     static var buttonGradient: LinearGradient {
         LinearGradient(
@@ -49,6 +49,24 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+
+    init(adaptive light: String, dark: String) {
+        self.init(UIColor { traits in
+            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+        })
+    }
+}
+
+extension UIColor {
+    convenience init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let r = CGFloat((int >> 16) & 0xFF) / 255
+        let g = CGFloat((int >> 8) & 0xFF) / 255
+        let b = CGFloat(int & 0xFF) / 255
+        self.init(red: r, green: g, blue: b, alpha: 1)
     }
 }
 

@@ -1314,21 +1314,38 @@ struct AddWeightSheet: View {
 struct ChatbotView: View {
     var initialPrompt: String? = nil
 
-    @State private var messages: [(role: String, text: String)] = [
-        ("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?"),
-    ]
+    private static let historyKey = "frigy.chat.history.v1"
+    private static let maxHistory = 40
+
+    @State private var messages: [(role: String, text: String)] = []
     @State private var inputText = ""
     @State private var isTyping = false
     @State private var didSendInitial = false
     @FocusState private var inputFocused: Bool
+    @State private var contextSent = false
+    @State private var nutritionContext = ""
+
+    private let quickPrompts = [
+        "Was soll ich heute noch essen?",
+        "Wie viel Protein fehlt mir noch?",
+        "Gesunde Snack-Ideen für heute",
+        "Bin ich auf Kurs mit meinen Zielen?"
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "KI-Ernährungscoach")
+            FrigyNavBar(
+                title: "KI-Ernährungscoach",
+                trailingIcon: "trash",
+                trailingAction: clearHistory
+            )
 
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 12) {
+                        if messages.filter({ $0.role == "user" }).isEmpty && !isTyping {
+                            quickPromptsSection
+                        }
                         ForEach(messages.indices, id: \.self) { i in
                             ChatBubble(text: messages[i].text, isUser: messages[i].role == "user")
                                 .id(i)
@@ -1392,14 +1409,80 @@ struct ChatbotView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear {
-            // Auto-send a prompt forwarded from the home AI widget.
+        .task {
+            loadHistory()
+            await loadNutritionContext()
             if let prompt = initialPrompt?.trimmingCharacters(in: .whitespaces),
                !prompt.isEmpty, !didSendInitial {
                 didSendInitial = true
                 send(prompt)
             }
         }
+    }
+
+    @ViewBuilder private var quickPromptsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("SCHNELLE FRAGEN")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.5)
+                .foregroundColor(FrigyBrand.textMuted)
+                .padding(.leading, 4)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(quickPrompts, id: \.self) { prompt in
+                    Button { send(prompt) } label: {
+                        Text(prompt)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(FrigyBrand.primaryDark)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(FrigyBrand.selectedBg)
+                                    .overlay(RoundedRectangle(cornerRadius: 12)
+                                        .stroke(FrigyBrand.borderMint, lineWidth: 1))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
+    }
+
+    private func loadHistory() {
+        if let data = UserDefaults.standard.data(forKey: Self.historyKey),
+           let saved = try? JSONDecoder().decode([ChatTurn].self, from: data),
+           !saved.isEmpty {
+            messages = saved.map { ($0.role, $0.content) }
+            contextSent = true
+        } else {
+            messages = [("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?")]
+        }
+    }
+
+    private func saveHistory() {
+        let turns = messages.suffix(Self.maxHistory).map { ChatTurn(role: $0.role, content: $0.text) }
+        if let data = try? JSONEncoder().encode(Array(turns)) {
+            UserDefaults.standard.set(data, forKey: Self.historyKey)
+        }
+    }
+
+    private func clearHistory() {
+        UserDefaults.standard.removeObject(forKey: Self.historyKey)
+        contextSent = false
+        messages = [("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?")]
+    }
+
+    private func loadNutritionContext() async {
+        let (meals, targets) = await TrackerDataService.shared.loadToday()
+        let cal = meals.reduce(0) { $0 + $1.calories }
+        let prot = meals.reduce(0) { $0 + $1.protein }
+        let carbs = meals.reduce(0) { $0 + $1.carbs }
+        let fat = meals.reduce(0) { $0 + $1.fat }
+        nutritionContext = "[Heute: \(cal)/\(targets.calories) kcal | Protein: \(prot)g/\(targets.protein)g | Kohlenhydrate: \(carbs)g/\(targets.carbs)g | Fett: \(fat)g/\(targets.fat)g]"
     }
 
     private func sendMessage() {
@@ -1411,19 +1494,29 @@ struct ChatbotView: View {
     private func send(_ raw: String) {
         let text = raw.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
-        // Build history from prior turns BEFORE appending the new message, so the
-        // current user turn isn't duplicated in the request payload.
+
         let history = messages.map { ChatTurn(role: $0.role, content: $0.text) }
         messages.append(("user", text))
         isTyping = true
+        saveHistory()
+
+        // On the first message, silently prepend today's nutrition data as context.
+        let messageToSend: String
+        if !contextSent && !nutritionContext.isEmpty {
+            contextSent = true
+            messageToSend = "\(nutritionContext)\n\n\(text)"
+        } else {
+            messageToSend = text
+        }
 
         Task {
-            let reply = await TrackerDataService.shared.sendChatMessage(text, history: history)
+            let reply = await TrackerDataService.shared.sendChatMessage(messageToSend, history: history)
             isTyping = false
             messages.append((
                 "assistant",
                 reply ?? "Ich konnte gerade keine Antwort laden. Bitte prüfe deine Verbindung und versuche es erneut."
             ))
+            saveHistory()
         }
     }
 }

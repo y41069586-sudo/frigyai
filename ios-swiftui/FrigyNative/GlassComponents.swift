@@ -334,8 +334,9 @@ struct LiquidGlassCheckbox: View {
 // MARK: - App-wide Liquid Glass utilities
 
 struct FrigyGlassBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
     var body: some View {
-        Color(hex: "#FBFFFD")
+        colorScheme == .dark ? Color(hex: "#0A150E") : Color(hex: "#FBFFFD")
     }
 }
 
@@ -468,11 +469,12 @@ struct FrigySelectionCardBackground: ViewModifier {
 
 private struct FrigyCardModifier: ViewModifier {
     let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
     func body(content: Content) -> some View {
         content
-            .background(.white)
+            .background(colorScheme == .dark ? Color(hex: "#111F17") : Color.white)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.25 : 0.05), radius: 6, y: 2)
     }
 }
 

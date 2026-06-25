@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import HealthKit
 
 // MARK: - Model
 
@@ -83,6 +84,8 @@ struct HomeDashboardView: View {
     private let waterKey = "frigy.water.glasses"
     private let waterDateKey = "frigy.water.date"
     private let mlPerGlass = 250
+
+    @StateObject private var healthKit = HealthKitService.shared
     private func liters(_ glasses: Int) -> String {
         String(format: "%.1f", Double(glasses * mlPerGlass) / 1000.0)
     }
@@ -169,6 +172,9 @@ struct HomeDashboardView: View {
                 mealSlotsSection
                 loggedMealsSection
                 waterWidget
+                if healthKit.isAvailable {
+                    activityWidget
+                }
                 weeklyPlanWidget
                 aiChatWidget
                 Spacer().frame(height: 110)
@@ -180,8 +186,12 @@ struct HomeDashboardView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .task { await reload(); loadWater() }
-        .refreshable { await reload() }
+        .task {
+            await reload()
+            loadWater()
+            await healthKit.requestAuthorization()
+        }
+        .refreshable { await reload(); await healthKit.refresh() }
         .onChange(of: tabCoordinator.showTrackerSheet) { _, isShowing in
             if !isShowing {
                 Task {
@@ -734,6 +744,87 @@ struct HomeDashboardView: View {
         }
         .padding(16)
         .frigyCard(cornerRadius: 22)
+    }
+
+    // MARK: - Activity Widget (Apple Health)
+
+    private var activityWidget: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(hex: "#FDE68A").opacity(0.5))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color(hex: "#D97706"))
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("AKTIVITÄT")
+                        .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                        .foregroundColor(FrigyBrand.textMuted)
+                    Text("Heute")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(FrigyBrand.text)
+                }
+                Spacer()
+                if healthKit.authStatus == .notDetermined {
+                    Button {
+                        Task { await healthKit.requestAuthorization() }
+                    } label: {
+                        Text("Verbinden")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color(hex: "#F59E0B")))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            HStack(spacing: 0) {
+                activityStat(
+                    value: healthKit.stepsToday.formatted(.number.grouping(.automatic).locale(Locale(identifier: "de_DE"))),
+                    label: "Schritte",
+                    icon: "shoeprints.fill",
+                    color: Color(hex: "#F59E0B")
+                )
+                Divider().frame(height: 40)
+                activityStat(
+                    value: "\(healthKit.activeCaloriesToday)",
+                    label: "Aktiv kcal",
+                    icon: "flame.fill",
+                    color: Color(hex: "#EF4444")
+                )
+                Divider().frame(height: 40)
+                let netCal = max(0, consumed.kcal - healthKit.activeCaloriesToday)
+                activityStat(
+                    value: "\(netCal)",
+                    label: "Netto kcal",
+                    icon: "equal.circle.fill",
+                    color: FrigyBrand.primaryDark
+                )
+            }
+        }
+        .padding(16)
+        .frigyCard(cornerRadius: 22)
+    }
+
+    private func activityStat(value: String, label: String, icon: String, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(color)
+            Text(value)
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundColor(FrigyBrand.text)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(FrigyBrand.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
     }
 
     private func submitAi() {
