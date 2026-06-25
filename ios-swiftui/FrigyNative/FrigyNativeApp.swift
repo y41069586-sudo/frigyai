@@ -4,6 +4,7 @@ import SwiftUI
 struct FrigyNativeApp: App {
     @State private var router = AppRouter()
     @State private var theme = ThemeManager.shared
+    @State private var showThemePrompt = !ThemeManager.shared.hasChosen
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -17,11 +18,8 @@ struct FrigyNativeApp: App {
                 .environment(router.tabCoordinator)
                 .environment(theme)
                 .preferredColorScheme(theme.colorScheme)
-                .fullScreenCover(isPresented: Binding(
-                    get: { !theme.hasChosen },
-                    set: { if $0 == false { theme.hasChosen = true } }
-                )) {
-                    ThemeChoiceView { theme.hasChosen = true }
+                .fullScreenCover(isPresented: $showThemePrompt) {
+                    ThemeChoiceView { showThemePrompt = false }
                         .environment(theme)
                         .preferredColorScheme(theme.colorScheme)
                 }
