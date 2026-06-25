@@ -421,6 +421,60 @@ final class TrackerDataService {
         #endif
     }
 
+    // MARK: - Shopping list
+
+    /// Fetch the user's shopping list from Supabase. Returns nil if not authenticated or on error.
+    func loadShoppingItems() async -> [ShoppingItem]? {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return nil }
+        guard let rows: [ShoppingItemRow] = try? await ctx.client
+            .from("shopping_items")
+            .select()
+            .eq("user_id", value: ctx.userId)
+            .order("created_at", ascending: true)
+            .execute()
+            .value else { return nil }
+        return rows.compactMap { row in
+            guard let id = UUID(uuidString: row.id),
+                  let category = ShoppingCategory(rawValue: row.category) else { return nil }
+            return ShoppingItem(id: id, name: row.name, amount: row.amount,
+                                category: category, isChecked: row.is_checked, price: row.price)
+        }
+        #else
+        return nil
+        #endif
+    }
+
+    /// Replace the user's shopping list in Supabase (delete-then-insert). Returns true on success.
+    @discardableResult
+    func saveShoppingItems(_ items: [ShoppingItem]) async -> Bool {
+        #if canImport(Supabase)
+        guard let ctx = await context() else { return false }
+        do {
+            try await ctx.client.from("shopping_items").delete().eq("user_id", value: ctx.userId).execute()
+            if !items.isEmpty {
+                let rows = items.map { item in
+                    ShoppingItemInsert(
+                        id: item.id.uuidString,
+                        user_id: ctx.userId,
+                        name: item.name,
+                        amount: item.amount,
+                        category: item.category.rawValue,
+                        is_checked: item.isChecked,
+                        price: item.price
+                    )
+                }
+                try await ctx.client.from("shopping_items").insert(rows).execute()
+            }
+            return true
+        } catch {
+            return false
+        }
+        #else
+        return false
+        #endif
+    }
+
     // MARK: - Account deletion
 
     /// Permanently delete the user's account and all server-side data via the
@@ -761,6 +815,25 @@ private struct ChatRequest: Encodable {
 
 private struct ChatReply: Decodable {
     let message: String
+}
+
+private struct ShoppingItemRow: Decodable {
+    let id: String
+    let name: String
+    let amount: String
+    let category: String
+    let is_checked: Bool
+    let price: Double
+}
+
+private struct ShoppingItemInsert: Encodable {
+    let id: String
+    let user_id: String
+    let name: String
+    let amount: String
+    let category: String
+    let is_checked: Bool
+    let price: Double
 }
 #endif
 

@@ -2740,7 +2740,7 @@ struct ShoppingItemDetailView: View {
         guard let uuid = UUID(uuidString: id) else { return }
         var items = ShoppingListStore.load()
         items.removeAll { $0.id == uuid }
-        ShoppingListStore.save(items)
+        ShoppingListStore.saveAndSync(items)
         NotificationCenter.default.post(name: ShoppingListStore.didChange, object: nil)
         dismiss()
     }
@@ -2949,7 +2949,7 @@ struct EditShoppingItemSheet: View {
             items[idx].amount = amount.trimmingCharacters(in: .whitespaces)
             items[idx].price = Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0
             items[idx].category = category
-            ShoppingListStore.save(items)
+            ShoppingListStore.saveAndSync(items)
             NotificationCenter.default.post(name: ShoppingListStore.didChange, object: nil)
         }
         dismiss()

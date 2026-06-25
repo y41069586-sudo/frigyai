@@ -74,6 +74,12 @@ enum ShoppingListStore {
         }
     }
 
+    /// Save to UserDefaults and fire a background cloud sync.
+    static func saveAndSync(_ items: [ShoppingItem]) {
+        save(items)
+        Task { await TrackerDataService.shared.saveShoppingItems(items) }
+    }
+
     /// Append named items, deduped by case-insensitive name. Returns how many
     /// were actually added and notifies any live ShoppingListView to reload.
     @discardableResult
@@ -90,7 +96,7 @@ enum ShoppingListStore {
             added += 1
         }
         if added > 0 {
-            save(items)
+            saveAndSync(items)
             NotificationCenter.default.post(name: didChange, object: nil)
         }
         return added
@@ -103,10 +109,6 @@ struct ShoppingListView: View {
     @State private var items: [ShoppingItem] = ShoppingListStore.load()
     @State private var newItemName = ""
     @State private var showAddSheet = false
-
-    private func save() {
-        ShoppingListStore.save(items)
-    }
 
     private var unchecked: [ShoppingItem] { items.filter { !$0.isChecked } }
     private var checked: [ShoppingItem] { items.filter { $0.isChecked } }
@@ -213,7 +215,7 @@ struct ShoppingListView: View {
 
                         Button {
                             items.removeAll { $0.isChecked }
-                            save()
+                            ShoppingListStore.saveAndSync(items)
                         } label: {
                             Label("Erledigte entfernen", systemImage: "trash")
                                 .font(.system(size: 13, weight: .semibold))
@@ -256,7 +258,12 @@ struct ShoppingListView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .onChange(of: items) { save() }
+        .task {
+            if let cloud = await TrackerDataService.shared.loadShoppingItems() {
+                items = cloud
+                ShoppingListStore.save(cloud)
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: ShoppingListStore.didChange)) { _ in
             items = ShoppingListStore.load()
         }
@@ -273,12 +280,14 @@ struct ShoppingListView: View {
         withAnimation(.spring(duration: 0.25)) {
             items[idx].isChecked.toggle()
         }
+        ShoppingListStore.saveAndSync(items)
     }
 
     private func addItem(name: String, category: ShoppingCategory) {
         withAnimation(.spring(duration: 0.3)) {
             items.append(ShoppingItem(name: name, category: category))
         }
+        ShoppingListStore.saveAndSync(items)
     }
 }
 
