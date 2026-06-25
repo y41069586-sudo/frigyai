@@ -61,7 +61,7 @@ struct PaywallStepView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+            FrigyGlassBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
@@ -425,10 +425,10 @@ struct PaywallStepView: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
-            .background(Color.white)
+            .background(Color(UIColor.systemBackground))
             .shadow(color: .black.opacity(0.1), radius: 24, x: 0, y: -8)
         }
-        .background(Color.white)
+        .background(Color(UIColor.systemBackground))
     }
 
     // MARK: - Plan Card
@@ -484,7 +484,7 @@ struct PaywallStepView: View {
                 .padding(.bottom, 12)
                 .padding(.top, showBadge ? 20 : 16)
                 .frame(maxWidth: .infinity, minHeight: 88)
-                .background(Color.white)
+                .background(Color(UIColor.systemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)

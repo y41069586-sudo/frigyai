@@ -113,7 +113,7 @@ struct AllergiesStepView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 18)
-                    .fill(isSelected ? FrigyBrand.selectedBg : Color.white)
+                    .fill(isSelected ? FrigyBrand.selectedBg : Color(UIColor.systemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18)
                             .stroke(

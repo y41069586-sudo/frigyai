@@ -108,7 +108,7 @@ struct ActivityStepView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? FrigyBrand.selectedBg : Color.white)
+                    .fill(isSelected ? FrigyBrand.selectedBg : Color(UIColor.systemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(
