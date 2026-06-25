@@ -475,31 +475,7 @@ struct AddShoppingItemSheet: View {
                         .frigyCard(cornerRadius: 16)
                     }
 
-                    Button {
-                        if canAdd {
-                            onAdd(name.trimmingCharacters(in: .whitespaces), selectedCategory)
-                            dismiss()
-                        }
-                    } label: {
-                        Text("Hinzufügen")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(canAdd
-                                          ? AnyShapeStyle(LinearGradient(
-                                              colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                              startPoint: .topLeading, endPoint: .bottomTrailing))
-                                          : AnyShapeStyle(FrigyBrand.cardBorder))
-                                    .overlay(RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.white.opacity(canAdd ? 0.35 : 0), lineWidth: 1).blendMode(.overlay))
-                            )
-                            .shadow(color: canAdd ? FrigyBrand.primaryDeep.opacity(0.28) : .clear, radius: 12, y: 6)
-                    }
-                    .disabled(!canAdd)
-                    .buttonStyle(.plain)
+                    addItemButton
 
                     Spacer().frame(height: 32)
                 }
@@ -509,6 +485,36 @@ struct AddShoppingItemSheet: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .onAppear { focused = true }
+    }
+
+    private var addItemButton: some View {
+        let fill: AnyShapeStyle = canAdd
+            ? AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+            : AnyShapeStyle(FrigyBrand.cardBorder)
+        let strokeOpacity: Double = canAdd ? 0.35 : 0
+        let shadowColor: Color = canAdd ? FrigyBrand.primaryDeep.opacity(0.28) : .clear
+        return Button {
+            if canAdd {
+                onAdd(name.trimmingCharacters(in: .whitespaces), selectedCategory)
+                dismiss()
+            }
+        } label: {
+            Text("Hinzufügen")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(fill)
+                        .overlay(RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(strokeOpacity), lineWidth: 1).blendMode(.overlay))
+                )
+                .shadow(color: shadowColor, radius: 12, y: 6)
+        }
+        .disabled(!canAdd)
+        .buttonStyle(.plain)
     }
 }
 

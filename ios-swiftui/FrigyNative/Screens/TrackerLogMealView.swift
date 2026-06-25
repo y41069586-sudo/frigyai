@@ -799,20 +799,7 @@ struct ManualFoodEntrySheet: View {
                     }
                     .padding(16).frigyCard(cornerRadius: 16)
 
-                    Button { Task { await save() } } label: {
-                        Text(isSaving ? "Wird gespeichert..." : "Hinzufügen")
-                            .font(.system(size: 17, weight: .semibold)).foregroundColor(.white)
-                            .frame(maxWidth: .infinity).frame(height: 54)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(canSave
-                                          ? AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                          : AnyShapeStyle(FrigyBrand.cardBorder))
-                                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(canSave ? 0.35 : 0), lineWidth: 1).blendMode(.overlay))
-                            )
-                            .shadow(color: canSave ? FrigyBrand.primaryDeep.opacity(0.28) : .clear, radius: 12, y: 6)
-                    }
-                    .disabled(!canSave || isSaving).buttonStyle(.plain)
+                    addMealButton
 
                     Spacer().frame(height: 32)
                 }
@@ -820,6 +807,29 @@ struct ManualFoodEntrySheet: View {
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
+    }
+
+    private var addMealButton: some View {
+        let label: String = isSaving ? "Wird gespeichert..." : "Hinzufügen"
+        let fill: AnyShapeStyle = canSave
+            ? AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+            : AnyShapeStyle(FrigyBrand.cardBorder)
+        let strokeOpacity: Double = canSave ? 0.35 : 0
+        let shadowColor: Color = canSave ? FrigyBrand.primaryDeep.opacity(0.28) : .clear
+        return Button { Task { await save() } } label: {
+            Text(label)
+                .font(.system(size: 17, weight: .semibold)).foregroundColor(.white)
+                .frame(maxWidth: .infinity).frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(fill)
+                        .overlay(RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(strokeOpacity), lineWidth: 1).blendMode(.overlay))
+                )
+                .shadow(color: shadowColor, radius: 12, y: 6)
+        }
+        .disabled(!canSave || isSaving).buttonStyle(.plain)
     }
 
     private func macroRow(_ label: String, unit: String, text: Binding<String>, color: Color) -> some View {

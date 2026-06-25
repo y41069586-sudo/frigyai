@@ -1351,40 +1351,45 @@ struct AddWeightSheet: View {
             .padding(.horizontal, 40)
             .padding(.top, 28)
 
-            Button {
-                let normalized = text.replacingOccurrences(of: ",", with: ".")
-                guard let kg = Double(normalized), kg > 0 else { return }
-                isSaving = true
-                onSave(kg)
-                dismiss()
-            } label: {
-                Text(isSaving ? "Wird gespeichert…" : "Speichern")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(LinearGradient(
-                                colors: text.isEmpty
-                                    ? [FrigyBrand.cardBorder, FrigyBrand.cardBorder]
-                                    : [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                startPoint: .topLeading, endPoint: .bottomTrailing
-                            ))
-                            .overlay(RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.white.opacity(text.isEmpty ? 0 : 0.35), lineWidth: 1).blendMode(.overlay))
-                    )
-                    .shadow(color: text.isEmpty ? .clear : FrigyBrand.primaryDeep.opacity(0.28), radius: 12, y: 6)
-            }
-            .disabled(text.isEmpty || isSaving)
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .padding(.top, 24)
+            weightSaveButton
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
 
             Spacer()
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .onAppear { focused = true }
+    }
+
+    private var weightSaveButton: some View {
+        let label: String = isSaving ? "Wird gespeichert…" : "Speichern"
+        let gradColors: [Color] = text.isEmpty
+            ? [FrigyBrand.cardBorder, FrigyBrand.cardBorder]
+            : [FrigyBrand.primary, FrigyBrand.primaryDark]
+        let strokeOpacity: Double = text.isEmpty ? 0 : 0.35
+        let shadowColor: Color = text.isEmpty ? .clear : FrigyBrand.primaryDeep.opacity(0.28)
+        return Button {
+            let normalized = text.replacingOccurrences(of: ",", with: ".")
+            guard let kg = Double(normalized), kg > 0 else { return }
+            isSaving = true
+            onSave(kg)
+            dismiss()
+        } label: {
+            Text(label)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(LinearGradient(colors: gradColors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .overlay(RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(strokeOpacity), lineWidth: 1).blendMode(.overlay))
+                )
+                .shadow(color: shadowColor, radius: 12, y: 6)
+        }
+        .disabled(text.isEmpty || isSaving)
+        .buttonStyle(.plain)
     }
 }
 
@@ -1461,25 +1466,7 @@ struct ChatbotView: View {
                     .shadow(color: .black.opacity(0.04), radius: 3, y: 1)
                     .focused($inputFocused)
 
-                Button { sendMessage() } label: {
-                    ZStack {
-                        Circle()
-                            .fill(inputText.isEmpty
-                                  ? AnyShapeStyle(FrigyBrand.cardBorder.opacity(0.4))
-                                  : AnyShapeStyle(LinearGradient(
-                                      colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                      startPoint: .topLeading, endPoint: .bottomTrailing
-                                  )))
-                            .overlay(Circle().stroke(Color.white.opacity(inputText.isEmpty ? 0 : 0.35), lineWidth: 1).blendMode(.overlay))
-                            .frame(width: 36, height: 36)
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(inputText.isEmpty ? FrigyBrand.textMuted : .white)
-                    }
-                    .shadow(color: inputText.isEmpty ? .clear : FrigyBrand.primaryDeep.opacity(0.25), radius: 6, y: 3)
-                }
-                .buttonStyle(.plain)
-                .disabled(inputText.isEmpty)
+                chatSendButton
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -1562,6 +1549,31 @@ struct ChatbotView: View {
         let carbs = meals.reduce(0) { $0 + $1.carbs }
         let fat = meals.reduce(0) { $0 + $1.fat }
         nutritionContext = "[Heute: \(cal)/\(targets.calories) kcal | Protein: \(prot)g/\(targets.protein)g | Kohlenhydrate: \(carbs)g/\(targets.carbs)g | Fett: \(fat)g/\(targets.fat)g]"
+    }
+
+    private var chatSendButton: some View {
+        let isEmpty: Bool = inputText.isEmpty
+        let circleFill: AnyShapeStyle = isEmpty
+            ? AnyShapeStyle(FrigyBrand.cardBorder.opacity(0.4))
+            : AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing))
+        let strokeOpacity: Double = isEmpty ? 0 : 0.35
+        let iconColor: Color = isEmpty ? FrigyBrand.textMuted : .white
+        let shadowColor: Color = isEmpty ? .clear : FrigyBrand.primaryDeep.opacity(0.25)
+        return Button { sendMessage() } label: {
+            ZStack {
+                Circle()
+                    .fill(circleFill)
+                    .overlay(Circle().stroke(Color.white.opacity(strokeOpacity), lineWidth: 1).blendMode(.overlay))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(iconColor)
+            }
+            .shadow(color: shadowColor, radius: 6, y: 3)
+        }
+        .buttonStyle(.plain)
+        .disabled(isEmpty)
     }
 
     private func sendMessage() {
