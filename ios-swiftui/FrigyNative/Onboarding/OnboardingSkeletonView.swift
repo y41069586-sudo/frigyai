@@ -336,6 +336,9 @@ struct OnboardingSkeletonView: View {
             case .celebration:
                 CelebrationStepView(onNext: next)
 
+            case .themeChoice:
+                ThemeChoiceView(onContinue: next)
+
             case .done:
                 Color(hex: "#FBFFFD").ignoresSafeArea()
                     .onAppear { Task { await router.finishOnboardingFlow() } }

@@ -62,6 +62,7 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case paywall
     case premiumHint = "premium-hint"
     case celebration
+    case themeChoice = "theme-choice"
     case done
 
     var id: String { rawValue }

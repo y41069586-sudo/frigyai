@@ -117,7 +117,7 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
 
         if step == .paywall, chosen == nil {
             return OnboardingRulesExplanation(
-                chosen: .done,
+                chosen: .themeChoice,
                 alternatives: [],
                 decisions: [
                     OnboardingRuleDecision(
@@ -125,7 +125,7 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
                         role: .route,
                         priority: 1,
                         result: "paywall_fallback",
-                        detail: "paywall → done"
+                        detail: "paywall → themeChoice"
                     ),
                 ]
             )
@@ -252,6 +252,8 @@ struct MacroRouteOnboardingRules: OnboardingRulesEngine {
         case .goalSelection:
             return context.isPremium ? .done : .paywall
         case .paywall:
+            return .themeChoice
+        case .themeChoice:
             return .done
         case .done:
             return nil
