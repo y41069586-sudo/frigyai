@@ -104,7 +104,7 @@ workflows:
       # Reference names must match Code signing identities exactly (avoids wrong profile e.g. "Doaa Attia").
       ios_signing:
         provisioning_profiles:
-          - Frigy
+          - FrigyAI
         certificates:
           - frigy_distribution
       vars:
