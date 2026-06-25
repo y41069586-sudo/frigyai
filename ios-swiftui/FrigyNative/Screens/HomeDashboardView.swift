@@ -779,6 +779,20 @@ struct HomeDashboardView: View {
                             .background(Capsule().fill(Color(hex: "#F59E0B")))
                     }
                     .buttonStyle(.plain)
+                } else if healthKit.authStatus == .denied {
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Text("Einstellungen")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Color(hex: "#D97706"))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color(hex: "#FEF3C7")))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
 
