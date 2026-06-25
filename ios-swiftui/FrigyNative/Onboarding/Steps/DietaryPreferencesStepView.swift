@@ -86,7 +86,7 @@ struct DietaryPreferencesStepView: View {
                         Circle()
                             .fill(FrigyBrand.primary)
                             .frame(width: 24, height: 24)
-                            .shadow(color: Color(hex: "#6EECC0").opacity(0.6), radius: 4, y: 2)
+                            .shadow(color: FrigyBrand.borderMint.opacity(0.6), radius: 4, y: 2)
                         Image(systemName: "checkmark")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.white)
@@ -118,7 +118,7 @@ struct DietaryPreferencesStepView: View {
                             )
                     )
                     .shadow(
-                        color: isSelected ? Color(hex: "#6EECC0").opacity(0.35) : Color.black.opacity(0.02),
+                        color: isSelected ? FrigyBrand.borderMint.opacity(0.35) : Color.black.opacity(0.02),
                         radius: isSelected ? 10 : 1, y: isSelected ? 4 : 1
                     )
             )

@@ -47,10 +47,10 @@ struct GlassTabBar: View {
             VStack(spacing: 2) {
                 Image(systemName: tab.systemImage)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(active ? FrigyBrand.primaryDark : Color(hex: "#9CA3AF"))
+                    .foregroundColor(active ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
                 Text(tab.shortTitle)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(active ? FrigyBrand.text : Color(hex: "#9CA3AF"))
+                    .foregroundColor(active ? FrigyBrand.text : FrigyBrand.textMuted)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -128,10 +128,10 @@ struct GlassTabBar: View {
             VStack(spacing: 2) {
                 Image(systemName: tab.systemImage)
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(active ? FrigyBrand.primaryDark : Color(hex: "#9CA3AF"))
+                    .foregroundColor(active ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
                 Text(tab.shortTitle)
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(active ? FrigyBrand.text : Color(hex: "#9CA3AF"))
+                    .foregroundColor(active ? FrigyBrand.text : FrigyBrand.textMuted)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }

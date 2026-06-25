@@ -119,14 +119,14 @@ struct AuthSpikeView: View {
                     if let message = router.authStatusMessage, !message.isEmpty {
                         Text(message)
                             .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
+                            .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
                             .padding(.top, 4)
                     }
 
                     Text("Mit der Anmeldung stimmst du unserer Datenschutzerklärung\nund den Nutzungsbedingungen zu.")
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
                         .padding(.top, 4)
                 }

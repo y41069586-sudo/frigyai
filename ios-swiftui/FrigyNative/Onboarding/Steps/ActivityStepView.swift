@@ -69,7 +69,7 @@ struct ActivityStepView: View {
                         .fill(isSelected ? Color(hex: "#C0FFD9") : Color(hex: "#EAFFF5"))
                         .frame(width: 48, height: 48)
                         .shadow(
-                            color: isSelected ? Color(hex: "#6EECC0").opacity(0.45) : .clear,
+                            color: isSelected ? FrigyBrand.borderMint.opacity(0.45) : .clear,
                             radius: 6, y: 2
                         )
                     Image(systemName: opt.icon)
@@ -94,7 +94,7 @@ struct ActivityStepView: View {
                     Circle()
                         .fill(FrigyBrand.primary)
                         .frame(width: 28, height: 28)
-                        .shadow(color: Color(hex: "#6EECC0").opacity(0.6), radius: 5, y: 2)
+                        .shadow(color: FrigyBrand.borderMint.opacity(0.6), radius: 5, y: 2)
                     Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.white)
@@ -117,7 +117,7 @@ struct ActivityStepView: View {
                             )
                     )
                     .shadow(
-                        color: isSelected ? Color(hex: "#6EECC0").opacity(0.35) : Color.black.opacity(0.02),
+                        color: isSelected ? FrigyBrand.borderMint.opacity(0.35) : Color.black.opacity(0.02),
                         radius: isSelected ? 12 : 2, y: isSelected ? 4 : 1
                     )
             )

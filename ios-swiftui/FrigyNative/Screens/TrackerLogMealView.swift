@@ -221,7 +221,7 @@ struct TrackerLogMealView: View {
             if searchResults.isEmpty && !isSearching {
                 Text("Keine Ergebnisse für „\(searchText)“")
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                    .foregroundColor(FrigyBrand.textMuted)
                     .padding(.top, 4)
             } else {
                 VStack(spacing: 6) {
@@ -247,7 +247,7 @@ struct TrackerLogMealView: View {
                     .foregroundColor(FrigyBrand.textMuted)
                 Text("Scanne einen Barcode oder suche nach einem Lebensmittel.")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                    .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
             }
@@ -288,7 +288,7 @@ struct TrackerLogMealView: View {
                 if food.protein > 0 || food.carbs > 0 || food.fat > 0 {
                     Text("P \(food.protein)g · K \(food.carbs)g · F \(food.fat)g")
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(FrigyBrand.textMuted)
                 }
             }
             Spacer()
@@ -403,7 +403,7 @@ struct TrackerLogMealView: View {
                         .foregroundColor(FrigyBrand.text)
                     Text(subtitle)
                         .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(FrigyBrand.textMuted)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

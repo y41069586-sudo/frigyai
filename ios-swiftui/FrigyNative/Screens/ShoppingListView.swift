@@ -128,7 +128,7 @@ struct ShoppingListView: View {
                             .foregroundColor(FrigyBrand.text)
                         Text("\(unchecked.count) von \(items.count) Artikeln übrig")
                             .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
+                            .foregroundColor(FrigyBrand.textMuted)
                     }
                     Spacer()
                     if totalPrice > 0 {
@@ -138,7 +138,7 @@ struct ShoppingListView: View {
                                 .foregroundColor(FrigyBrand.primaryDark)
                             Text("geschätzt")
                                 .font(.system(size: 11))
-                                .foregroundColor(Color(hex: "#9CA3AF"))
+                                .foregroundColor(FrigyBrand.textMuted)
                         }
                     }
                     Button { showAddSheet = true } label: {
@@ -169,7 +169,7 @@ struct ShoppingListView: View {
                             Spacer()
                             Text("\(checked.count) / \(items.count)")
                                 .font(.system(size: 13))
-                                .foregroundColor(Color(hex: "#9CA3AF"))
+                                .foregroundColor(FrigyBrand.textMuted)
                         }
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
@@ -203,7 +203,7 @@ struct ShoppingListView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Erledigt (\(checked.count))")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
+                            .foregroundColor(FrigyBrand.textMuted)
                             .padding(.horizontal, 20)
 
                         VStack(spacing: 6) {
@@ -246,7 +246,7 @@ struct ShoppingListView: View {
                             .foregroundColor(FrigyBrand.textMuted)
                         Text("Tippe auf +, um Artikel hinzuzufügen, oder generiere eine Liste aus deinem Wochenplan.")
                             .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
+                            .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 32)
@@ -309,7 +309,7 @@ struct ShoppingCategorySection: View {
                     .foregroundColor(FrigyBrand.text)
                 Text("(\(items.count))")
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#9CA3AF"))
+                    .foregroundColor(FrigyBrand.textMuted)
             }
 
             VStack(spacing: 6) {
@@ -334,7 +334,7 @@ struct ShoppingItemRow: View {
 
             Text(item.name)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(item.isChecked ? Color(hex: "#9CA3AF") : FrigyBrand.text)
+                .foregroundColor(item.isChecked ? FrigyBrand.textMuted : FrigyBrand.text)
                 .strikethrough(item.isChecked)
 
             Spacer()
@@ -348,7 +348,7 @@ struct ShoppingItemRow: View {
                 if !item.amount.isEmpty {
                     Text(item.amount)
                         .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(FrigyBrand.textMuted)
                 }
             }
         }
@@ -368,7 +368,7 @@ struct CheckedItemRow: View {
             }
             Text(item.name)
                 .font(.system(size: 14))
-                .foregroundColor(Color(hex: "#9CA3AF"))
+                .foregroundColor(FrigyBrand.textMuted)
                 .strikethrough()
             Spacer()
         }

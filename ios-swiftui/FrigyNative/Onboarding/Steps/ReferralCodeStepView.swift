@@ -159,7 +159,7 @@ struct ReferralCodeStepView: View {
         let isSuccess = phase == .success
         return ZStack {
             RoundedRectangle(cornerRadius: 0)
-                .fill(hasError ? Color(hex: "#FEF2F2") : isSuccess ? Color(hex: "#6EECC0").opacity(0.12) : Color(hex: "#F4F7EF"))
+                .fill(hasError ? Color(hex: "#FEF2F2") : isSuccess ? FrigyBrand.borderMint.opacity(0.12) : Color(hex: "#F4F7EF"))
                 .overlay(
                     RoundedRectangle(cornerRadius: 0)
                         .stroke(
@@ -201,7 +201,7 @@ struct ReferralCodeStepView: View {
             VStack(spacing: 24) {
                 ZStack {
                     Circle()
-                        .fill(Color(hex: "#6EECC0").opacity(0.12))
+                        .fill(FrigyBrand.borderMint.opacity(0.12))
                         .frame(width: 120, height: 120)
                     Circle()
                         .fill(FrigyBrand.bg)
@@ -223,7 +223,7 @@ struct ReferralCodeStepView: View {
                         .foregroundColor(FrigyBrand.primaryDark)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 6)
-                        .background(Color(hex: "#6EECC0").opacity(0.15))
+                        .background(FrigyBrand.borderMint.opacity(0.15))
                         .clipShape(Capsule())
                     }
 

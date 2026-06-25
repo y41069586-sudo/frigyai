@@ -225,7 +225,7 @@ struct ProfileView: View {
                     Button { showDeleteConfirm = true } label: {
                         Text(isDeletingAccount ? "Wird gelöscht…" : "Konto löschen")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(Color(hex: "#9CA3AF"))
+                            .foregroundColor(FrigyBrand.textMuted)
                     }
                     .buttonStyle(.plain)
                     .disabled(isDeletingAccount)

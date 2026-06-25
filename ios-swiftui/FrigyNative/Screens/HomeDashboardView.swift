@@ -210,7 +210,7 @@ struct HomeDashboardView: View {
                         .foregroundColor(Color(hex: "#EF4444"))
                     Text("Daten konnten nicht geladen werden.")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "#1F2937"))
+                        .foregroundColor(FrigyBrand.text)
                     Spacer()
                     Button {
                         Task { await reload() }
@@ -259,14 +259,14 @@ struct HomeDashboardView: View {
                             .foregroundColor(Color(hex: "#FB923C"))
                         Text("\(streak)")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color(hex: "#1F2937"))
+                            .foregroundColor(FrigyBrand.text)
                     }
                 }
                 .buttonStyle(.plain)
                 headerIcon("bubble.left.and.bubble.right.fill", color: FrigyBrand.primaryDark) {
                     tabCoordinator.pushHome(.chatbot(initialPrompt: nil))
                 }
-                headerIcon("gearshape.fill", color: Color(hex: "#9CA3AF")) {
+                headerIcon("gearshape.fill", color: FrigyBrand.textMuted) {
                     tabCoordinator.pushHome(.profile)
                 }
             }
@@ -301,17 +301,17 @@ struct HomeDashboardView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(isOverBudget ? "+\(fmt(surplus))" : fmt(remaining))
                         .font(.system(size: 44, weight: .black, design: .rounded))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : Color(hex: "#1F2937"))
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : FrigyBrand.text)
                         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOverBudget)
                     Text("kcal")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : Color(hex: "#1F2937"))
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : FrigyBrand.text)
                 }
                 Text(isOverBudget
                      ? "über dem Tagesziel von \(fmt(targets.calories)) kcal"
                      : "übrig von \(fmt(targets.calories)) kcal")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : Color(hex: "#9CA3AF"))
+                    .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : FrigyBrand.textMuted)
             }
 
             // Progress bar
@@ -336,7 +336,7 @@ struct HomeDashboardView: View {
                 HStack {
                     Text("\(fmt(consumed.kcal)) Gegessen")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : Color(hex: "#9CA3AF"))
+                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : FrigyBrand.textMuted)
                     Spacer()
                     Text(isOverBudget ? "Überschuss!" : "\(caloriePct)%")
                         .font(.system(size: 12, weight: .bold))
@@ -378,7 +378,7 @@ struct HomeDashboardView: View {
                     .foregroundColor(Color(hex: "#6B7280"))
                 Text(target > 0 ? "\(eaten) / \(target)g" : "\(eaten)g")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(Color(hex: "#1F2937"))
+                    .foregroundColor(FrigyBrand.text)
             }
             .padding(11)
         }
@@ -393,12 +393,12 @@ struct HomeDashboardView: View {
             HStack(alignment: .lastTextBaseline) {
                 Text("Heute")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Color(hex: "#1F2937"))
+                    .foregroundColor(FrigyBrand.text)
                 Spacer()
                 Button { tabCoordinator.openTracker() } label: {
                     Text("Schnell hinzufügen")
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(FrigyBrand.textMuted)
                 }
                 .buttonStyle(.plain)
             }
@@ -418,7 +418,7 @@ struct HomeDashboardView: View {
                     .font(.system(size: 26))
                 Text(slot.shortLabel)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(logged ? FrigyBrand.primaryDeep : Color(hex: "#1F2937"))
+                    .foregroundColor(logged ? FrigyBrand.primaryDeep : FrigyBrand.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 ZStack {
@@ -450,7 +450,7 @@ struct HomeDashboardView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Geloggte Mahlzeiten")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(Color(hex: "#1F2937"))
+                        .foregroundColor(FrigyBrand.text)
 
                     VStack(spacing: 8) {
                         ForEach(meals) { meal in
@@ -462,11 +462,11 @@ struct HomeDashboardView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(meal.name)
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(Color(hex: "#1F2937"))
+                                        .foregroundColor(FrigyBrand.text)
                                         .lineLimit(1)
                                     Text("\(meal.calories) kcal · P\(meal.protein)g · K\(meal.carbs)g · F\(meal.fat)g")
                                         .font(.system(size: 11))
-                                        .foregroundColor(Color(hex: "#9CA3AF"))
+                                        .foregroundColor(FrigyBrand.textMuted)
                                 }
 
                                 Spacer()
@@ -533,7 +533,7 @@ struct HomeDashboardView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Wochenplan")
                             .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(Color(hex: "#1F2937"))
+                            .foregroundColor(FrigyBrand.text)
                         Text(weekdayText)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(FrigyBrand.primaryDark.opacity(0.8))
@@ -560,7 +560,7 @@ struct HomeDashboardView: View {
                                 .frame(width: day.isToday ? 8 : 6, height: day.isToday ? 8 : 6)
                             Text(day.short)
                                 .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(day.isToday ? FrigyBrand.primaryDark : Color(hex: "#9CA3AF"))
+                                .foregroundColor(day.isToday ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -598,10 +598,10 @@ struct HomeDashboardView: View {
                     Text("KI-BERATER")
                         .font(.system(size: 9, weight: .bold))
                         .tracking(1.5)
-                        .foregroundColor(Color(hex: "#9CA3AF"))
+                        .foregroundColor(FrigyBrand.textMuted)
                     Text("Frag deinen Coach")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(Color(hex: "#1F2937"))
+                        .foregroundColor(FrigyBrand.text)
                 }
             }
 
