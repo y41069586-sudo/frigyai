@@ -11,12 +11,7 @@ struct AuthSpikeView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(hex: "#EDFFF6"), Color(hex: "#FBFFFD")],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            FrigyGlassBackground().ignoresSafeArea()
 
             // Back to onboarding start — top left
             VStack {
@@ -48,16 +43,16 @@ struct AuthSpikeView: View {
                             .frame(width: 104, height: 104)
                             .offset(y: bob ? -4 : 4)
                     }
-                    .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 26, y: 12)
+                    .shadow(color: FrigyBrand.primaryDark.opacity(0.28), radius: 26, y: 12)
 
                     VStack(spacing: 8) {
                         Text(isReturning ? "Willkommen zurück bei Frigy" : "Willkommen bei Frigy")
                             .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundColor(Color(hex: "#1F2937"))
+                            .foregroundColor(FrigyBrand.text)
                             .multilineTextAlignment(.center)
                         Text("Dein KI-Ernährungscoach")
                             .font(.system(size: 15))
-                            .foregroundColor(Color(hex: "#6B7280"))
+                            .foregroundColor(FrigyBrand.textMuted)
                     }
                 }
 
@@ -91,9 +86,9 @@ struct AuthSpikeView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Color(hex: "#1F2937"))
+                        .background(Color(hex: "#1A2B22"))
                         .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .shadow(color: Color(hex: "#1F2937").opacity(0.18), radius: 12, y: 6)
+                        .shadow(color: Color(hex: "#1A2B22").opacity(0.3), radius: 12, y: 6)
                     }
                     .disabled(isLoading)
 
@@ -108,14 +103,14 @@ struct AuthSpikeView: View {
                             Text("Mit Google anmelden")
                                 .font(.system(size: 17, weight: .semibold))
                         }
-                        .foregroundColor(Color(hex: "#374151"))
+                        .foregroundColor(FrigyBrand.text)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Color(UIColor.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color(hex: "#E5E7EB"), lineWidth: 1.5)
+                                .stroke(FrigyBrand.cardBorder, lineWidth: 1.5)
                         )
                         .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
                     }

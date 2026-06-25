@@ -46,17 +46,6 @@ struct PaywallStepView: View {
         return "Jährlich – \(yearlyPkg?.priceString ?? "—")"
     }
 
-    // MARK: - Colors
-
-    private let primary      = Color(hex: "#75FBB2")
-    private let primaryDark  = Color(hex: "#39D47F")
-    private let primaryDeep  = Color(hex: "#2EB56D")
-    private let textMain     = Color(hex: "#1F2937")
-    private let textSub      = Color(hex: "#374151")
-    private let textMuted    = Color(hex: "#6B7280")
-    private let textFaint    = Color(hex: "#9CA3AF")
-    private let borderIdle   = Color(hex: "#BCFDDC")
-
     // MARK: - Body
 
     var body: some View {
@@ -84,7 +73,7 @@ struct PaywallStepView: View {
                          ? "Starte deine 3-tägige\nKOSTENLOSE Testphase"
                          : "Schalte Frigy frei, um deine\nZiele schneller zu erreichen")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(textMain)
+                        .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
                         .id(showTrialTimeline)
@@ -164,19 +153,19 @@ struct PaywallStepView: View {
                 ZStack {
                     Circle()
                         .fill(LinearGradient(
-                            colors: [primary, primaryDark],
+                            colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ))
                         .frame(width: 44, height: 44)
                     Image(systemName: icon)
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(textMain)
+                        .foregroundColor(FrigyBrand.text)
                 }
                 if !isLast {
                     Rectangle()
                         .fill(LinearGradient(
-                            colors: [primaryDark, borderIdle],
+                            colors: [FrigyBrand.primaryDark, FrigyBrand.cardBorder],
                             startPoint: .top,
                             endPoint: .bottom
                         ))
@@ -188,10 +177,10 @@ struct PaywallStepView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(textMain)
+                    .foregroundColor(FrigyBrand.text)
                 Text(desc)
                     .font(.system(size: 14))
-                    .foregroundColor(textMuted)
+                    .foregroundColor(FrigyBrand.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.bottom, isLast ? 0 : 28)
@@ -209,20 +198,20 @@ struct PaywallStepView: View {
                 HStack(spacing: 10) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(primaryDark.opacity(0.12))
+                            .fill(FrigyBrand.primaryDark.opacity(0.12))
                             .frame(width: 40, height: 40)
                         Image(systemName: "tag.fill")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(primaryDark)
+                            .foregroundColor(FrigyBrand.primaryDark)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Bestes Angebot")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(textMain)
+                            .foregroundColor(FrigyBrand.text)
                         if let perMonth = yearlyPkg?.pricePerMonthString {
                             Text("Nur \(perMonth) pro Monat")
                                 .font(.system(size: 13))
-                                .foregroundColor(textMuted)
+                                .foregroundColor(FrigyBrand.textMuted)
                         }
                     }
                     Spacer()
@@ -231,7 +220,7 @@ struct PaywallStepView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(Capsule().fill(primaryDeep))
+                        .background(Capsule().fill(FrigyBrand.primaryDeep))
                 }
 
                 Divider()
@@ -241,16 +230,16 @@ struct PaywallStepView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Jährliche Abrechnung")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(textMuted)
+                            .foregroundColor(FrigyBrand.textMuted)
                         Text(yearlyPkg?.priceString ?? "—")
                             .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundColor(textMain)
+                            .foregroundColor(FrigyBrand.text)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Im Vergleich zu monatlich")
                             .font(.system(size: 11))
-                            .foregroundColor(textMuted)
+                            .foregroundColor(FrigyBrand.textMuted)
                         if let monthly = monthlyPkg?.priceString {
                             Text("\(monthly) × 12")
                                 .font(.system(size: 13, weight: .semibold))
@@ -261,9 +250,9 @@ struct PaywallStepView: View {
                 }
             }
             .padding(16)
-            .background(Color(hex: "#F0FDF4"))
+            .background(FrigyBrand.selectedBg)
             .clipShape(RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color(hex: "#BCFDDC"), lineWidth: 1.5))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(FrigyBrand.cardBorder, lineWidth: 1.5))
 
             // Feature list
             VStack(spacing: 14) {
@@ -275,15 +264,15 @@ struct PaywallStepView: View {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: icon)
                             .font(.system(size: 22))
-                            .foregroundColor(primaryDark)
+                            .foregroundColor(FrigyBrand.primaryDark)
                             .frame(width: 28)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(title)
                                 .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(textMain)
+                                .foregroundColor(FrigyBrand.text)
                             Text(desc)
                                 .font(.system(size: 13))
-                                .foregroundColor(textMuted)
+                                .foregroundColor(FrigyBrand.textMuted)
                         }
                         Spacer()
                     }
@@ -318,12 +307,12 @@ struct PaywallStepView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(primaryDeep)
+                        .foregroundColor(FrigyBrand.primaryDeep)
                     Text(showTrialTimeline
                          ? "Keine Zahlung jetzt fällig"
                          : "Keine Bindung – jederzeit kündbar")
                         .font(.system(size: 15))
-                        .foregroundColor(textMain)
+                        .foregroundColor(FrigyBrand.text)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 16)
@@ -349,24 +338,24 @@ struct PaywallStepView: View {
                 } label: {
                     HStack(spacing: 8) {
                         if isPurchasing {
-                            ProgressView().tint(textMain).scaleEffect(0.85)
+                            ProgressView().tint(FrigyBrand.text).scaleEffect(0.85)
                         }
                         Text(isPurchasing
                              ? "Wird verarbeitet…"
                              : showTrialTimeline ? "3-tägige Testphase starten" : "Loslegen")
                             .font(.system(size: 17, weight: .bold))
-                            .foregroundColor(textMain)
+                            .foregroundColor(FrigyBrand.text)
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(
                         RoundedRectangle(cornerRadius: 18)
                             .fill(LinearGradient(
-                                colors: [primary, primaryDark],
+                                colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ))
-                            .shadow(color: primaryDark.opacity(0.5), radius: 17, x: 0, y: 8)
+                            .shadow(color: FrigyBrand.primaryDark.opacity(0.5), radius: 17, x: 0, y: 8)
                     )
                 }
                 .buttonStyle(.plain)
@@ -394,7 +383,7 @@ struct PaywallStepView: View {
                         } else {
                             Text("Käufe wiederherstellen")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(textSub)
+                                .foregroundColor(FrigyBrand.text)
                                 .underline()
                         }
                     }
@@ -409,16 +398,16 @@ struct PaywallStepView: View {
                     if let pkg = selectedPkg {
                         Text("Frigy Premium · \(pkg.isYearly ? "Jahresabo (1 Jahr)" : "Monatsabo (1 Monat)") · \(pkg.priceString)")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(textMuted)
+                            .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
                     }
                     Text("Das Abo verlängert sich automatisch, bis du es mindestens 24 Stunden vor Periodenende in den Einstellungen deines App-Store-Kontos kündigst. Die Zahlung wird bei Bestätigung über dein Store-Konto abgebucht.")
                         .font(.system(size: 11))
-                        .foregroundColor(textFaint)
+                        .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
                     Text(footerPriceText)
                         .font(.system(size: 13))
-                        .foregroundColor(textFaint)
+                        .foregroundColor(FrigyBrand.textMuted)
                         .padding(.bottom, 4)
                 }
                 .padding(.top, 4)
@@ -444,7 +433,7 @@ struct PaywallStepView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(textSub)
+                            .foregroundColor(FrigyBrand.text)
 
                         if packagesLoading {
                             RoundedRectangle(cornerRadius: 4)
@@ -454,13 +443,13 @@ struct PaywallStepView: View {
                         } else {
                             Text(pkg?.priceString ?? "—")
                                 .font(.system(size: 17, weight: .bold))
-                                .foregroundColor(textMain)
+                                .foregroundColor(FrigyBrand.text)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                             if let perMonth = pkg?.pricePerMonthString {
                                 Text("\(perMonth) / Monat")
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(primaryDeep)
+                                    .foregroundColor(FrigyBrand.primaryDeep)
                             }
                         }
                     }
@@ -470,10 +459,10 @@ struct PaywallStepView: View {
                     // Radio button
                     ZStack {
                         Circle()
-                            .stroke(selected ? primaryDark : borderIdle, lineWidth: 2)
+                            .stroke(selected ? FrigyBrand.primaryDark : FrigyBrand.cardBorder, lineWidth: 2)
                             .frame(width: 22, height: 22)
                         if selected {
-                            Circle().fill(primaryDark).frame(width: 14, height: 14)
+                            Circle().fill(FrigyBrand.primaryDark).frame(width: 14, height: 14)
                             Image(systemName: "checkmark")
                                 .font(.system(size: 8, weight: .black))
                                 .foregroundColor(.white)
@@ -488,9 +477,9 @@ struct PaywallStepView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(selected ? primaryDark : borderIdle, lineWidth: selected ? 1.5 : 1)
+                        .stroke(selected ? FrigyBrand.primaryDark : FrigyBrand.cardBorder, lineWidth: selected ? 1.5 : 1)
                 )
-                .shadow(color: selected ? primary.opacity(0.4) : .clear, radius: 12, y: 4)
+                .shadow(color: selected ? FrigyBrand.primary.opacity(0.4) : .clear, radius: 12, y: 4)
 
                 if showBadge {
                     Text("3 TAGE KOSTENLOS")
@@ -498,7 +487,7 @@ struct PaywallStepView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 3)
-                        .background(Capsule().fill(primaryDeep))
+                        .background(Capsule().fill(FrigyBrand.primaryDeep))
                         .offset(y: -10)
                 }
             }

@@ -45,14 +45,9 @@ struct MealPlansView: View {
     @State private var selectedTemplate: FoodTemplate?
     @State private var showFridgeScan = false
 
-    // Web tokens
-    private let pageBg     = Color(hex: "#F2FFF8")
-    private let primary    = Color(hex: "#75FBB2")
-    private let foreground = Color(hex: "#1F2937")
-    private let muted      = Color(hex: "#6B7280")
-    private let proteinClr = Color(hex: "#F87171") // red-400
-    private let carbsClr   = Color(hex: "#FBBF24") // amber-400
-    private let fatClr     = Color(hex: "#60A5FA") // blue-400
+    private let proteinClr = Color(hex: "#F87171")
+    private let carbsClr   = Color(hex: "#FBBF24")
+    private let fatClr     = Color(hex: "#60A5FA")
 
     var body: some View {
         VStack(spacing: 0) {
@@ -66,11 +61,11 @@ struct MealPlansView: View {
                     if let msg = bannerMessage {
                         Text(msg)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(bannerIsError ? Color(hex: "#B91C1C") : Color(hex: "#39D47F"))
+                            .foregroundColor(bannerIsError ? Color(hex: "#B91C1C") : FrigyBrand.primaryDark)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(bannerIsError ? Color(hex: "#FEF2F2") : Color(hex: "#DCFEEF"))
+                            .background(bannerIsError ? Color(hex: "#FEF2F2") : FrigyBrand.selectedBg)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
@@ -89,7 +84,7 @@ struct MealPlansView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .background(pageBg.ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .bottom) {
             if let toast = toastMessage {
@@ -119,10 +114,10 @@ struct MealPlansView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Mahlzeit-Vorlagen")
                 .font(.system(size: 17, weight: .bold))
-                .foregroundColor(foreground)
+                .foregroundColor(FrigyBrand.text)
             Text("Tippe auf eine Vorlage, um das Rezept und Nährwerte zu sehen.")
                 .font(.system(size: 12))
-                .foregroundColor(muted)
+                .foregroundColor(FrigyBrand.textMuted)
 
             LazyVGrid(
                 columns: [GridItem(.flexible()), GridItem(.flexible())],
@@ -135,22 +130,22 @@ struct MealPlansView: View {
                                 .font(.system(size: 24))
                             Text(tpl.name)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(foreground)
+                                .foregroundColor(FrigyBrand.text)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text("\(tpl.calories) kcal")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(primary.opacity(0.9))
+                                .foregroundColor(FrigyBrand.primary.opacity(0.9))
                             Text("P \(tpl.protein)g · K \(tpl.carbs)g · F \(tpl.fat)g")
                                 .font(.system(size: 9))
-                                .foregroundColor(muted)
+                                .foregroundColor(FrigyBrand.textMuted)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
                         .background(Color(UIColor.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(RoundedRectangle(cornerRadius: 12)
-                            .stroke(primary.opacity(0.25), lineWidth: 1))
+                            .stroke(FrigyBrand.primary.opacity(0.25), lineWidth: 1))
                         .shadow(color: .black.opacity(0.03), radius: 4, y: 2)
                     }
                     .buttonStyle(.plain)
@@ -169,7 +164,7 @@ struct MealPlansView: View {
                 } label: {
                     Image(systemName: "arrow.left")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(foreground)
+                        .foregroundColor(FrigyBrand.text)
                         .frame(width: 36, height: 36)
                 }
                 .buttonStyle(.plain)
@@ -177,16 +172,16 @@ struct MealPlansView: View {
                 Text("Frigy")
                     .font(.system(size: 19, weight: .black))
                     .tracking(-0.8)
-                    .foregroundColor(foreground)
+                    .foregroundColor(FrigyBrand.text)
 
                 Spacer()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
 
-            Divider().overlay(primary.opacity(0.15))
+            Divider().overlay(FrigyBrand.primary.opacity(0.15))
         }
-        .background(.regularMaterial)
+        .background(Color(UIColor.systemBackground).opacity(0.92))
     }
 
     // MARK: - Action buttons row
@@ -210,10 +205,7 @@ struct MealPlansView: View {
                 .foregroundColor(Color(hex: "#082013"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(
-                    LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
-                )
+                .background(isGenerating ? AnyShapeStyle(FrigyBrand.buttonDisabledGradient) : AnyShapeStyle(FrigyBrand.buttonGradient))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
@@ -227,15 +219,15 @@ struct MealPlansView: View {
                     Text("Zutaten erkennen")
                 }
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color(hex: "#39D47F"))
+                .foregroundColor(FrigyBrand.primaryDark)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(hex: "#39D47F").opacity(0.1))
+                        .fill(FrigyBrand.primaryDark.opacity(0.1))
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color(hex: "#39D47F").opacity(0.4), lineWidth: 1.5)
+                                .stroke(FrigyBrand.primaryDark.opacity(0.4), lineWidth: 1.5)
                         )
                 )
             }
@@ -249,12 +241,12 @@ struct MealPlansView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(day.weekday)
                 .font(.system(size: 17, weight: .bold))
-                .foregroundColor(primary)
+                .foregroundColor(FrigyBrand.primary)
 
             if day.meals.isEmpty {
                 Text("Noch kein Plan für diesen Tag")
                     .font(.system(size: 13))
-                    .foregroundColor(muted)
+                    .foregroundColor(FrigyBrand.textMuted)
                     .padding(.vertical, 8)
             } else {
                 ForEach(day.meals) { meal in
@@ -268,7 +260,7 @@ struct MealPlansView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(primary.opacity(day.isToday ? 0.35 : 0.2), lineWidth: day.isToday ? 2 : 1)
+                .stroke(FrigyBrand.primary.opacity(day.isToday ? 0.35 : 0.2), lineWidth: day.isToday ? 2 : 1)
         )
         .shadow(color: .black.opacity(0.03), radius: 6, y: 2)
     }
@@ -280,17 +272,17 @@ struct MealPlansView: View {
             HStack {
                 Text(meal.category.rawValue)
                     .font(.system(size: 11))
-                    .foregroundColor(muted)
+                    .foregroundColor(FrigyBrand.textMuted)
                     .lineLimit(1)
                 Spacer()
                 Text("\(meal.calories)")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(primary)
+                    .foregroundColor(FrigyBrand.primary)
             }
 
             Text(meal.name)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(foreground)
+                .foregroundColor(FrigyBrand.text)
                 .lineLimit(2)
 
             HStack(spacing: 8) {
@@ -310,13 +302,13 @@ struct MealPlansView: View {
                     Text(eatenMealIDs.contains(meal.id) ? "Gegessen ✓" : "Gegessen")
                         .font(.system(size: 12, weight: .medium))
                 }
-                .foregroundColor(eatenMealIDs.contains(meal.id) ? Color(hex: "#39D47F") : foreground)
+                .foregroundColor(eatenMealIDs.contains(meal.id) ? FrigyBrand.primaryDark : FrigyBrand.text)
                 .frame(maxWidth: .infinity)
                 .frame(height: 32)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(eatenMealIDs.contains(meal.id) ? primary.opacity(0.15) : Color.clear)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(primary.opacity(0.3), lineWidth: 1))
+                        .fill(eatenMealIDs.contains(meal.id) ? FrigyBrand.primary.opacity(0.15) : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
                 )
                 .contentShape(Rectangle())
             }
@@ -325,7 +317,7 @@ struct MealPlansView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(pageBg.opacity(0.6)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(FrigyBrand.selectedBg.opacity(0.45)))
     }
 
     // MARK: - Actions
@@ -440,10 +432,6 @@ struct FridgeScanSheet: View {
     @State private var analysisError: String?
     @State private var addedToListCount: Int?
 
-    private let primary = Color(hex: "#75FBB2")
-    private let foreground = Color(hex: "#1F2937")
-    private let muted = Color(hex: "#6B7280")
-
     // Keywords extracted from meal plan meal names
     private var requiredIngredients: [String] {
         let stopWords = Set(["mit", "und", "auf", "von", "zum", "der", "die", "das", "für",
@@ -461,11 +449,11 @@ struct FridgeScanSheet: View {
             HStack {
                 Button("Schließen") { dismiss() }
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(Color(hex: "#39D47F"))
+                    .foregroundColor(FrigyBrand.primaryDark)
                 Spacer()
                 Text("Kühlschrank scannen")
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(foreground)
+                    .foregroundColor(FrigyBrand.text)
                 Spacer()
                 Color.clear.frame(width: 80, height: 1)
             }
@@ -486,22 +474,22 @@ struct FridgeScanSheet: View {
                     } else {
                         ZStack {
                             RoundedRectangle(cornerRadius: 18)
-                                .fill(Color(hex: "#F2FFF8"))
+                                .fill(FrigyBrand.bg)
                                 .frame(height: 180)
                             VStack(spacing: 10) {
                                 Image(systemName: "refrigerator.fill")
                                     .font(.system(size: 48))
-                                    .foregroundColor(primary)
+                                    .foregroundColor(FrigyBrand.primary)
                                 Text("Foto deines Kühlschranks")
                                     .font(.system(size: 14))
-                                    .foregroundColor(muted)
+                                    .foregroundColor(FrigyBrand.textMuted)
                             }
                         }
                         .padding(.horizontal, 20)
 
                         Text("Mache ein Foto deines Kühlschranks oder wähle eines aus der Galerie. Die KI erkennt automatisch vorhandene Zutaten und zeigt, was für deinen Wochenplan noch fehlt.")
                             .font(.system(size: 13))
-                            .foregroundColor(muted)
+                            .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
@@ -516,7 +504,7 @@ struct FridgeScanSheet: View {
                                 .frame(height: 46)
                                 .background(
                                     LinearGradient(
-                                        colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                        colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                                         startPoint: .topLeading, endPoint: .bottomTrailing
                                     )
                                 )
@@ -527,12 +515,12 @@ struct FridgeScanSheet: View {
                         Button { showGallery = true } label: {
                             Label("Galerie", systemImage: "photo.on.rectangle")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color(hex: "#39D47F"))
+                                .foregroundColor(FrigyBrand.primaryDark)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 46)
                                 .background(
                                     RoundedRectangle(cornerRadius: 13)
-                                        .stroke(Color(hex: "#39D47F"), lineWidth: 1.5)
+                                        .stroke(FrigyBrand.primaryDark, lineWidth: 1.5)
                                 )
                         }
                         .buttonStyle(.plain)
@@ -545,7 +533,7 @@ struct FridgeScanSheet: View {
                             ProgressView().scaleEffect(1.3)
                             Text("Zutaten werden erkannt…")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(muted)
+                                .foregroundColor(FrigyBrand.textMuted)
                         }
                         .padding(.vertical, 24)
 
@@ -555,19 +543,19 @@ struct FridgeScanSheet: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 Label("Vorhanden", systemImage: "checkmark.circle.fill")
                                     .font(.system(size: 14, weight: .bold))
-                                    .foregroundColor(Color(hex: "#39D47F"))
+                                    .foregroundColor(FrigyBrand.primaryDark)
                                 ForEach(detectedItems, id: \.self) { item in
                                     HStack(spacing: 8) {
-                                        Circle().fill(Color(hex: "#39D47F")).frame(width: 6, height: 6)
+                                        Circle().fill(FrigyBrand.primaryDark).frame(width: 6, height: 6)
                                         Text(item.prefix(1).uppercased() + item.dropFirst())
                                             .font(.system(size: 14))
-                                            .foregroundColor(foreground)
+                                            .foregroundColor(FrigyBrand.text)
                                     }
                                 }
                             }
                             .padding(16)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(hex: "#DCFEEF"))
+                            .background(FrigyBrand.selectedBg)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .padding(.horizontal, 20)
                         }
@@ -583,7 +571,7 @@ struct FridgeScanSheet: View {
                                         Circle().fill(Color(hex: "#EF4444")).frame(width: 6, height: 6)
                                         Text(item.prefix(1).uppercased() + item.dropFirst())
                                             .font(.system(size: 14))
-                                            .foregroundColor(foreground)
+                                            .foregroundColor(FrigyBrand.text)
                                     }
                                 }
                                 Button {
@@ -605,7 +593,7 @@ struct FridgeScanSheet: View {
                                     .frame(height: 44)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(addedToListCount == nil ? Color(hex: "#EF4444") : Color(hex: "#39D47F"))
+                                            .fill(addedToListCount == nil ? Color(hex: "#EF4444") : FrigyBrand.primaryDark)
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -622,7 +610,7 @@ struct FridgeScanSheet: View {
                     } else if let error = analysisError {
                         Text(error)
                             .font(.system(size: 13))
-                            .foregroundColor(muted)
+                            .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }

@@ -290,7 +290,7 @@ struct ProfileView: View {
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.system(size: 13))
-                .foregroundColor(Color(hex: "#D1D5DB"))
+                .foregroundColor(FrigyBrand.textMuted.opacity(0.5))
         }
         .padding(14)
     }
@@ -1633,11 +1633,11 @@ struct BadgesView: View {
                         VStack(spacing: 10) {
                             ZStack {
                                 Circle()
-                                    .fill(unlocked ? FrigyBrand.selectedBg : Color(hex: "#F3F4F6"))
+                                    .fill(unlocked ? FrigyBrand.selectedBg : Color(UIColor.secondarySystemBackground))
                                     .frame(width: 60, height: 60)
                                 Image(systemName: badge.icon)
                                     .font(.system(size: 26, weight: .semibold))
-                                    .foregroundColor(unlocked ? FrigyBrand.primaryDark : Color(hex: "#D1D5DB"))
+                                    .foregroundColor(unlocked ? FrigyBrand.primaryDark : FrigyBrand.textMuted.opacity(0.4))
                             }
                             Text(badge.name)
                                 .font(.system(size: 13, weight: .bold))
@@ -2390,7 +2390,7 @@ struct ShoppingCategoryView: View {
                                 if item.price > 0 {
                                     Text(String(format: "%.2f €", item.price))
                                         .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(Color(hex: "#39D47F"))
+                                        .foregroundColor(FrigyBrand.primaryDark)
                                 }
                             }
                             .padding(14)

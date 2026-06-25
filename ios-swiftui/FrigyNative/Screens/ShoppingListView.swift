@@ -123,7 +123,7 @@ struct ShoppingListView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Einkaufsliste")
                             .font(.system(size: 28, weight: .black, design: .rounded))
-                            .foregroundColor(Color(hex: "#1F2937"))
+                            .foregroundColor(FrigyBrand.text)
                         Text("\(unchecked.count) von \(items.count) Artikeln übrig")
                             .font(.system(size: 13))
                             .foregroundColor(Color(hex: "#9CA3AF"))
@@ -133,7 +133,7 @@ struct ShoppingListView: View {
                         VStack(alignment: .trailing, spacing: 1) {
                             Text(String(format: "%.2f €", totalPrice))
                                 .font(.system(size: 20, weight: .black, design: .rounded))
-                                .foregroundColor(Color(hex: "#39D47F"))
+                                .foregroundColor(FrigyBrand.primaryDark)
                             Text("geschätzt")
                                 .font(.system(size: 11))
                                 .foregroundColor(Color(hex: "#9CA3AF"))
@@ -163,7 +163,7 @@ struct ShoppingListView: View {
                         HStack {
                             Text("\(Int(progress * 100))% erledigt")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(hex: "#39D47F"))
+                                .foregroundColor(FrigyBrand.primaryDark)
                             Spacer()
                             Text("\(checked.count) / \(items.count)")
                                 .font(.system(size: 13))
@@ -171,9 +171,9 @@ struct ShoppingListView: View {
                         }
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color(hex: "#BCFDDC").opacity(0.4)).frame(height: 6)
+                                Capsule().fill(FrigyBrand.cardBorder.opacity(0.4)).frame(height: 6)
                                 Capsule()
-                                    .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")], startPoint: .leading, endPoint: .trailing))
+                                    .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark], startPoint: .leading, endPoint: .trailing))
                                     .frame(width: max(6, geo.size.width * progress), height: 6)
                                     .animation(.spring(duration: 0.4), value: progress)
                             }
@@ -238,10 +238,10 @@ struct ShoppingListView: View {
                     VStack(spacing: 14) {
                         Image(systemName: "cart.badge.checkmark")
                             .font(.system(size: 44))
-                            .foregroundColor(Color(hex: "#BCFDDC"))
+                            .foregroundColor(FrigyBrand.cardBorder)
                         Text("Einkaufsliste ist leer")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "#6B7280"))
+                            .foregroundColor(FrigyBrand.textMuted)
                         Text("Tippe auf +, um Artikel hinzuzufügen, oder generiere eine Liste aus deinem Wochenplan.")
                             .font(.system(size: 13))
                             .foregroundColor(Color(hex: "#9CA3AF"))
@@ -297,7 +297,7 @@ struct ShoppingCategorySection: View {
                     .foregroundColor(category.color)
                 Text(category.rawValue)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(hex: "#1F2937"))
+                    .foregroundColor(FrigyBrand.text)
                 Text("(\(items.count))")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#9CA3AF"))
@@ -325,7 +325,7 @@ struct ShoppingItemRow: View {
 
             Text(item.name)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(item.isChecked ? Color(hex: "#9CA3AF") : Color(hex: "#1F2937"))
+                .foregroundColor(item.isChecked ? Color(hex: "#9CA3AF") : FrigyBrand.text)
                 .strikethrough(item.isChecked)
 
             Spacer()
@@ -334,7 +334,7 @@ struct ShoppingItemRow: View {
                 if item.price > 0 {
                     Text(String(format: "%.2f €", item.price))
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(Color(hex: "#39D47F"))
+                        .foregroundColor(FrigyBrand.primaryDark)
                 }
                 if !item.amount.isEmpty {
                     Text(item.amount)

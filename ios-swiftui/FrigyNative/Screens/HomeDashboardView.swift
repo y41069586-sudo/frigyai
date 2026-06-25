@@ -360,7 +360,7 @@ struct HomeDashboardView: View {
         return ZStack(alignment: .topLeading) {
             GeometryReader { geo in
                 ZStack(alignment: .trailing) {
-                    Color(hex: "#EEF1F3")
+                    Color(UIColor.secondarySystemBackground)
                     color.opacity(0.9)
                         .frame(width: geo.size.width * pct)
                 }
@@ -696,7 +696,7 @@ struct HomeDashboardView: View {
                     Button { setWater(waterGlasses - 1) } label: {
                         Image(systemName: "minus")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(waterGlasses > 0 ? Color(hex: "#3B82F6") : Color(hex: "#D1D5DB"))
+                            .foregroundColor(waterGlasses > 0 ? Color(hex: "#3B82F6") : FrigyBrand.textMuted.opacity(0.5))
                             .frame(width: 32, height: 32)
                             .background(Circle().fill(Color(hex: "#EFF6FF")))
                     }
@@ -704,7 +704,7 @@ struct HomeDashboardView: View {
                     Button { setWater(waterGlasses + 1) } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(waterGlasses < waterGoal ? .white : Color(hex: "#D1D5DB"))
+                            .foregroundColor(waterGlasses < waterGoal ? .white : FrigyBrand.textMuted.opacity(0.5))
                             .frame(width: 32, height: 32)
                             .background(Circle().fill(waterGlasses < waterGoal ? Color(hex: "#3B82F6") : Color(hex: "#E0F2FE")))
                     }

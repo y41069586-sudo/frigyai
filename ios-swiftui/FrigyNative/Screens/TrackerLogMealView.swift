@@ -71,7 +71,7 @@ struct TrackerLogMealView: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
+                    .fill(Color(UIColor.secondarySystemBackground))
                     .overlay(RoundedRectangle(cornerRadius: 12)
                         .stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
             )
@@ -185,7 +185,7 @@ struct TrackerLogMealView: View {
                                 Group {
                                     if selectedCategory == cat {
                                         AnyView(Capsule()
-                                            .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                                            .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                                                                  startPoint: .topLeading, endPoint: .bottomTrailing))
                                             .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay)))
                                     } else {
@@ -195,7 +195,7 @@ struct TrackerLogMealView: View {
                                     }
                                 }
                             )
-                            .shadow(color: selectedCategory == cat ? Color(hex: "#39D47F").opacity(0.2) : .clear, radius: 6, y: 3)
+                            .shadow(color: selectedCategory == cat ? FrigyBrand.primaryDark.opacity(0.2) : .clear, radius: 6, y: 3)
                     }
                     .buttonStyle(.plain)
                 }
@@ -241,10 +241,10 @@ struct TrackerLogMealView: View {
             VStack(spacing: 12) {
                 Image(systemName: "fork.knife")
                     .font(.system(size: 40))
-                    .foregroundColor(Color(hex: "#BCFDDC"))
+                    .foregroundColor(FrigyBrand.cardBorder)
                 Text("Noch nichts geloggt")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Color(hex: "#6B7280"))
+                    .foregroundColor(FrigyBrand.textMuted)
                 Text("Scanne einen Barcode oder suche nach einem Lebensmittel.")
                     .font(.system(size: 13))
                     .foregroundColor(Color(hex: "#9CA3AF"))
@@ -257,7 +257,7 @@ struct TrackerLogMealView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Zuletzt gegessen")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Color(hex: "#1F2937"))
+                    .foregroundColor(FrigyBrand.text)
                     .padding(.horizontal, 16)
                 VStack(spacing: 6) {
                     ForEach(recentFoods) { food in
@@ -279,12 +279,12 @@ struct TrackerLogMealView: View {
                     .frame(width: 38, height: 38)
                 Image(systemName: "leaf.fill")
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#39D47F"))
+                    .foregroundColor(FrigyBrand.primaryDark)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(food.name)
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Color(hex: "#1F2937"))
+                    .foregroundColor(FrigyBrand.text)
                 if food.protein > 0 || food.carbs > 0 || food.fat > 0 {
                     Text("P \(food.protein)g · K \(food.carbs)g · F \(food.fat)g")
                         .font(.system(size: 11))
@@ -294,7 +294,7 @@ struct TrackerLogMealView: View {
             Spacer()
             Text("\(food.calories) kcal")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(hex: "#6B7280"))
+                .foregroundColor(FrigyBrand.textMuted)
             Button {
                 Task {
                     await TrackerDataService.shared.addFoodEntry(
@@ -307,7 +307,7 @@ struct TrackerLogMealView: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
+                        .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                                              startPoint: .topLeading, endPoint: .bottomTrailing))
                         .overlay(Circle().stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
                         .frame(width: 32, height: 32)
@@ -315,7 +315,7 @@ struct TrackerLogMealView: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
                 }
-                .shadow(color: Color(hex: "#39D47F").opacity(0.25), radius: 6, y: 3)
+                .shadow(color: FrigyBrand.primaryDark.opacity(0.25), radius: 6, y: 3)
             }
             .buttonStyle(.plain)
         }
@@ -329,7 +329,7 @@ struct TrackerLogMealView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Mahlzeit-Vorlagen")
                 .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: "#1F2937"))
+                .foregroundColor(FrigyBrand.text)
                 .padding(.horizontal, 16)
 
             LazyVGrid(
