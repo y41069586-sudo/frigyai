@@ -2333,27 +2333,7 @@ struct EditProfileView: View {
                     }
 
                     // Save button
-                    Button {
-                        Task { await save() }
-                    } label: {
-                        HStack(spacing: 8) {
-                            if isSaving {
-                                ProgressView().tint(.white).scaleEffect(0.9)
-                            } else if saveSuccess {
-                                Image(systemName: "checkmark").font(.system(size: 14, weight: .bold))
-                            }
-                            Text(saveSuccess ? "Gespeichert!" : "Speichern")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity).frame(height: 54)
-                        .background(saveSuccess ? FrigyBrand.primaryDark : AnyShapeStyle(FrigyBrand.buttonGradient))
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .shadow(color: FrigyBrand.primary.opacity(0.4), radius: 10, y: 5)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSaving || saveSuccess)
-                    .animation(.easeInOut(duration: 0.2), value: saveSuccess)
+                    saveButton
 
                     Spacer().frame(height: 40)
                 }
@@ -2368,6 +2348,31 @@ struct EditProfileView: View {
         .onChange(of: draft.age) { _, _ in draft.recalculateMacrosIfPossible() }
         .onChange(of: draft.goalMode) { _, _ in draft.recalculateMacrosIfPossible() }
         .onChange(of: draft.activityLevel) { _, _ in draft.recalculateMacrosIfPossible() }
+    }
+
+    private var saveButton: some View {
+        let label: String = saveSuccess ? "Gespeichert!" : "Speichern"
+        let bg: AnyShapeStyle = saveSuccess ? AnyShapeStyle(FrigyBrand.primaryDark) : AnyShapeStyle(FrigyBrand.buttonGradient)
+        return Button {
+            Task { await save() }
+        } label: {
+            HStack(spacing: 8) {
+                if isSaving {
+                    ProgressView().tint(.white).scaleEffect(0.9)
+                } else if saveSuccess {
+                    Image(systemName: "checkmark").font(.system(size: 14, weight: .bold))
+                }
+                Text(label).font(.system(size: 16, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity).frame(height: 54)
+            .background(bg)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .shadow(color: FrigyBrand.primary.opacity(0.4), radius: 10, y: 5)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving || saveSuccess)
+        .animation(.easeInOut(duration: 0.2), value: saveSuccess)
     }
 
     @ViewBuilder
