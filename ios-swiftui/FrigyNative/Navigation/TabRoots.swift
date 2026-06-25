@@ -918,39 +918,39 @@ struct SubscriptionView: View {
 // MARK: - Privacy
 
 struct PrivacyView: View {
+    private let sections: [(icon: String, color: String, title: String, text: String)] = [
+        ("shield.fill",       "#34D399", "Datenerhebung",
+         "Frigy speichert nur die Daten, die du aktiv eingibst: Mahlzeiten, Gewicht und deine Profileinstellungen. Alle Daten werden verschlüsselt und sicher in unserer Datenbank gespeichert."),
+        ("hand.raised.fill",  "#60B4FF", "Datenweitergabe",
+         "Deine persönlichen Daten werden niemals an Dritte verkauft oder ohne deine ausdrückliche Zustimmung weitergegeben."),
+        ("trash.fill",        "#F87171", "Datenlöschung",
+         "Du kannst jederzeit die vollständige Löschung deiner Daten beantragen. Schreib uns einfach an support@frigy.app."),
+        ("brain",             "#A78BFA", "KI-Verarbeitung",
+         "Anfragen an den KI-Coach werden verschlüsselt übertragen. Deine Daten werden nicht zur Verbesserung von KI-Modellen verwendet."),
+        ("lock.fill",         "#FBBF24", "Datensicherheit",
+         "Wir verwenden branchenübliche Sicherheitsmaßnahmen (TLS, AES-256) um deine Daten zu schützen. Passwörter werden niemals im Klartext gespeichert."),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: "Datenschutz")
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    privacySection("Datenerhebung", text: "Frigy speichert nur die Daten, die du aktiv eingibst: Mahlzeiten, Gewicht und Einstellungen. Alle Daten werden sicher in unserer Datenbank gespeichert.")
-                    privacySection("Datenweitergabe", text: "Deine persönlichen Daten werden niemals an Dritte verkauft oder ohne deine Zustimmung weitergegeben.")
-                    privacySection("Datenlöschung", text: "Du kannst jederzeit die Löschung deiner Daten beantragen, indem du uns unter support@frigy.app kontaktierst.")
-                    privacySection("KI-Verarbeitung", text: "Anfragen an den KI-Coach werden verschlüsselt übertragen und nicht zur Modellverbesserung genutzt.")
-                    Spacer().frame(height: 32)
+                VStack(spacing: 20) {
+                    legalBanner(icon: "lock.shield.fill", color: "#34D399",
+                                title: "Deine Daten gehören dir",
+                                subtitle: "Wir nehmen Datenschutz ernst.")
+
+                    legalCard(sections: sections)
+
+                    legalFooter("Letzte Aktualisierung: Januar 2025\nFragen? support@frigy.app")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
+                .padding(.bottom, 40)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private func privacySection(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(FrigyBrand.text)
-            Text(text)
-                .font(.system(size: 14))
-                .foregroundColor(FrigyBrand.textMuted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frigyCard(cornerRadius: 14)
     }
 }
 
@@ -2095,81 +2095,154 @@ struct MealPlanPreferencesView: View {
 // MARK: - Impressum
 
 struct ImpressumView: View {
+    private let sections: [(icon: String, color: String, title: String, text: String)] = [
+        ("building.2.fill",           "#60B4FF", "Anbieter",
+         "Frigy\nDeutschland"),
+        ("envelope.fill",             "#34D399", "Kontakt",
+         "E-Mail: support@frigy.app\nWebsite: app.frigy.app"),
+        ("exclamationmark.circle.fill","#FBBF24", "Haftungsausschluss",
+         "Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität können wir keine Gewähr übernehmen. Als Diensteanbieter sind wir für eigene Inhalte nach den allgemeinen Gesetzen verantwortlich."),
+        ("c.circle.fill",             "#A78BFA", "Urheberrecht",
+         "Die durch die Seitenbetreiber erstellten Inhalte und Werke in dieser App unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet."),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: "Impressum")
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    legalSection("Anbieter", text: "Frigy\nDeutschland")
-                    legalSection("Kontakt", text: "E-Mail: support@frigy.app\nWebsite: app.frigy.app")
-                    legalSection("Haftungsausschluss", text: "Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität können wir keine Gewähr übernehmen. Als Diensteanbieter sind wir für eigene Inhalte nach den allgemeinen Gesetzen verantwortlich.")
-                    legalSection("Urheberrecht", text: "Die durch die Seitenbetreiber erstellten Inhalte und Werke in dieser App unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.")
-                    Spacer().frame(height: 32)
+                VStack(spacing: 20) {
+                    legalBanner(icon: "building.2.fill", color: "#60B4FF",
+                                title: "Impressum",
+                                subtitle: "Angaben gemäß § 5 TMG")
+
+                    legalCard(sections: sections)
+
+                    legalFooter("Stand: Januar 2025")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
+                .padding(.bottom, 40)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private func legalSection(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(FrigyBrand.text)
-            Text(text)
-                .font(.system(size: 14))
-                .foregroundColor(FrigyBrand.textMuted)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frigyCard(cornerRadius: 14)
     }
 }
 
 // MARK: - AGB
 
 struct AGBView: View {
+    private let sections: [(icon: String, color: String, title: String, text: String)] = [
+        ("doc.text.fill",         "#60B4FF", "§1 Geltungsbereich",
+         "Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der Frigy App und aller zugehörigen Dienste."),
+        ("sparkles",              "#A78BFA", "§2 Leistungsumfang",
+         "Frigy bietet eine Ernährungs-Tracking-App mit KI-gestützten Funktionen. Der genaue Leistungsumfang richtet sich nach dem gewählten Abonnement."),
+        ("creditcard.fill",       "#34D399", "§3 Abonnement & Zahlung",
+         "Premium-Abonnements werden über den Apple App Store abgewickelt. Das Abonnement verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ablauf der aktuellen Periode über die App-Store-Einstellungen gekündigt wird."),
+        ("arrow.uturn.backward",  "#FBBF24", "§4 Widerrufsrecht",
+         "Bei digitalen Inhalten erlischt das Widerrufsrecht, sobald die Ausführung begonnen hat und du ausdrücklich zugestimmt hast, dass der Vertrag vor Ablauf der Widerrufsfrist erfüllt wird."),
+        ("exclamationmark.shield.fill", "#F87171", "§5 Haftungsbeschränkung",
+         "Frigy haftet nicht für Schäden, die durch die Nutzung der App entstehen, soweit diese nicht auf Vorsatz oder grober Fahrlässigkeit beruhen. Die Nährwertangaben sind informativ und ersetzen keine medizinische Beratung."),
+        ("pencil.circle.fill",    "#9CA3AF", "§6 Änderungen der AGB",
+         "Frigy behält sich das Recht vor, diese AGB jederzeit zu ändern. Wesentliche Änderungen werden 30 Tage vor Inkrafttreten mitgeteilt."),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: "AGB")
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    agbSection("§1 Geltungsbereich", text: "Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der Frigy App und aller zugehörigen Dienste.")
-                    agbSection("§2 Leistungsumfang", text: "Frigy bietet eine Ernährungs-Tracking-App mit KI-gestützten Funktionen. Der genaue Leistungsumfang richtet sich nach dem gewählten Abonnement.")
-                    agbSection("§3 Abonnement & Zahlung", text: "Premium-Abonnements werden über den Apple App Store abgewickelt. Das Abonnement verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ablauf der aktuellen Periode über die App-Store-Einstellungen gekündigt wird.")
-                    agbSection("§4 Widerrufsrecht", text: "Bei digitalen Inhalten erlischt das Widerrufsrecht, sobald die Ausführung begonnen hat und du ausdrücklich zugestimmt hast, dass der Vertrag vor Ablauf der Widerrufsfrist erfüllt wird.")
-                    agbSection("§5 Haftungsbeschränkung", text: "Frigy haftet nicht für Schäden, die durch die Nutzung der App entstehen, soweit diese nicht auf Vorsatz oder grober Fahrlässigkeit beruhen. Die Nährwertangaben sind informativ und ersetzen keine medizinische Beratung.")
-                    agbSection("§6 Änderungen der AGB", text: "Frigy behält sich das Recht vor, diese AGB jederzeit zu ändern. Wesentliche Änderungen werden 30 Tage vor Inkrafttreten mitgeteilt.")
-                    Spacer().frame(height: 32)
+                VStack(spacing: 20) {
+                    legalBanner(icon: "doc.badge.gearshape.fill", color: "#6366F1",
+                                title: "Allgemeine Geschäftsbedingungen",
+                                subtitle: "Nutzungsbedingungen für Frigy")
+
+                    legalCard(sections: sections)
+
+                    legalFooter("Stand: Januar 2025\nEs gilt deutsches Recht.")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
+                .padding(.bottom, 40)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
     }
+}
 
-    private func agbSection(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(FrigyBrand.text)
-            Text(text)
-                .font(.system(size: 14))
-                .foregroundColor(FrigyBrand.textMuted)
-                .fixedSize(horizontal: false, vertical: true)
+// MARK: - Shared legal helpers
+
+private func legalBanner(icon: String, color: String, title: String, subtitle: String) -> some View {
+    HStack(spacing: 16) {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(hex: color).opacity(0.15))
+                .frame(width: 56, height: 56)
+            Image(systemName: icon)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(Color(hex: color))
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frigyCard(cornerRadius: 14)
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(FrigyBrand.text)
+            Text(subtitle)
+                .font(.system(size: 13))
+                .foregroundColor(FrigyBrand.textMuted)
+        }
+        Spacer()
     }
+    .padding(16)
+    .frigyCard(cornerRadius: 18)
+}
+
+private func legalCard(sections: [(icon: String, color: String, title: String, text: String)]) -> some View {
+    VStack(spacing: 0) {
+        ForEach(Array(sections.enumerated()), id: \.offset) { idx, section in
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(hex: section.color).opacity(0.15))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: section.icon)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color(hex: section.color))
+                    }
+                    Text(section.title)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(FrigyBrand.text)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+
+                Text(section.text)
+                    .font(.system(size: 13))
+                    .foregroundColor(FrigyBrand.textMuted)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if idx < sections.count - 1 {
+                Divider()
+                    .padding(.leading, 60)
+            }
+        }
+    }
+    .frigyCard(cornerRadius: 18)
+}
+
+private func legalFooter(_ text: String) -> some View {
+    Text(text)
+        .font(.system(size: 11))
+        .foregroundColor(FrigyBrand.textMuted.opacity(0.6))
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 4)
 }
 
 // MARK: - Shopping sub-views
