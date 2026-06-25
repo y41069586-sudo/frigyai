@@ -292,7 +292,7 @@ struct PaywallStepView: View {
     private var bottomBar: some View {
         VStack(spacing: 0) {
             LinearGradient(
-                colors: [Color.white.opacity(0), Color.white],
+                colors: [Color(UIColor.systemBackground).opacity(0), Color(UIColor.systemBackground)],
                 startPoint: .top,
                 endPoint: .bottom
             )
