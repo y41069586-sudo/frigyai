@@ -144,6 +144,11 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
+                        NavigationLink(destination: AppearanceView()) {
+                            profileRow("Darstellung", icon: "circle.lefthalf.filled", color: FrigyBrand.primaryDark)
+                        }
+                        .buttonStyle(.plain)
+                        Divider().padding(.leading, 52)
                         NavigationLink(destination: SubscriptionView()) {
                             profileRow("Abonnement", icon: "crown.fill", color: Color(hex: "#F59E0B"))
                         }
@@ -821,6 +826,75 @@ struct NutritionGoalsView: View {
         let ok = await TrackerDataService.shared.saveTargets(targets)
         isSaving = false
         if ok { saved = true }
+    }
+}
+
+// MARK: - Appearance
+
+struct AppearanceView: View {
+    @Environment(ThemeManager.self) private var theme
+
+    var body: some View {
+        VStack(spacing: 0) {
+            FrigyNavBar(title: "Darstellung")
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    Text("Wähle, wie Frigy aussehen soll. Die Änderung wird sofort übernommen.")
+                        .font(.system(size: 14))
+                        .foregroundColor(FrigyBrand.textMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+
+                    VStack(spacing: 0) {
+                        ForEach(ThemePreference.allCases) { pref in
+                            Button {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                    theme.choose(pref)
+                                }
+                            } label: {
+                                HStack(spacing: 14) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 9)
+                                            .fill(FrigyBrand.primary.opacity(theme.preference == pref ? 0.2 : 0.1))
+                                            .frame(width: 38, height: 38)
+                                        Image(systemName: pref.icon)
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .foregroundColor(FrigyBrand.primaryDark)
+                                    }
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(pref.label)
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(FrigyBrand.text)
+                                        Text(pref.subtitle)
+                                            .font(.system(size: 12))
+                                            .foregroundColor(FrigyBrand.textMuted)
+                                    }
+                                    Spacer()
+                                    if theme.preference == pref {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(FrigyBrand.primaryDark)
+                                    }
+                                }
+                                .padding(14)
+                            }
+                            .buttonStyle(.plain)
+                            if pref != ThemePreference.allCases.last {
+                                Divider().padding(.leading, 66)
+                            }
+                        }
+                    }
+                    .frigyCard(cornerRadius: 18)
+                    .padding(.horizontal, 20)
+
+                    Spacer().frame(height: 40)
+                }
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
