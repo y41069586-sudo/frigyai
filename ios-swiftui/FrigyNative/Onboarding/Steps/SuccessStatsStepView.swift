@@ -71,7 +71,7 @@ struct SuccessStatsStepView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }

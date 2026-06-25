@@ -80,7 +80,7 @@ struct AccountCreationStepView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(.white)
+                        .background(Color(UIColor.systemBackground))
                         .foregroundColor(FrigyBrand.text)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .overlay(
@@ -102,7 +102,7 @@ struct AccountCreationStepView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
-                        .background(.white)
+                        .background(Color(UIColor.systemBackground))
                         .foregroundColor(FrigyBrand.text)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .overlay(

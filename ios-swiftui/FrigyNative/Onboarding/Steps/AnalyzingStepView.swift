@@ -155,7 +155,7 @@ struct AnalyzingStepView: View {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(.white)
+                        .fill(Color(UIColor.systemBackground))
                         .shadow(color: FrigyBrand.primaryDark.opacity(0.07), radius: 14, y: 5)
                 )
                 .overlay(

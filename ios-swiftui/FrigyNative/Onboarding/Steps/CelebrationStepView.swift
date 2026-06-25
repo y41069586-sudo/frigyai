@@ -69,7 +69,7 @@ struct CelebrationStepView: View {
 
                     // White circle backdrop
                     Circle()
-                        .fill(.white)
+                        .fill(Color(UIColor.systemBackground))
                         .frame(width: 108, height: 108)
                         .shadow(color: FrigyBrand.primaryDark.opacity(0.18), radius: 28, y: 10)
 

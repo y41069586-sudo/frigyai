@@ -95,7 +95,7 @@ struct SpeedSelectStepView: View {
                             .animation(.easeInOut(duration: 0.3), value: pct)
 
                         Circle()
-                            .fill(.white)
+                            .fill(Color(UIColor.systemBackground))
                             .frame(width: 106, height: 106)
                             .shadow(color: paceColor(pct).opacity(0.3), radius: 18, y: 6)
                             .animation(.easeInOut(duration: 0.3), value: pct)
@@ -159,7 +159,7 @@ struct SpeedSelectStepView: View {
                 .padding(.vertical, 20)
                 .background(
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(.white)
+                        .fill(Color(UIColor.systemBackground))
                         .shadow(color: FrigyBrand.primaryDark.opacity(0.08), radius: 16, y: 6)
                 )
                 .overlay(
@@ -282,7 +282,7 @@ private struct PaceSlider: View {
                 // Thumb
                 ZStack {
                     Circle()
-                        .fill(.white)
+                        .fill(Color(UIColor.systemBackground))
                         .frame(width: thumbSize, height: thumbSize)
                         .shadow(color: color(Double(p)).opacity(isActive ? 0.5 : 0.3),
                                 radius: isActive ? 12 : 6, y: isActive ? 4 : 2)

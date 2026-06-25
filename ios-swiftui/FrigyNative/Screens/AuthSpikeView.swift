@@ -111,7 +111,7 @@ struct AuthSpikeView: View {
                         .foregroundColor(Color(hex: "#374151"))
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(.white)
+                        .background(Color(UIColor.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .overlay(
                             RoundedRectangle(cornerRadius: 18)

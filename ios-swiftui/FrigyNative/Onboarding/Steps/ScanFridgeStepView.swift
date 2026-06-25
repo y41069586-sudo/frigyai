@@ -89,7 +89,7 @@ struct ScanFridgeStepView: View {
             // Camera box (floating)
             ZStack {
                 RoundedRectangle(cornerRadius: 40)
-                    .fill(.white)
+                    .fill(Color(UIColor.systemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: 40)
                             .stroke(FrigyBrand.cardBorder, lineWidth: 1.5)

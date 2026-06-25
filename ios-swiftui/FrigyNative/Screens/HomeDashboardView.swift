@@ -367,7 +367,7 @@ struct HomeDashboardView: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 ZStack {
-                    Circle().fill(.white).frame(width: 30, height: 30)
+                    Circle().fill(Color(UIColor.systemBackground)).frame(width: 30, height: 30)
                     Image(systemName: icon)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(color)

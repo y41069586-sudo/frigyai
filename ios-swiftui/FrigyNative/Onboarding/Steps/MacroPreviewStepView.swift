@@ -171,7 +171,7 @@ struct MacroPreviewStepView: View {
         .padding(.bottom, 8)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.white)
+                .fill(Color(UIColor.systemBackground))
                 .shadow(color: FrigyBrand.primaryDark.opacity(0.08), radius: 18, y: 7)
         )
         .overlay(
@@ -228,7 +228,7 @@ struct MacroPreviewStepView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.white)
+                .fill(Color(UIColor.systemBackground))
                 .shadow(color: FrigyBrand.primaryDark.opacity(0.06), radius: 12, y: 4)
         )
         .overlay(
@@ -387,7 +387,7 @@ private struct MacroEditorSheet: View {
                 .frame(width: 36, alignment: .leading)
         }
         .padding(14)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -448,7 +448,7 @@ private struct MacroSourcesCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }

@@ -293,7 +293,7 @@ struct MintSegmentedControl: View {
                         .background {
                             if active {
                                 RoundedRectangle(cornerRadius: 11)
-                                    .fill(.white)
+                                    .fill(Color(UIColor.systemBackground))
                                     .shadow(color: FrigyBrand.primaryDark.opacity(0.18), radius: 8, y: 3)
                                     .matchedGeometryEffect(id: "pill", in: pillNS)
                             }

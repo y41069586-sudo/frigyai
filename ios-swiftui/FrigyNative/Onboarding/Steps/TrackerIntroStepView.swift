@@ -79,7 +79,7 @@ struct TrackerIntroStepView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }

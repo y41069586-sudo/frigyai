@@ -129,7 +129,7 @@ struct WeeklyPlanPreviewStepView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 22)
-                .fill(.white)
+                .fill(Color(UIColor.systemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 22)
                         .stroke(FrigyBrand.cardBorder, lineWidth: 1)

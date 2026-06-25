@@ -69,7 +69,7 @@ struct BodyBasicsStepView: View {
             Spacer()
         }
         .padding(12)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }

@@ -119,7 +119,7 @@ struct CameraPermissionStepView: View {
             Spacer()
         }
         .padding(14)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }

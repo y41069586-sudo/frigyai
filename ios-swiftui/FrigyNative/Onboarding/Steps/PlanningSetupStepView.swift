@@ -75,7 +75,7 @@ struct PlanningSetupStepView: View {
             }
         }
         .padding(12)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(done ? FrigyBrand.borderMint : FrigyBrand.cardBorder, lineWidth: 1))
     }

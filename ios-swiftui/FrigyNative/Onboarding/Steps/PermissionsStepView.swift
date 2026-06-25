@@ -75,7 +75,7 @@ struct PermissionsStepView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.white)
+        .background(Color(UIColor.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.cardBorder, lineWidth: 1))
     }

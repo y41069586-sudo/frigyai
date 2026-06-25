@@ -60,7 +60,7 @@ struct TutorialTransitionStepView: View {
                                 .clipShape(Circle())
                         }
                         .padding(14)
-                        .background(.white)
+                        .background(Color(UIColor.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.cardBorder, lineWidth: 1))
                     }
