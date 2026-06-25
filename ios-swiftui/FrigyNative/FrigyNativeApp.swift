@@ -4,7 +4,6 @@ import SwiftUI
 struct FrigyNativeApp: App {
     @State private var router = AppRouter()
     @State private var theme = ThemeManager.shared
-    @State private var showThemePrompt = !ThemeManager.shared.hasChosen
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -18,11 +17,6 @@ struct FrigyNativeApp: App {
                 .environment(router.tabCoordinator)
                 .environment(theme)
                 .preferredColorScheme(theme.colorScheme)
-                .fullScreenCover(isPresented: $showThemePrompt) {
-                    ThemeChoiceView { showThemePrompt = false }
-                        .environment(theme)
-                        .preferredColorScheme(theme.colorScheme)
-                }
                 .task {
                     await router.bootstrap()
                 }

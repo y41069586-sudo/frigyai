@@ -65,8 +65,15 @@ final class ThemeManager {
 
     init() {
         let raw = UserDefaults.standard.string(forKey: Self.key)
-        self.preference = raw.flatMap(ThemePreference.init(rawValue:)) ?? .system
-        self.hasChosen = UserDefaults.standard.bool(forKey: Self.chosenKey)
+        if let raw, let pref = ThemePreference(rawValue: raw) {
+            self.preference = pref
+            self.hasChosen = UserDefaults.standard.bool(forKey: Self.chosenKey)
+        } else {
+            // No stored preference: default to light mode and treat as chosen so no
+            // popup is ever shown to users who skipped or never saw the theme step.
+            self.preference = .light
+            self.hasChosen = true
+        }
     }
 
     /// Apply a choice and mark the onboarding prompt as resolved.
