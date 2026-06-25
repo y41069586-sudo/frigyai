@@ -1,6 +1,5 @@
 import SwiftUI
 import UserNotifications
-import HealthKit
 
 // MARK: - Model
 
