@@ -134,7 +134,7 @@ struct ReferralCodeStepView: View {
                         .background(FrigyBrand.primary)
                         .disabled(isDisabled)
                     }
-                    .background(Color.white)
+                    .background(Color(UIColor.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 25))
                     .overlay(
                         RoundedRectangle(cornerRadius: 25)

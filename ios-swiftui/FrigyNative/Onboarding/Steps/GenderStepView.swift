@@ -43,7 +43,7 @@ struct GenderStepView: View {
                 HStack(spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 5)
-                            .fill(draft.gender == "non-binary" ? FrigyBrand.primary : Color.white)
+                            .fill(draft.gender == "non-binary" ? FrigyBrand.primary : Color(UIColor.systemBackground))
                             .frame(width: 20, height: 20)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 5)
