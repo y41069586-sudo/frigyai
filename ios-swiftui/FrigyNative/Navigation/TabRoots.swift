@@ -2288,34 +2288,18 @@ struct EditProfileView: View {
                     // Goal
                     profileSection(title: "ZIEL") {
                         HStack(spacing: 8) {
-                            ForEach([("lose","Abnehmen"), ("maintain","Halten"), ("gain","Zunehmen")], id: \.0) { id, label in
-                                Button { draft.goalMode = id } label: {
-                                    Text(label)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(draft.goalMode == id ? .white : FrigyBrand.text)
-                                        .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                        .background(draft.goalMode == id ? FrigyBrand.primaryDark : Color(UIColor.secondarySystemBackground))
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                }
-                                .buttonStyle(.plain)
-                            }
+                            segmentButton(label: "Abnehmen", isSelected: draft.goalMode == "lose") { draft.goalMode = "lose" }
+                            segmentButton(label: "Halten", isSelected: draft.goalMode == "maintain") { draft.goalMode = "maintain" }
+                            segmentButton(label: "Zunehmen", isSelected: draft.goalMode == "gain") { draft.goalMode = "gain" }
                         }
                     }
 
                     // Activity
                     profileSection(title: "AKTIVITÄTSLEVEL") {
                         HStack(spacing: 8) {
-                            ForEach([("low","Wenig"), ("medium","Mittel"), ("high","Viel")], id: \.0) { id, label in
-                                Button { draft.activityLevel = id } label: {
-                                    Text(label)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(draft.activityLevel == id ? .white : FrigyBrand.text)
-                                        .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                        .background(draft.activityLevel == id ? FrigyBrand.primaryDark : Color(UIColor.secondarySystemBackground))
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                }
-                                .buttonStyle(.plain)
-                            }
+                            segmentButton(label: "Wenig", isSelected: draft.activityLevel == "low") { draft.activityLevel = "low" }
+                            segmentButton(label: "Mittel", isSelected: draft.activityLevel == "medium") { draft.activityLevel = "medium" }
+                            segmentButton(label: "Viel", isSelected: draft.activityLevel == "high") { draft.activityLevel = "high" }
                         }
                     }
 
@@ -2394,6 +2378,21 @@ struct EditProfileView: View {
                 .foregroundColor(FrigyBrand.textMuted)
             content()
         }
+    }
+
+    private func segmentButton(label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        let fg: Color = isSelected ? .white : FrigyBrand.text
+        let bg: Color = isSelected ? FrigyBrand.primaryDark : Color(UIColor.secondarySystemBackground)
+        return Button(action: action) {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(fg)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(bg)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 
     private func stepperRow(label: String, value: Int, range: ClosedRange<Int>, onChange: @escaping (Int) -> Void) -> some View {
