@@ -2097,7 +2097,7 @@ struct MealPlanPreferencesView: View {
 struct ImpressumView: View {
     private let sections: [(icon: String, color: String, title: String, text: String)] = [
         ("building.2.fill",           "#60B4FF", "Anbieter",
-         "Frigy\nDeutschland"),
+         "Doaa Attia\nWilhelm-Diess-Weg 3a\n94081 Fürstenzell\nDeutschland"),
         ("envelope.fill",             "#34D399", "Kontakt",
          "E-Mail: support@frigy.app\nWebsite: app.frigy.app"),
         ("exclamationmark.circle.fill","#FBBF24", "Haftungsausschluss",
