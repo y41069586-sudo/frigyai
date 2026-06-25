@@ -1,6 +1,9 @@
 import SwiftUI
 import UserNotifications
 import AVFoundation
+#if canImport(HealthKit)
+import HealthKit
+#endif
 
 struct PermissionsStepView: View {
     let step: OnboardingStep
@@ -39,7 +42,7 @@ struct PermissionsStepView: View {
                     permissionRow("Mahlzeit-Erinnerungen", icon: "fork.knife")
                     permissionRow("Fortschritts-Updates", icon: "chart.line.uptrend.xyaxis")
                     permissionRow("Kamera & Barcode-Scan", icon: "camera.fill")
-                    permissionRow("Wöchentliche Berichte", icon: "chart.bar.fill")
+                    permissionRow("Gesundheits-App verbinden", icon: "heart.fill")
                 }
                 .padding(.horizontal, 24)
             }
@@ -85,6 +88,7 @@ struct PermissionsStepView: View {
             _ = try? await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .badge, .sound])
             _ = await AVCaptureDevice.requestAccess(for: .video)
+            await HealthKitService.shared.requestAuthorization()
             await MainActor.run { onNext() }
         }
     }
