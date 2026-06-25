@@ -597,12 +597,29 @@ final class TrackerDataService {
 
     // MARK: - Ingredient analysis (analyze-ingredients edge function)
 
-    func analyzeIngredients(imageDataURL: String) async -> [String] {
+    /// Outcome of a single fridge-photo scan. `errorMessage` is non-nil only when
+    /// the scan could not run at all (premium required, auth, network) — that lets
+    /// the UI explain why nothing was detected instead of silently going blank.
+    struct IngredientScanResult {
+        let ingredients: [String]
+        let errorMessage: String?
+
+        static func success(_ items: [String]) -> IngredientScanResult {
+            IngredientScanResult(ingredients: items, errorMessage: nil)
+        }
+        static func failure(_ message: String) -> IngredientScanResult {
+            IngredientScanResult(ingredients: [], errorMessage: message)
+        }
+    }
+
+    func analyzeIngredients(imageDataURL: String) async -> IngredientScanResult {
         #if canImport(Supabase)
         guard SupabaseConfig.isConfigured,
               let base = SupabaseConfig.urlString,
               let anonKey = SupabaseConfig.anonKey,
-              let url = URL(string: "\(base)/functions/v1/analyze-ingredients") else { return [] }
+              let url = URL(string: "\(base)/functions/v1/analyze-ingredients") else {
+            return .failure("Keine Verbindung zum Server.")
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -616,17 +633,31 @@ final class TrackerDataService {
         }
 
         let body: [String: Any] = ["image": imageDataURL, "isOnboarding": false]
-        guard let payload = try? JSONSerialization.data(withJSONObject: body) else { return [] }
+        guard let payload = try? JSONSerialization.data(withJSONObject: body) else {
+            return .failure("Bild konnte nicht gesendet werden.")
+        }
         request.httpBody = payload
 
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              (response as? HTTPURLResponse)?.statusCode == 200 else { return [] }
+        guard let (data, response) = try? await URLSession.shared.data(for: request) else {
+            return .failure("Keine Verbindung – bitte Internet prüfen.")
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else {
+            switch status {
+            case 401:      return .failure("Bitte melde dich an, um Zutaten zu erkennen.")
+            case 403:      return .failure("Zutaten-Erkennung ist eine Premium-Funktion.")
+            case 429:      return .failure("Zu viele Anfragen – bitte kurz warten und erneut versuchen.")
+            default:       return .failure("Erkennung fehlgeschlagen (Fehler \(status)).")
+            }
+        }
 
         struct IngredientsResponse: Decodable { let ingredients: [String] }
-        guard let decoded = try? JSONDecoder().decode(IngredientsResponse.self, from: data) else { return [] }
-        return decoded.ingredients
+        guard let decoded = try? JSONDecoder().decode(IngredientsResponse.self, from: data) else {
+            return .failure("Antwort konnte nicht gelesen werden.")
+        }
+        return .success(decoded.ingredients)
         #else
-        return []
+        return .failure("Nicht verfügbar.")
         #endif
     }
 

@@ -112,7 +112,7 @@ struct OnboardingBackButton: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(FrigyBrand.primaryDark)
                 .frame(width: 40, height: 40)
-                .background(Color.white.opacity(0.8))
+                .background(Color(UIColor.secondarySystemBackground))
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
         }

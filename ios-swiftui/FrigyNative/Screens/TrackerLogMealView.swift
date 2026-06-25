@@ -119,24 +119,41 @@ struct TrackerLogMealView: View {
         .task { await loadFoods() }
         .onChange(of: searchText) { _, newVal in
             searchTask?.cancel()
-            if newVal.count >= 2 {
-                searchTask = Task {
-                    isSearching = true
-                    try? await Task.sleep(nanoseconds: 600_000_000)
-                    guard !Task.isCancelled else { return }
-                    let results = await searchFood(query: newVal)
-                    guard !Task.isCancelled else { return }
-                    // Smooth iOS blur-in as results materialize.
-                    withAnimation(.smooth(duration: 0.45)) {
-                        searchResults = results
-                        isSearching = false
-                    }
-                }
-            } else {
+            let query = newVal.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard query.count >= 1 else {
                 withAnimation(.smooth(duration: 0.3)) {
                     searchResults = []
                     isSearching = false
                 }
+                return
+            }
+
+            // 1) Instant local results — no network, shown on every keystroke.
+            let local = FoodDatabase.search(query).map { item in
+                RecentFood(id: "db-\(item.name)", name: item.name,
+                           calories: item.calories, protein: item.protein,
+                           carbs: item.carbs, fat: item.fat)
+            }
+            searchResults = local
+
+            // 2) AI fallback only when the local DB has little/nothing to offer,
+            //    and only after a short debounce so we don't fire on every key.
+            if local.count < 3 && query.count >= 3 {
+                searchTask = Task {
+                    isSearching = true
+                    try? await Task.sleep(nanoseconds: 450_000_000)
+                    guard !Task.isCancelled else { return }
+                    let ai = await searchFood(query: query)
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.smooth(duration: 0.4)) {
+                        // Merge AI hits, dropping any duplicate of a local name.
+                        let existing = Set(searchResults.map { $0.name.lowercased() })
+                        searchResults += ai.filter { !existing.contains($0.name.lowercased()) }
+                        isSearching = false
+                    }
+                }
+            } else {
+                isSearching = false
             }
         }
         .sheet(isPresented: $showBarcodeScanner) {

@@ -455,7 +455,7 @@ struct FrigySelectionCardBackground: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(isSelected ? FrigyBrand.selectedBg : .white)
+                    .fill(isSelected ? FrigyBrand.selectedBg : Color(UIColor.systemBackground))
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .stroke(
