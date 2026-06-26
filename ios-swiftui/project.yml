@@ -95,7 +95,7 @@ targets:
               - frigy
           - CFBundleURLName: google
             CFBundleURLSchemes:
-              - com.googleusercontent.apps.153158265512-ipemp0ksidis2gj0a22jlhkfdcdoglmc
+              - com.googleusercontent.apps.153158265512-8ookf1g41bc74527pqh66ufga6uatrlm
         UILaunchScreen: {}
         # iPhone: portrait only (food-tracking UX is vertical)
         UISupportedInterfaceOrientations:

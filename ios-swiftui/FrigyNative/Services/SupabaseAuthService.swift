@@ -164,7 +164,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func signInWithGoogle() async throws {
-        let clientID = "153158265512-ipemp0ksidis2gj0a22jlhkfdcdoglmc.apps.googleusercontent.com"
+        let clientID = "153158265512-8ookf1g41bc74527pqh66ufga6uatrlm.apps.googleusercontent.com"
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
 
         let rootVC = AuthPresentationAnchor.current().rootViewController
