@@ -18,7 +18,7 @@ struct OnboardingSkeletonView: View {
             .id(step)
             .transition(.onboardingSlide(forward: goingForward))
         }
-        .animation(.spring(response: 0.46, dampingFraction: 0.88), value: step)
+        .animation(.spring(response: 0.38, dampingFraction: 0.76), value: step)
     }
 
     // MARK: - Step routing
