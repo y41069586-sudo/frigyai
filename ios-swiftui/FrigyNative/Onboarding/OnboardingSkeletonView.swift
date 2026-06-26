@@ -375,12 +375,8 @@ private extension AnyTransition {
         let insertEdge: Edge = forward ? .trailing : .leading
         let removeEdge: Edge  = forward ? .leading  : .trailing
         return .asymmetric(
-            insertion: .move(edge: insertEdge)
-                .combined(with: .opacity)
-                .combined(with: .scale(scale: 0.93)),
-            removal: .move(edge: removeEdge)
-                .combined(with: .opacity)
-                .combined(with: .scale(scale: 0.97))
+            insertion: .move(edge: insertEdge).combined(with: .scale(scale: 0.93)),
+            removal: .move(edge: removeEdge).combined(with: .scale(scale: 0.97))
         )
     }
 }
