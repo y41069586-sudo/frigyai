@@ -5,7 +5,7 @@ enum RevenueCatConfig {
     static var apiKey: String? {
         guard let key = Bundle.main.object(forInfoDictionaryKey: "REVENUECAT_API_KEY") as? String,
               !key.isEmpty,
-              key.hasPrefix("appl_") else { return nil }
+              (key.hasPrefix("appl_") || key.hasPrefix("test_")) else { return nil }
         return key
     }
 

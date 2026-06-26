@@ -33,7 +33,9 @@ function alignPlanIngredientsToTitles(
       const need = titleParts.length >= 2 ? 2 : 1;
       if (matched >= need) return meal;
       const slot = mealSlot(si, mealsPerDay);
-      return buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      const rebuilt = buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      // Preserve AI-provided macros — only the ingredient list is being fixed.
+      return { ...rebuilt, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, calories: meal.calories };
     }),
   }));
 }

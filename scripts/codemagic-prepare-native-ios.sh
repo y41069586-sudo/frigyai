@@ -36,7 +36,9 @@ APP_WEB_HOST="${VITE_APP_WEB_HOST:-${APP_WEB_HOST:-app.frigy.app}}"
 OAUTH_SCHEME="${OAUTH_REDIRECT_SCHEME:-frigy}"
 OAUTH_HOST="${OAUTH_CALLBACK_HOST:-callback}"
 # RevenueCat (optional — paywall falls back to default prices when unset).
+# Accept either VITE_REVENUECAT_API_KEY_IOS or bare REVENUECAT_API_KEY (Codemagic group variable).
 REVENUECAT_API_KEY="${VITE_REVENUECAT_API_KEY_IOS:-${REVENUECAT_API_KEY:-}}"
+# Accept either VITE_REVENUECAT_ENTITLEMENT_ID or bare REVENUECAT_ENTITLEMENT_ID.
 REVENUECAT_ENTITLEMENT="${VITE_REVENUECAT_ENTITLEMENT_ID:-${REVENUECAT_ENTITLEMENT_ID:-premium}}"
 # Paywall bypass test emails (optional — empty means no bypass, paywall active for all).
 PAYWALL_BYPASS_EMAILS="${PAYWALL_BYPASS_EMAILS:-}"
