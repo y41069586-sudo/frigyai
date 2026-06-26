@@ -24,6 +24,8 @@ struct TrackerLogMealView: View {
     @State private var searchTask: Task<Void, Never>? = nil
     @State private var showCamera = false
     @State private var isAnalyzingPhoto = false
+    @State private var capturedImage: UIImage?
+    @State private var showPhotoPreview = false
     @State private var selectedTemplate: FoodTemplate?
 
     var body: some View {
@@ -86,8 +88,8 @@ struct TrackerLogMealView: View {
                     // Scan options: photo (OpenAI) + barcode
                     HStack(spacing: 12) {
                         scanCard(icon: "camera.fill", title: "Essen scannen",
-                                 subtitle: isAnalyzingPhoto ? "Analysiere…" : "Foto mit KI",
-                                 tint: "#39D47F", busy: isAnalyzingPhoto) {
+                                 subtitle: "Foto mit KI",
+                                 tint: "#39D47F", busy: false) {
                             showCamera = true
                         }
                         scanCard(icon: "barcode.viewfinder", title: "Barcode",
@@ -166,9 +168,28 @@ struct TrackerLogMealView: View {
         .sheet(isPresented: $showCamera) {
             FoodCameraView { image in
                 showCamera = false
-                if let image { Task { await analyzePhoto(image) } }
+                if let image {
+                    capturedImage = image
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        showPhotoPreview = true
+                    }
+                }
             }
             .ignoresSafeArea()
+        }
+        .sheet(isPresented: $showPhotoPreview) {
+            if let img = capturedImage {
+                FoodPhotoPreviewSheet(image: img) { food in
+                    showPhotoPreview = false
+                    prefillFood = food
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showManualEntry = true
+                    }
+                } onCancel: {
+                    showPhotoPreview = false
+                    capturedImage = nil
+                }
+            }
         }
         .sheet(isPresented: $showManualEntry) {
             ManualFoodEntrySheet(
@@ -908,6 +929,163 @@ struct FoodCameraView: UIViewControllerRepresentable {
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             onCapture(nil)
+        }
+    }
+}
+
+// MARK: - Food photo preview sheet
+
+struct FoodPhotoPreviewSheet: View {
+    let image: UIImage
+    let onResult: (ScannedFood) -> Void
+    let onCancel: () -> Void
+
+    @State private var isAnalyzing = false
+    @State private var errorMessage: String?
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: onCancel) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("Abbrechen")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(Color.white.opacity(0.15)))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isAnalyzing)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal, 16)
+                    .shadow(color: .black.opacity(0.4), radius: 12, y: 4)
+
+                Spacer()
+
+                VStack(spacing: 12) {
+                    if let err = errorMessage {
+                        Text(err)
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "#FCA5A5"))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                    Button {
+                        Task { await analyze() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("KI Analyse starten")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .foregroundColor(Color(hex: "#082013"))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: FrigyBrand.primary.opacity(0.4), radius: 12, y: 4)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isAnalyzing)
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 40)
+            }
+
+            if isAnalyzing {
+                analyzeOverlay
+                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isAnalyzing)
+    }
+
+    private var analyzeOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.6).ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                ZStack {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 90, height: 90)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .blur(radius: 1)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(FrigyBrand.primary, lineWidth: 2.5)
+                        )
+
+                    Circle()
+                        .trim(from: 0, to: 0.7)
+                        .stroke(
+                            AngularGradient(colors: [FrigyBrand.primary.opacity(0), FrigyBrand.primary],
+                                            center: .center),
+                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
+                        )
+                        .frame(width: 114, height: 114)
+                        .rotationEffect(.degrees(rotation))
+                        .onAppear {
+                            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                                rotation = 360
+                            }
+                        }
+                }
+
+                VStack(spacing: 6) {
+                    Text("KI analysiert dein Essen…")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Kalorien und Makros werden erkannt")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 24)
+                        .stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
+            )
+            .padding(.horizontal, 48)
+        }
+    }
+
+    private func analyze() async {
+        guard let jpeg = image.jpegData(compressionQuality: 0.65) else { return }
+        isAnalyzing = true
+        errorMessage = nil
+        let base64 = jpeg.base64EncodedString()
+        if let food = await TrackerDataService.shared.analyzeFood(imageBase64: base64) {
+            isAnalyzing = false
+            onResult(ScannedFood(barcode: "", name: food.name, calories: food.calories,
+                                 protein: food.protein, carbs: food.carbs, fat: food.fat))
+        } else {
+            isAnalyzing = false
+            errorMessage = "Erkennung fehlgeschlagen – bitte erneut versuchen."
         }
     }
 }

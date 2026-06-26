@@ -146,6 +146,12 @@ struct MealPlansView: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toastMessage)
+        .overlay {
+            if isGenerating {
+                PlanGeneratingOverlay()
+                    .transition(.opacity.animation(.easeInOut(duration: 0.25)))
+            }
+        }
         .sheet(item: $selectedTemplate) { tpl in
             FoodTemplateDetailSheet(template: tpl, category: .lunch) { }
         }
@@ -452,6 +458,86 @@ struct MealPlansView: View {
             bannerMessage = "Plan konnte nicht erstellt werden. Premium erforderlich oder Verbindung prüfen."
         }
         isGenerating = false
+    }
+}
+
+// MARK: - Plan generating overlay
+
+private struct PlanGeneratingOverlay: View {
+    @State private var rotation: Double = 0
+    @State private var dotPhase: Int = 0
+    private let dots = ["●○○", "○●○", "○○●"]
+    private let tips = [
+        "Deine Ernährungsziele werden berücksichtigt…",
+        "Proteinreiche Mahlzeiten werden ausgewählt…",
+        "Mahlzeiten werden auf die Woche verteilt…",
+        "Nährwerte werden berechnet…",
+    ]
+    @State private var tipIndex: Int = 0
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                ZStack {
+                    Circle()
+                        .stroke(FrigyBrand.primary.opacity(0.2), lineWidth: 4)
+                        .frame(width: 72, height: 72)
+                    Circle()
+                        .trim(from: 0, to: 0.7)
+                        .stroke(
+                            AngularGradient(
+                                colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                center: .center
+                            ),
+                            style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                        )
+                        .frame(width: 72, height: 72)
+                        .rotationEffect(.degrees(rotation))
+                        .onAppear {
+                            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                                rotation = 360
+                            }
+                        }
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundColor(FrigyBrand.primary)
+                }
+
+                VStack(spacing: 8) {
+                    Text("Wochenplan wird erstellt")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(tips[tipIndex])
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 260)
+                        .id(tipIndex)
+                        .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+                }
+            }
+            .padding(32)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(FrigyBrand.primary.opacity(0.25), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 40)
+        }
+        .onAppear {
+            let timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
+                withAnimation {
+                    tipIndex = (tipIndex + 1) % tips.count
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+        }
     }
 }
 

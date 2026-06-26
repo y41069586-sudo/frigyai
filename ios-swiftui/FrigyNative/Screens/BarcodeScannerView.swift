@@ -23,6 +23,7 @@ struct BarcodeScannerView: View {
     @State private var statusMessage: String?
     @State private var lastScanned: String?
     @State private var cameraStatus = CameraStatus.checking
+    @State private var scanLineOffset: CGFloat = -50
 
     enum CameraStatus { case checking, ready, denied }
 
@@ -78,8 +79,27 @@ struct BarcodeScannerView: View {
 
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.85), lineWidth: 2.5)
+                    .stroke(isLookingUp ? FrigyBrand.primary : Color.white.opacity(0.85), lineWidth: 2.5)
                     .frame(width: 280, height: 130)
+                    .animation(.easeInOut(duration: 0.3), value: isLookingUp)
+
+                if !isLookingUp {
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [FrigyBrand.primary.opacity(0), FrigyBrand.primary, FrigyBrand.primary.opacity(0)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: 260, height: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: 1))
+                        .offset(y: scanLineOffset)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                                scanLineOffset = 50
+                            }
+                        }
+                }
 
                 if isLookingUp {
                     ZStack {
@@ -98,17 +118,30 @@ struct BarcodeScannerView: View {
             }
 
             if let msg = statusMessage {
-                Text(msg)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
+                VStack(spacing: 10) {
+                    Text(msg)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.black.opacity(0.65))
+                        .clipShape(Capsule())
+                    Button("Manuell eingeben") {
+                        onResult(ScannedFood(barcode: lastScanned ?? "", name: "", calories: 0,
+                                             protein: 0, carbs: 0, fat: 0))
+                        dismiss()
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(FrigyBrand.primary)
+                    .padding(.horizontal, 20)
                     .padding(.vertical, 8)
-                    .background(Color.black.opacity(0.65))
-                    .clipShape(Capsule())
-                    .padding(.top, 14)
+                    .background(Capsule().fill(FrigyBrand.primary.opacity(0.18)))
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 14)
             }
 
-            Text("Halte den Barcode in den Rahmen")
+            Text(isLookingUp ? "" : "Halte den Barcode in den Rahmen")
                 .font(.system(size: 14))
                 .foregroundColor(.white.opacity(0.75))
                 .padding(.top, 14)
@@ -178,6 +211,7 @@ struct BarcodeScannerView: View {
             lookupPhase = 0
 
             if let result {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
                 onResult(result)
                 dismiss()
             } else {

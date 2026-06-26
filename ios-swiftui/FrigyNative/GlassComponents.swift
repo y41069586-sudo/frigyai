@@ -393,7 +393,6 @@ struct FrigyNavBar: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
