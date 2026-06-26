@@ -73,9 +73,12 @@ rm -rf FrigyNative.xcodeproj 2>/dev/null || true
 # the key in varying formats that the post-generation sed may not match).
 _build_floor="${IOS_BUILD_NUMBER:-1}"
 _cm_num="${CM_BUILD_NUMBER:-0}"
-if [ "$_cm_num" -gt "$_build_floor" ]; then
-  _build_floor="$_cm_num"
-fi
+# Also treat the value already committed in project.yml as a floor so a manually
+# bumped version is never downgraded by a stale IOS_BUILD_NUMBER env var.
+_yml_version="$(grep 'CURRENT_PROJECT_VERSION:' "$NATIVE_DIR/project.yml" | grep -oE '[0-9]+$' || echo 1)"
+for _v in "$_yml_version" "$_cm_num"; do
+  if [ "$_v" -gt "$_build_floor" ]; then _build_floor="$_v"; fi
+done
 echo "Patching CURRENT_PROJECT_VERSION → $_build_floor in project.yml"
 if [ "$(uname -s)" = "Darwin" ]; then
   sed -i '' "s/CURRENT_PROJECT_VERSION: [0-9]*/CURRENT_PROJECT_VERSION: ${_build_floor}/" "$NATIVE_DIR/project.yml"
