@@ -301,6 +301,13 @@ struct TrackerLogMealView: View {
                     ForEach(recentFoods) { food in
                         foodRow(food)
                             .padding(.horizontal, 16)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    Task { await deleteRecentFood(food) }
+                                } label: {
+                                    Label("Löschen", systemImage: "trash")
+                                }
+                            }
                     }
                 }
             }
@@ -409,6 +416,11 @@ struct TrackerLogMealView: View {
         isLoading = true
         recentFoods = await TrackerDataService.shared.loadRecentFoods()
         isLoading = false
+    }
+
+    private func deleteRecentFood(_ food: RecentFood) async {
+        recentFoods.removeAll { $0.id == food.id }
+        _ = await TrackerDataService.shared.deleteFoodEntry(id: food.id)
     }
 
     /// Search via the app's own analyze-food edge function (OpenAI), not Open Food Facts.

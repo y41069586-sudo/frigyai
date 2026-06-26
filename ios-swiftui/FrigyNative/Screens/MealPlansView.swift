@@ -50,6 +50,7 @@ struct MealPlansView: View {
 
     @State private var weekPlan: [DayPlan] = Self.loadSavedPlan()
     @State private var isGenerating = false
+    @State private var planProgress: Double = 0
     @State private var bannerMessage: String?
     @State private var bannerIsError = false
     @State private var eatenMealIDs: Set<UUID> = []
@@ -148,7 +149,7 @@ struct MealPlansView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: toastMessage)
         .overlay {
             if isGenerating {
-                PlanGeneratingOverlay()
+                PlanGeneratingOverlay(progress: planProgress)
                     .transition(.opacity.animation(.easeInOut(duration: 0.25)))
             }
         }
@@ -415,7 +416,25 @@ struct MealPlansView: View {
 
     private func generatePlan() async {
         isGenerating = true
+        planProgress = 0.05
         bannerMessage = nil
+
+        // Slowly tick progress while the API call is in flight (0.05 → 0.85 over ~40s).
+        // Snaps to 1.0 once the call returns.
+        let ticker = Task {
+            let steps = 40
+            for i in 1...steps {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                let t = Double(i) / Double(steps)
+                await MainActor.run {
+                    withAnimation(.linear(duration: 0.8)) {
+                        planProgress = 0.05 + t * 0.80   // 0.05 → 0.85
+                    }
+                }
+            }
+        }
+
         let targets = await TrackerDataService.shared.loadTargets()
         let profile = Self.loadProfileDraft()
         if let generatedDays = await TrackerDataService.shared.generateMealPlan(
@@ -445,6 +464,9 @@ struct MealPlansView: View {
                 return DayPlan(weekday: existing.weekday, shortDay: existing.shortDay,
                                isToday: existing.isToday, meals: meals)
             }
+            ticker.cancel()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { planProgress = 1.0 }
+            try? await Task.sleep(nanoseconds: 400_000_000)
             eatenMealIDs = []
             savePlan()
             bannerIsError = false
@@ -454,24 +476,28 @@ struct MealPlansView: View {
                 bannerMessage = nil
             }
         } else {
+            ticker.cancel()
             bannerIsError = true
             bannerMessage = "Plan konnte nicht erstellt werden. Premium erforderlich oder Verbindung prüfen."
         }
         isGenerating = false
+        planProgress = 0
     }
 }
 
 // MARK: - Plan generating overlay
 
 private struct PlanGeneratingOverlay: View {
-    @State private var rotation: Double = 0
+    let progress: Double   // 0.0 → 1.0 from generatePlan()
+
     private let tips = [
         "Deine Ernährungsziele werden berücksichtigt…",
         "Proteinreiche Mahlzeiten werden ausgewählt…",
         "Mahlzeiten werden auf die Woche verteilt…",
         "Nährwerte werden berechnet…",
     ]
-    @State private var tipIndex: Int = 0
+    // Tip index driven by progress: 0–24% tip0, 25–49% tip1, etc.
+    private var tipIndex: Int { min(3, Int(progress * 4)) }
 
     var body: some View {
         ZStack {
@@ -479,30 +505,9 @@ private struct PlanGeneratingOverlay: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {
-                ZStack {
-                    Circle()
-                        .stroke(FrigyBrand.primary.opacity(0.2), lineWidth: 4)
-                        .frame(width: 72, height: 72)
-                    Circle()
-                        .trim(from: 0, to: 0.7)
-                        .stroke(
-                            AngularGradient(
-                                colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                center: .center
-                            ),
-                            style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                        )
-                        .frame(width: 72, height: 72)
-                        .rotationEffect(.degrees(rotation))
-                        .onAppear {
-                            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
-                                rotation = 360
-                            }
-                        }
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(FrigyBrand.primary)
-                }
+                Image(systemName: "sparkles")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundColor(FrigyBrand.primary)
 
                 VStack(spacing: 8) {
                     Text("Wochenplan wird erstellt")
@@ -516,6 +521,27 @@ private struct PlanGeneratingOverlay: View {
                         .id(tipIndex)
                         .transition(.opacity.animation(.easeInOut(duration: 0.5)))
                 }
+
+                // Real progress bar
+                VStack(spacing: 6) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(FrigyBrand.primary.opacity(0.2))
+                                .frame(height: 6)
+                            Capsule()
+                                .fill(LinearGradient(
+                                    colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                    startPoint: .leading, endPoint: .trailing))
+                                .frame(width: max(8, geo.size.width * progress), height: 6)
+                        }
+                    }
+                    .frame(height: 6)
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.55))
+                }
+                .frame(maxWidth: 220)
             }
             .padding(32)
             .background(
@@ -527,17 +553,6 @@ private struct PlanGeneratingOverlay: View {
                     )
             )
             .padding(.horizontal, 40)
-        }
-        .task {
-            // Rotates the tip text every 2.5s. `.task` is auto-cancelled when the
-            // overlay disappears, so no manual Timer/invalidation is needed.
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_500_000_000)
-                guard !Task.isCancelled else { return }
-                withAnimation {
-                    tipIndex = (tipIndex + 1) % tips.count
-                }
-            }
         }
     }
 }

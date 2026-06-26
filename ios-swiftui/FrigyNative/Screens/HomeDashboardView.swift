@@ -104,6 +104,11 @@ struct HomeDashboardView: View {
     private var caloriePct: Int {
         targets.calories > 0 ? min(100, Int(Double(consumed.kcal) / Double(targets.calories) * 100)) : 0
     }
+    // Light surplus: 1–99 kcal over. Heavy: 100+ kcal over.
+    private var isLightSurplus: Bool { isOverBudget && surplus < 100 }
+    private var surplusColor: Color {
+        isLightSurplus ? Color(hex: "#F97316") : Color(hex: "#EF4444")
+    }
 
     private var loggedCategories: Set<MealCategory> { Set(meals.map(\.category)) }
 
@@ -306,17 +311,17 @@ struct HomeDashboardView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(isOverBudget ? "+\(fmt(surplus))" : fmt(remaining))
                         .font(.system(size: 44, weight: .black, design: .rounded))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : FrigyBrand.text)
+                        .foregroundColor(isOverBudget ? surplusColor : FrigyBrand.text)
                         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isOverBudget)
                     Text("kcal")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : FrigyBrand.text)
+                        .foregroundColor(isOverBudget ? surplusColor : FrigyBrand.text)
                 }
                 Text(isOverBudget
                      ? "über dem Tagesziel von \(fmt(targets.calories)) kcal"
                      : "übrig von \(fmt(targets.calories)) kcal")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : FrigyBrand.textMuted)
+                    .foregroundColor(isOverBudget ? surplusColor.opacity(0.75) : FrigyBrand.textMuted)
             }
 
             // Progress bar
@@ -324,12 +329,15 @@ struct HomeDashboardView: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(isOverBudget ? Color(hex: "#FEE2E2") : FrigyBrand.primary.opacity(0.18))
+                            .fill(isOverBudget
+                                  ? surplusColor.opacity(0.15)
+                                  : FrigyBrand.primary.opacity(0.18))
                             .frame(height: 8)
                         Capsule()
                             .fill(isOverBudget
-                                  ? LinearGradient(colors: [Color(hex: "#FCA5A5"), Color(hex: "#EF4444")],
-                                                   startPoint: .leading, endPoint: .trailing)
+                                  ? LinearGradient(
+                                        colors: [surplusColor.opacity(0.6), surplusColor],
+                                        startPoint: .leading, endPoint: .trailing)
                                   : LinearGradient(colors: [Color(hex: "#75FBB2"), Color(hex: "#39D47F")],
                                                    startPoint: .leading, endPoint: .trailing))
                             .frame(width: max(8, geo.size.width * Double(min(caloriePct, 100)) / 100), height: 8)
@@ -341,11 +349,13 @@ struct HomeDashboardView: View {
                 HStack {
                     Text("\(fmt(consumed.kcal)) Gegessen")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444").opacity(0.75) : FrigyBrand.textMuted)
+                        .foregroundColor(isOverBudget ? surplusColor.opacity(0.75) : FrigyBrand.textMuted)
                     Spacer()
-                    Text(isOverBudget ? "Überschuss!" : "\(caloriePct)%")
+                    Text(isOverBudget
+                         ? (isLightSurplus ? "Leichter Überschuss" : "Überschuss!")
+                         : "\(caloriePct)%")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(isOverBudget ? Color(hex: "#EF4444") : FrigyBrand.primaryDark)
+                        .foregroundColor(isOverBudget ? surplusColor : FrigyBrand.primaryDark)
                 }
             }
 
@@ -475,18 +485,6 @@ struct HomeDashboardView: View {
                                 }
 
                                 Spacer()
-
-                                Button {
-                                    Task { await deleteMeal(meal) }
-                                } label: {
-                                    Image(systemName: "trash.fill")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(Color(hex: "#EF4444"))
-                                        .frame(width: 32, height: 32)
-                                        .background(Circle().fill(Color(hex: "#FEF2F2")))
-                                        .contentShape(Circle())
-                                }
-                                .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
