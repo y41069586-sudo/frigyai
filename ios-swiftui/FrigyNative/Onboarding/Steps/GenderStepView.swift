@@ -28,46 +28,29 @@ struct GenderStepView: View {
 
             Spacer()
 
-            // Gender image cards
-            HStack(spacing: 16) {
-                genderCard(id: "male", imageName: "GenderMale", label: "Männlich")
-                genderCard(id: "female", imageName: "GenderFemale", label: "Weiblich")
+            // Gender selection cards — modern symbol badges (no PNGs)
+            HStack(spacing: 14) {
+                genderCard(
+                    id: "male",
+                    symbol: "♂",
+                    label: "Männlich",
+                    badgeColors: [Color(hex: "#7DD3FC"), Color(hex: "#3B82F6")]
+                )
+                genderCard(
+                    id: "female",
+                    symbol: "♀",
+                    label: "Weiblich",
+                    badgeColors: [Color(hex: "#FBCFE8"), Color(hex: "#EC4899")]
+                )
             }
-            .frame(maxWidth: 300)
+            .frame(maxWidth: 340)
             .padding(.horizontal, 20)
 
-            // Non-binary option
-            Button {
-                draft.gender = draft.gender == "non-binary" ? nil : "non-binary"
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(draft.gender == "non-binary" ? FrigyBrand.primary : Color(UIColor.systemBackground))
-                            .frame(width: 20, height: 20)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 5)
-                                    .stroke(
-                                        draft.gender == "non-binary" ? FrigyBrand.primary : FrigyBrand.cardBorder,
-                                        lineWidth: 2
-                                    )
-                            )
-                        if draft.gender == "non-binary" {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .animation(.easeInOut(duration: 0.2), value: draft.gender == "non-binary")
-
-                    Text("Non-Binär / Divers")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(FrigyBrand.text.opacity(draft.gender == "non-binary" ? 1.0 : 0.8))
-                        .tracking(-0.3)
-                }
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 24)
+            // Non-binary / diverse — full-width pill card to match the new style
+            nonBinaryCard
+                .frame(maxWidth: 340)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
 
             Spacer()
 
@@ -86,43 +69,101 @@ struct GenderStepView: View {
         }
     }
 
-    private func genderCard(id: String, imageName: String, label: String) -> some View {
+    private func genderCard(id: String, symbol: String, label: String, badgeColors: [Color]) -> some View {
         let selected = draft.gender == id
         return Button {
             draft.gender = id
         } label: {
-            VStack(spacing: 10) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                selected ? FrigyBrand.selectedBg : Color.clear,
-                                lineWidth: 3
-                            )
-                            .padding(-3)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                selected ? FrigyBrand.primary : Color.clear,
-                                lineWidth: 2
-                            )
-                            .padding(-5)
-                    )
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(colors: badgeColors,
+                                           startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .frame(width: 68, height: 68)
+                        .shadow(color: badgeColors.last!.opacity(selected ? 0.35 : 0.18),
+                                radius: selected ? 12 : 6, y: 4)
+
+                    Text(symbol)
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.white)
+                }
 
                 Text(label)
-                    .font(.system(size: 15, weight: selected ? .semibold : .medium))
-                    .foregroundColor(FrigyBrand.text.opacity(selected ? 1.0 : 0.7))
+                    .font(.system(size: 16, weight: selected ? .bold : .semibold))
+                    .foregroundColor(FrigyBrand.text.opacity(selected ? 1.0 : 0.75))
                     .tracking(-0.3)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 22)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(selected ? FrigyBrand.selectedBg : Color(UIColor.secondarySystemBackground).opacity(0.5))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(selected ? FrigyBrand.primary : FrigyBrand.cardBorder.opacity(0.6),
+                            lineWidth: selected ? 2.5 : 1.5)
+            )
+            .overlay(alignment: .topTrailing) {
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.white, FrigyBrand.primaryDark)
+                        .padding(10)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
             .scaleEffect(selected ? 1.03 : 1.0)
-            .opacity(selected ? 1.0 : 0.88)
         }
         .buttonStyle(.plain)
-        .animation(.spring(duration: 0.2), value: selected)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected)
+    }
+
+    private var nonBinaryCard: some View {
+        let selected = draft.gender == "non-binary"
+        return Button {
+            draft.gender = selected ? nil : "non-binary"
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(colors: [Color(hex: "#C4B5FD"), Color(hex: "#8B5CF6")],
+                                           startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .frame(width: 40, height: 40)
+                    Text("⚧")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                }
+
+                Text("Non-Binär / Divers")
+                    .font(.system(size: 15, weight: selected ? .bold : .semibold))
+                    .foregroundColor(FrigyBrand.text.opacity(selected ? 1.0 : 0.8))
+                    .tracking(-0.3)
+
+                Spacer()
+
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(FrigyBrand.cardBorder),
+                                     selected ? AnyShapeStyle(FrigyBrand.primaryDark) : AnyShapeStyle(Color.clear))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(selected ? FrigyBrand.selectedBg : Color(UIColor.secondarySystemBackground).opacity(0.5))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(selected ? FrigyBrand.primary : FrigyBrand.cardBorder.opacity(0.6),
+                            lineWidth: selected ? 2.5 : 1.5)
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selected)
     }
 }
