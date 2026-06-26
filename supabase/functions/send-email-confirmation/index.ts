@@ -100,29 +100,47 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const email = String(body.email ?? "").trim().toLowerCase();
+    const password = String(body.password ?? "");
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json({ success: false, error: "Ungültige E-Mail-Adresse" }, 400);
     }
 
-    // Generate a Supabase signup-confirmation link that redirects back to the app.
-    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-      type: "signup",
-      email,
-      options: { redirectTo: "frigy://callback" },
-    });
+    // Generate a confirmation link WITHOUT triggering Supabase's own plain email.
+    // We create the user here (type "signup" with the password) so iOS no longer
+    // calls client.auth.signUp first — that double-created the user and made the
+    // signup link fail. If the user already exists (e.g. a resend tap), fall back
+    // to a magic link, which works for existing unconfirmed accounts and also
+    // confirms the email when tapped.
+    async function makeLink() {
+      if (password) {
+        const r = await supabase.auth.admin.generateLink({
+          type: "signup",
+          email,
+          password,
+          options: { redirectTo: "frigy://callback" },
+        });
+        if (!r.error && r.data?.properties?.action_link) return r;
+        console.warn("[send-email-confirmation] signup link failed, trying magiclink:", r.error?.message);
+      }
+      return await supabase.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+        options: { redirectTo: "frigy://callback" },
+      });
+    }
+
+    const { data: linkData, error: linkError } = await makeLink();
 
     if (linkError || !linkData?.properties?.action_link) {
       console.error("[send-email-confirmation] generateLink:", linkError?.message);
-      // Fallback: still return success so iOS doesn't show an error to the user —
-      // Supabase already sent its own email when signUp was called.
-      return json({ success: true, fallback: true });
+      return json({ success: false, error: linkError?.message ?? "Link konnte nicht erstellt werden" }, 500);
     }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
-      console.warn("[send-email-confirmation] RESEND_API_KEY not set — skipping custom email");
-      return json({ success: true, fallback: true });
+      console.error("[send-email-confirmation] RESEND_API_KEY not set");
+      return json({ success: false, error: "RESEND_API_KEY fehlt in den Supabase Secrets" }, 500);
     }
 
     const emailRes = await fetch("https://api.resend.com/emails", {
@@ -132,7 +150,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Frigy <hallo@frigy.app>",
+        from: "Frigy <frigy@frigy.app>",
         to: [email],
         subject: "✅ Bestätige deine E-Mail-Adresse – Frigy",
         html: buildEmailHTML(linkData.properties.action_link),
@@ -142,7 +160,7 @@ serve(async (req) => {
     if (!emailRes.ok) {
       const errText = await emailRes.text();
       console.error("[send-email-confirmation] Resend error:", errText);
-      return json({ success: false, error: "E-Mail konnte nicht gesendet werden" }, 500);
+      return json({ success: false, error: `Resend: ${errText}` }, 500);
     }
 
     return json({ success: true });
