@@ -234,8 +234,7 @@ workflows:
         OAUTH_CALLBACK_HOST: callback
         # Floor build number — actual number = CM_BUILD_NUMBER + IOS_BUILD_OFFSET
         # (floor only used when CM_BUILD_NUMBER is unavailable or too low).
-        # Last uploaded: 419. Floor 420 ensures no collision on fallback.
-        IOS_BUILD_NUMBER: "420"
+        IOS_BUILD_NUMBER: "243"
         # Added to CM_BUILD_NUMBER so each Codemagic run gets a unique, auto-
         # incrementing build number without manual bumps. Keep floor 200+ so
         # it never collides with ios-build workflow (floor 100+).
