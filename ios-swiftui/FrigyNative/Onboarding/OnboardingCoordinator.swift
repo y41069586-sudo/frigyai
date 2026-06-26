@@ -6,6 +6,9 @@ final class OnboardingCoordinator {
     private(set) var currentStep: OnboardingStep
     private(set) var context: OnboardingContext
 
+    enum TransitionDirection { case forward, back }
+    private(set) var transitionDirection: TransitionDirection = .forward
+
     private let persistence: OnboardingPersistenceProtocol
     private let rules: CompositeOnboardingRulesEngine
     private let telemetry: OnboardingFlowTelemetry
@@ -141,6 +144,7 @@ final class OnboardingCoordinator {
 
     @discardableResult
     func next() -> OnboardingStep {
+        transitionDirection = .forward
         let from = currentStep
 
         if currentStep == .macroPreview {
@@ -206,6 +210,7 @@ final class OnboardingCoordinator {
 
     @discardableResult
     func back() -> OnboardingStep {
+        transitionDirection = .back
         let from = currentStep
         guard let previous = OnboardingFlow.back(before: currentStep) else {
             recordTrace(
