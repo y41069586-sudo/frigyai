@@ -465,8 +465,6 @@ struct MealPlansView: View {
 
 private struct PlanGeneratingOverlay: View {
     @State private var rotation: Double = 0
-    @State private var dotPhase: Int = 0
-    private let dots = ["●○○", "○●○", "○○●"]
     private let tips = [
         "Deine Ernährungsziele werden berücksichtigt…",
         "Proteinreiche Mahlzeiten werden ausgewählt…",
@@ -530,13 +528,16 @@ private struct PlanGeneratingOverlay: View {
             )
             .padding(.horizontal, 40)
         }
-        .onAppear {
-            let timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
+        .task {
+            // Rotates the tip text every 2.5s. `.task` is auto-cancelled when the
+            // overlay disappears, so no manual Timer/invalidation is needed.
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                guard !Task.isCancelled else { return }
                 withAnimation {
                     tipIndex = (tipIndex + 1) % tips.count
                 }
             }
-            RunLoop.main.add(timer, forMode: .common)
         }
     }
 }

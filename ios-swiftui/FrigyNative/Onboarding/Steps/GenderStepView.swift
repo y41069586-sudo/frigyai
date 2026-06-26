@@ -146,10 +146,15 @@ struct GenderStepView: View {
 
                 Spacer()
 
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
-                    .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(FrigyBrand.cardBorder),
-                                     selected ? AnyShapeStyle(FrigyBrand.primaryDark) : AnyShapeStyle(Color.clear))
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.white, FrigyBrand.primaryDark)
+                } else {
+                    Image(systemName: "circle")
+                        .font(.system(size: 22))
+                        .foregroundColor(FrigyBrand.cardBorder)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
