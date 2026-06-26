@@ -1592,29 +1592,9 @@ export function recalcMeal(m: MealLike): Meal {
   };
 }
 
-/** Structure from AI/fallback. Macros assigned only in syncDay. */
+/** Preserve AI-provided macros; calories recalculated as 4P+4C+9F. */
 export function normalizeMealStructure(m: MealLike): Meal {
-  const ingredients = Array.isArray(m?.ingredients)
-    ? m.ingredients
-        .map((i) => sanitizeIngredient(i || {}))
-        .filter((i): i is NonNullable<typeof i> => i !== null)
-        .slice(0, 6)
-    : [];
-  const instructions = sanitizeMealInstructions(m?.instructions);
-  return {
-    type: String(m?.type || "Mahlzeit").trim(),
-    name: String(m?.name || "Gericht").trim(),
-    prepTime: Math.max(5, Math.round(Number(m.prepTime) || 20)),
-    ingredients,
-    instructions,
-    allergenTags: Array.isArray(m?.allergenTags)
-      ? m.allergenTags.map((t) => String(t).trim()).filter(Boolean).slice(0, 12)
-      : [],
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    calories: 0,
-  };
+  return recalcMeal(m);
 }
 
 function slotWeights(mealsPerDay: number): number[] {
@@ -1764,7 +1744,8 @@ function scaleMealsToDailyTargets(meals: Meal[], targets: MacroTargets): Meal[] 
 }
 
 /**
- * Daily totals exact; per-meal size varies by dish (not the same kcal on every weekday for slot 1..N).
+ * Keep AI-provided macros as-is (they reflect real nutritional values).
+ * Only falls back to slot-weight distribution when the AI gave no macros at all.
  */
 export function syncDay(
   day: DayPlan,
@@ -1773,32 +1754,17 @@ export function syncDay(
   dayIndex = 0,
 ): DayPlan {
   const t = harmonizeTargets(targets);
-  let meals = (day.meals || []).map((m) => normalizeMealStructure({ ...m }));
+  // recalcMeal preserves protein/carbs/fat from the AI and recalculates calories as 4P+4C+9F.
+  let meals = (day.meals || []).map((m) => recalcMeal(m));
   if (!meals.length) return { ...day, meals };
 
   const sum = sumMeals(meals);
-  const aiTotals = sum.protein + sum.carbs + sum.fat;
-  const kcalSpread = meals.map((m) => macroKcal(Number(m.protein) || 0, Number(m.carbs) || 0, Number(m.fat) || 0));
-  const distinctKcals = new Set(kcalSpread.map((k) => Math.round(k / 40))).size;
-  const unrealisticAi = aiMacrosUnrealisticForDishes(meals, t.dailyCalories, mealsPerDay);
-
-  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length) && !unrealisticAi) {
-    meals = scaleMealsToDailyTargets(meals, t);
-    if (
-      mealExceedsDailyShare(meals, t.dailyCalories, mealsPerDay) ||
-      mealsViolateDishRealism(meals, t.dailyCalories, mealsPerDay)
-    ) {
-      meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
-    }
-  } else {
+  // Fallback: AI returned no macros (placeholder/fallback plan) — distribute by slot weights.
+  if (sum.protein + sum.carbs + sum.fat === 0) {
     meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
+    meals = correctSyncedDayDrift(meals, t);
   }
 
-  if (mealsViolateDishRealism(meals, t.dailyCalories, mealsPerDay)) {
-    meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
-  }
-
-  meals = correctSyncedDayDrift(meals, t);
   return { ...day, meals };
 }
 
@@ -2340,7 +2306,7 @@ function buildCompactSystemPrompt(params: {
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
     `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
-    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F (${params.targets.dailyCalories} kcal). No smoothies.`,
+    `ACCURATE MACROS REQUIRED: each meal's protein/carbs/fat must reflect REAL nutritional values for the exact ingredient amounts listed — not estimates adjusted to hit a number. Choose portion sizes so all meals together sum to: ${params.targets.dailyProtein}g protein / ${params.targets.dailyCarbs}g carbs / ${params.targets.dailyFat}g fat (${params.targets.dailyCalories} kcal/day). Snacks ~150–350 kcal, main meals ~450–750 kcal. No smoothies.`,
     buildNoPorkConstraintBlock(params.lang),
     params.dietBlock,
     params.bannedBlock,
@@ -2401,10 +2367,10 @@ async function callOpenAIOnce(params: {
     : regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
     : params.lang === "de"
-      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte.${varietyHint} Normale Hausmannskost passend zu den Küchen-Vorgaben — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte.${varietyHint} Normale Hausmannskost — nicht exotisch. GENAUE Nährwerte: protein/carbs/fat pro Mahlzeit basierend auf echten Lebensmitteldaten für die angegebenen Portionsgrößen. Portionsmengen so wählen, dass die Tagessumme das Makroziel trifft. Snacks 150–350 kcal, Hauptmahlzeiten 450–750 kcal. Allergene taggen. Zutatenmengen in g/ml/Stück, realistische EUR-Preise.`
       : params.lang === "fr"
         ? `Crée un plan 7 jours (${params.mealsPerDay} repas/jour). Plats différents chaque jour.${varietyHint} Cuisine maison selon les cuisines choisies. Varie les macros par repas. Tag allergènes. Quantités réalistes et prix EUR.`
-        : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day.${varietyHint} Everyday home cooking matching chosen cuisines. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
+        : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day.${varietyHint} Everyday home cooking. ACCURATE macros: protein/carbs/fat per meal must match real nutritional data for the exact portions listed. Size portions so daily totals hit the macro target. Snacks 150–350 kcal, mains 450–750 kcal. Tag allergens. Realistic ingredient amounts (g/ml/pieces) and EUR prices.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -2959,7 +2925,9 @@ function alignPlanIngredientsToTitles(
       const need = titleParts.length >= 2 ? 2 : 1;
       if (matched >= need) return meal;
       const slot = mealSlot(si, mealsPerDay);
-      return buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      const rebuilt = buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      // Preserve AI-provided macros — only the ingredient list is being fixed.
+      return { ...rebuilt, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, calories: meal.calories };
     }),
   }));
 }
