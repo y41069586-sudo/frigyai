@@ -24,6 +24,9 @@ packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios
     from: 5.0.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 8.0.0
 
 settings:
   base:
@@ -80,6 +83,8 @@ targets:
         product: Auth
       - package: RevenueCat
         product: RevenueCat
+      - package: GoogleSignIn
+        product: GoogleSignIn
     info:
       path: FrigyNative/Info.plist
       properties:
@@ -88,6 +93,9 @@ targets:
           - CFBundleURLName: com.frigyapp.app
             CFBundleURLSchemes:
               - frigy
+          - CFBundleURLName: google
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.153158265512-ipemp0ksidis2gj0a22jlhkfdcdoglmc
         UILaunchScreen: {}
         # iPhone: portrait only (food-tracking UX is vertical)
         UISupportedInterfaceOrientations:

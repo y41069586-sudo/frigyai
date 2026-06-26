@@ -94,6 +94,7 @@ import Supabase
 import AuthenticationServices
 import CryptoKit
 import UIKit
+import GoogleSignIn
 
 @MainActor
 final class SupabaseAuthService: AuthServiceProtocol {
@@ -163,12 +164,30 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func signInWithGoogle() async throws {
-        let redirect = SupabaseConfig.oauthRedirectURL
-        let url = try client.auth.getOAuthSignInURL(
-            provider: .google,
-            redirectTo: redirect
+        let clientID = "153158265512-ipemp0ksidis2gj0a22jlhkfdcdoglmc.apps.googleusercontent.com"
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+
+        let rootVC = AuthPresentationAnchor.current().rootViewController
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }?
+                .rootViewController
+        guard let rootVC else { throw AuthServiceError.oauthStartFailed }
+
+        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
+        guard let idToken = result.user.idToken?.tokenString else {
+            throw AuthServiceError.missingAppleIdentityToken
+        }
+        let accessToken = result.user.accessToken.tokenString
+
+        _ = try await client.auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(
+                provider: .google,
+                idToken: idToken,
+                accessToken: accessToken
+            )
         )
-        try await startWebAuthenticationSession(url: url)
     }
 
     func signInWithEmail(email: String, password: String) async throws -> UserSession {

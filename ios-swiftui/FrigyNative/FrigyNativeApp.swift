@@ -1,4 +1,5 @@
 import SwiftUI
+import GoogleSignIn
 
 @main
 struct FrigyNativeApp: App {
@@ -21,7 +22,10 @@ struct FrigyNativeApp: App {
                     await router.bootstrap()
                 }
                 .onOpenURL { url in
-                    router.handleIncomingURL(url)
+                    // Let GoogleSignIn handle its own redirect first; fall through for all others.
+                    if !GIDSignIn.sharedInstance.handle(url) {
+                        router.handleIncomingURL(url)
+                    }
                 }
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }
