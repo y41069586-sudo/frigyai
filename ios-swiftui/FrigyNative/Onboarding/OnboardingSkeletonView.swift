@@ -370,53 +370,58 @@ struct OnboardingSkeletonView: View {
 
 // MARK: - Cinematic transition
 
-private struct OnboardingInsertModifier: ViewModifier {
-    let active: Bool
-    let dir: CGFloat  // +1 forward, -1 back
+/// `amount` is interpolated by SwiftUI (0 = onscreen/identity, 1 = offscreen/active).
+/// Conforming to `Animatable` is what makes SwiftUI actually interpolate offset,
+/// scale, opacity and blur frame-by-frame instead of just cross-fading.
+private struct OnboardingInsertModifier: ViewModifier, Animatable {
+    var amount: CGFloat   // 1 → 0 on insertion
+    let dir: CGFloat      // +1 forward, -1 back
+
+    var animatableData: CGFloat {
+        get { amount }
+        set { amount = newValue }
+    }
 
     func body(content: Content) -> some View {
         content
-            // Incoming: travels further (70pt) + floats up 10pt + mild blur.
-            // The greater travel distance vs the outgoing screen's 28pt retreat
-            // creates genuine parallax depth — it feels like a layer coming
-            // forward from behind rather than a flat page flip.
-            .offset(x: active ? 70 * dir : 0, y: active ? 10 : 0)
-            .scaleEffect(active ? 0.93 : 1)
-            .opacity(active ? 0 : 1)
-            .blur(radius: active ? 4 : 0)
+            .offset(x: amount * 72 * dir, y: amount * 10)
+            .scaleEffect(1 - amount * 0.07, anchor: .center)
+            .opacity(Double(max(0, 1 - amount)))
+            .blur(radius: amount * 3)
     }
 }
 
-private struct OnboardingRemoveModifier: ViewModifier {
-    let active: Bool
+private struct OnboardingRemoveModifier: ViewModifier, Animatable {
+    var amount: CGFloat   // 0 → 1 on removal
     let dir: CGFloat
+
+    var animatableData: CGFloat {
+        get { amount }
+        set { amount = newValue }
+    }
 
     func body(content: Content) -> some View {
         content
-            // Outgoing: retreats only 28pt (parallax — it "falls behind" slowly),
-            // scales down more, very gentle blur. This asymmetry is the key to
-            // the depth illusion: the new card accelerates past the old one.
-            .offset(x: active ? -28 * dir : 0, y: 0)
-            .scaleEffect(active ? 0.96 : 1)
-            .opacity(active ? 0 : 1)
-            .blur(radius: active ? 2 : 0)
+            // Outgoing recedes only 28pt (vs 72pt incoming) → parallax depth:
+            // new card overtakes old one rather than both moving equally.
+            .offset(x: -amount * 28 * dir, y: 0)
+            .scaleEffect(1 - amount * 0.04, anchor: .center)
+            .opacity(Double(max(0, 1 - amount)))
+            .blur(radius: amount * 1.5)
     }
 }
 
 private extension AnyTransition {
-    /// Parallax cinematic transition: new screen travels further and from a
-    /// vertical float, old screen recedes slowly — creates genuine z-depth.
-    /// Consistent physics across every step change, both directions.
     static func onboardingSlide(forward: Bool) -> AnyTransition {
         let dir: CGFloat = forward ? 1 : -1
         return .asymmetric(
             insertion: .modifier(
-                active: OnboardingInsertModifier(active: true,  dir: dir),
-                identity: OnboardingInsertModifier(active: false, dir: dir)
+                active: OnboardingInsertModifier(amount: 1, dir: dir),
+                identity: OnboardingInsertModifier(amount: 0, dir: dir)
             ),
             removal: .modifier(
-                active: OnboardingRemoveModifier(active: true,  dir: dir),
-                identity: OnboardingRemoveModifier(active: false, dir: dir)
+                active: OnboardingRemoveModifier(amount: 1, dir: dir),
+                identity: OnboardingRemoveModifier(amount: 0, dir: dir)
             )
         )
     }
