@@ -368,61 +368,19 @@ struct OnboardingSkeletonView: View {
     }
 }
 
-// MARK: - Cinematic transition
-
-/// `amount` is interpolated by SwiftUI (0 = onscreen/identity, 1 = offscreen/active).
-/// Conforming to `Animatable` is what makes SwiftUI actually interpolate offset,
-/// scale, opacity and blur frame-by-frame instead of just cross-fading.
-private struct OnboardingInsertModifier: ViewModifier, Animatable {
-    var amount: CGFloat   // 1 → 0 on insertion
-    let dir: CGFloat      // +1 forward, -1 back
-
-    var animatableData: CGFloat {
-        get { amount }
-        set { amount = newValue }
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .offset(x: amount * 72 * dir, y: amount * 10)
-            .scaleEffect(1 - amount * 0.07, anchor: .center)
-            .opacity(Double(max(0, 1 - amount)))
-            .blur(radius: amount * 3)
-    }
-}
-
-private struct OnboardingRemoveModifier: ViewModifier, Animatable {
-    var amount: CGFloat   // 0 → 1 on removal
-    let dir: CGFloat
-
-    var animatableData: CGFloat {
-        get { amount }
-        set { amount = newValue }
-    }
-
-    func body(content: Content) -> some View {
-        content
-            // Outgoing recedes only 28pt (vs 72pt incoming) → parallax depth:
-            // new card overtakes old one rather than both moving equally.
-            .offset(x: -amount * 28 * dir, y: 0)
-            .scaleEffect(1 - amount * 0.04, anchor: .center)
-            .opacity(Double(max(0, 1 - amount)))
-            .blur(radius: amount * 1.5)
-    }
-}
+// MARK: - Transition
 
 private extension AnyTransition {
     static func onboardingSlide(forward: Bool) -> AnyTransition {
-        let dir: CGFloat = forward ? 1 : -1
+        let insertEdge: Edge = forward ? .trailing : .leading
+        let removeEdge: Edge  = forward ? .leading  : .trailing
         return .asymmetric(
-            insertion: .modifier(
-                active: OnboardingInsertModifier(amount: 1, dir: dir),
-                identity: OnboardingInsertModifier(amount: 0, dir: dir)
-            ),
-            removal: .modifier(
-                active: OnboardingRemoveModifier(amount: 1, dir: dir),
-                identity: OnboardingRemoveModifier(amount: 0, dir: dir)
-            )
+            insertion: .move(edge: insertEdge)
+                .combined(with: .opacity)
+                .combined(with: .scale(scale: 0.93)),
+            removal: .move(edge: removeEdge)
+                .combined(with: .opacity)
+                .combined(with: .scale(scale: 0.97))
         )
     }
 }
