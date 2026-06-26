@@ -20,6 +20,7 @@ struct PaywallStepView: View {
     @State private var packagesLoading = true
     @State private var showTerms = false
     @State private var showPrivacy = false
+    @State private var restoreAlertMessage: String?
 
     // MARK: - Derived state
 
@@ -111,6 +112,14 @@ struct PaywallStepView: View {
         }
         .sheet(isPresented: $showPrivacy) {
             PrivacyView()
+        }
+        .alert("Käufe wiederherstellen", isPresented: Binding(
+            get: { restoreAlertMessage != nil },
+            set: { if !$0 { restoreAlertMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { restoreAlertMessage = nil }
+        } message: {
+            Text(restoreAlertMessage ?? "")
         }
         .task {
             // Link the store identity to this Supabase user BEFORE any purchase, so the
@@ -390,14 +399,23 @@ struct PaywallStepView: View {
                     Button {
                         isRestoring = true
                         Task {
-                            let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
-                            if ok {
-                                router.isPremium = true
-                                UNUserNotificationCenter.current()
-                                    .removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
+                            do {
+                                let ok = try await router.subscriptionService.restorePurchases()
+                                isRestoring = false
+                                if ok {
+                                    router.isPremium = true
+                                    UNUserNotificationCenter.current()
+                                        .removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
+                                    onNext()
+                                } else {
+                                    // Restore ran but found no active entitlement — always
+                                    // give feedback (Apple requires it; silent = broken UX).
+                                    restoreAlertMessage = "Keine aktiven Käufe gefunden. Falls du Frigy Premium hast, melde dich mit derselben Apple-ID an, mit der du gekauft hast."
+                                }
+                            } catch {
+                                isRestoring = false
+                                restoreAlertMessage = "Wiederherstellung fehlgeschlagen. Bitte prüfe deine Internetverbindung und versuche es erneut."
                             }
-                            isRestoring = false
-                            if ok { onNext() }
                         }
                     } label: {
                         Group {
