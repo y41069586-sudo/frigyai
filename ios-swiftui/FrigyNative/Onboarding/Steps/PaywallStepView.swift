@@ -18,6 +18,8 @@ struct PaywallStepView: View {
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var packagesLoading = true
+    @State private var showTerms = false
+    @State private var showPrivacy = false
 
     // MARK: - Derived state
 
@@ -103,6 +105,12 @@ struct PaywallStepView: View {
             }
 
             bottomBar
+        }
+        .sheet(isPresented: $showTerms) {
+            AGBView()
+        }
+        .sheet(isPresented: $showPrivacy) {
+            PrivacyView()
         }
         .task {
             // Link the store identity to this Supabase user BEFORE any purchase, so the
@@ -439,7 +447,23 @@ struct PaywallStepView: View {
                     Text(footerPriceText)
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
-                        .padding(.bottom, 4)
+
+                    // Legal links — required by App Review (Guideline 3.1.2) for
+                    // auto-renewable subscriptions: functional Terms (EULA) and
+                    // Privacy Policy links right where the purchase happens.
+                    HStack(spacing: 6) {
+                        Button("Nutzungsbedingungen") { showTerms = true }
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(FrigyBrand.primaryDark)
+                        Text("·")
+                            .font(.system(size: 11))
+                            .foregroundColor(FrigyBrand.textMuted)
+                        Button("Datenschutz") { showPrivacy = true }
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(FrigyBrand.primaryDark)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 4)
                 }
                 .padding(.top, 4)
             }

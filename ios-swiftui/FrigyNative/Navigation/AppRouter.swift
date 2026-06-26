@@ -165,6 +165,23 @@ final class AppRouter {
         }
     }
 
+    /// Re-reads premium state when the app returns to the foreground so a
+    /// cancelled/expired subscription is detected without a restart. Respects the
+    /// paywall bypass: a dev/tester (or App Review demo) account keeps premium
+    /// even though it has no real RevenueCat entitlement — otherwise it would be
+    /// silently revoked on every foregrounding.
+    func refreshPremiumOnForeground() async {
+        guard case .main = rootRoute else { return }
+        if let session = try? await authService.currentSession(),
+           isPaywallBypassed(for: session.email) {
+            isPremium = true
+            return
+        }
+        if let current = try? await subscriptionService.refreshPremiumState() {
+            isPremium = current
+        }
+    }
+
     func navigateToAuth() {
         rootRoute = .auth
     }

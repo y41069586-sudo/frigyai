@@ -27,12 +27,8 @@ struct FrigyNativeApp: App {
                     guard phase == .active else { return }
                     // Refresh premium state every time the app comes to foreground so
                     // a cancelled or expired subscription is detected without a restart.
-                    Task {
-                        if case .main = router.rootRoute {
-                            let current = (try? await router.subscriptionService.refreshPremiumState()) ?? router.isPremium
-                            router.isPremium = current
-                        }
-                    }
+                    // (Respects the paywall bypass for tester/review accounts.)
+                    Task { await router.refreshPremiumOnForeground() }
                 }
         }
     }
