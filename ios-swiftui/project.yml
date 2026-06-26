@@ -105,6 +105,10 @@ targets:
         OAUTH_CALLBACK_HOST: "$(OAUTH_CALLBACK_HOST)"
         REVENUECAT_API_KEY: "$(REVENUECAT_API_KEY)"
         REVENUECAT_ENTITLEMENT_ID: "$(REVENUECAT_ENTITLEMENT_ID)"
+        # Paywall bypass for dev/tester accounts — value injected by Secrets.xcconfig.
+        # MUST be declared here: XcodeGen regenerates Info.plist on every Codemagic
+        # build, so a key present only in the checked-in Info.plist would be dropped.
+        PAYWALL_BYPASS_EMAILS: "$(PAYWALL_BYPASS_EMAILS)"
         # Usage descriptions — required by App Store Review (German: app primary language)
         NSHealthShareUsageDescription: "Frigy liest deine Schritte und aktiven Kalorien aus der Gesundheits-App, um deinen Netto-Kalorienverbrauch zu berechnen."
         NSHealthUpdateUsageDescription: "Frigy schreibt keine Gesundheitsdaten. Dieser Text ist aus technischen Gründen erforderlich."
