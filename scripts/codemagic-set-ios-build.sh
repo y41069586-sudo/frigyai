@@ -1,28 +1,33 @@
 #!/usr/bin/env bash
 # Set iOS CFBundleVersion — independent from Android versionCode.
 #
-# Strategy: use CM_BUILD_NUMBER + IOS_BUILD_OFFSET so every Codemagic build
-# gets a unique, auto-incrementing number without manual bumps in codemagic.yaml.
-# IOS_BUILD_NUMBER acts as a hard floor (safety net only).
+# Strategy: use seconds-since-epoch (date +%s) as the build number. This is
+# strictly monotonic (time only moves forward), so every build is guaranteed
+# to be both unique AND higher than the previously uploaded version — App Store
+# Connect never rejects it as a duplicate, and no manual floor bumps are ever
+# needed again.
+#
+# The old CM_BUILD_NUMBER + IOS_BUILD_OFFSET / IOS_BUILD_NUMBER-floor scheme was
+# fragile: whenever CM_BUILD_NUMBER + offset fell below the floor, every build
+# stamped exactly the floor value, so the second build collided. Epoch time
+# removes that failure mode entirely. (IOS_BUILD_NUMBER is still honoured as a
+# hard floor safety-net, but epoch seconds always far exceed it.)
 set -euo pipefail
 
 ROOT="${CM_BUILD_DIR:-$(pwd)}"
 IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-251}"
-IOS_BUILD_OFFSET="${IOS_BUILD_OFFSET:-200}"
 
-# Prefer CM_BUILD_NUMBER + offset (unique per Codemagic run) over the static floor.
-if [ -n "${CM_BUILD_NUMBER:-}" ]; then
-  CALCULATED=$((CM_BUILD_NUMBER + IOS_BUILD_OFFSET))
-  if [ "$CALCULATED" -gt "$IOS_BUILD_NUMBER" ]; then
-    BUILD_NUM="$CALCULATED"
-  else
-    BUILD_NUM="$IOS_BUILD_NUMBER"
-  fi
+# Epoch seconds: ~1.75 billion today, increasing every second. Always unique,
+# always higher than the last upload.
+EPOCH_BUILD="$(date +%s)"
+if [ "$EPOCH_BUILD" -gt "$IOS_BUILD_NUMBER" ]; then
+  BUILD_NUM="$EPOCH_BUILD"
 else
+  # Should never happen (epoch >> any sane floor) — defensive fallback only.
   BUILD_NUM="$IOS_BUILD_NUMBER"
 fi
 
-echo "Setting iOS CFBundleVersion to $BUILD_NUM (CM_BUILD_NUMBER=${CM_BUILD_NUMBER:-n/a} + offset=${IOS_BUILD_OFFSET}, floor=${IOS_BUILD_NUMBER})"
+echo "Setting iOS CFBundleVersion to $BUILD_NUM (epoch=${EPOCH_BUILD}, floor=${IOS_BUILD_NUMBER})"
 
 patch_pbxproj() {
   local file="$1"
