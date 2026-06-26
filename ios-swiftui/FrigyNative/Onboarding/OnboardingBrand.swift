@@ -96,10 +96,30 @@ struct OnboardingContinueButton: View {
             .background(isEnabled ? AnyShapeStyle(FrigyBrand.buttonGradient) : AnyShapeStyle(FrigyBrand.buttonDisabledGradient))
             .foregroundColor(isEnabled ? .white : Color(hex: "#4AE896"))
             .clipShape(RoundedRectangle(cornerRadius: 18))
+            // Soft top sheen — frosted-glass highlight catching light.
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(Color.white.opacity(isEnabled ? 0.22 : 0), lineWidth: 1)
+                    .blendMode(.plusLighter)
+            )
             .shadow(color: isEnabled ? Color(hex: "#4AE896").opacity(0.5) : .clear, radius: 12, y: 6)
         }
+        .buttonStyle(PressableButtonStyle())
         .disabled(!isEnabled)
         .animation(.easeInOut(duration: 0.18), value: isEnabled)
+    }
+}
+
+/// Tactile press feedback: a gentle scale + dim that springs back. Used by the
+/// primary onboarding CTA for an Apple-grade micro-interaction.
+struct PressableButtonStyle: ButtonStyle {
+    var scale: CGFloat = 0.96
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1)
+            .opacity(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
@@ -126,15 +146,22 @@ struct OnboardingProgressBar: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(FrigyBrand.borderMint.opacity(0.3))
-                    .frame(height: 3)
+                    .fill(FrigyBrand.borderMint.opacity(0.28))
+                    .frame(height: 4)
                 Capsule()
-                    .fill(FrigyBrand.primaryDark)
-                    .frame(width: max(geo.size.width * fraction, 0), height: 3)
-                    .animation(.spring(duration: 0.4), value: fraction)
+                    .fill(
+                        LinearGradient(
+                            colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(geo.size.width * fraction, 4), height: 4)
+                    .shadow(color: FrigyBrand.primary.opacity(0.55), radius: 5, y: 0)
+                    // Confident, well-damped fill — glides to the new length.
+                    .animation(.spring(response: 0.5, dampingFraction: 0.82), value: fraction)
             }
         }
-        .frame(height: 3)
+        .frame(height: 4)
     }
 }
 
@@ -257,7 +284,10 @@ struct OnboardingStepScaffold<Content: View>: View {
         // phone-like and centered instead of stretching edge-to-edge.
         .frame(maxWidth: 540)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(FrigyGlassBackground().ignoresSafeArea())
+        // Translucent veil instead of a solid fill: the shared
+        // OnboardingAmbientBackground glows through, tying every step to one
+        // continuous cinematic backdrop while keeping content fully legible.
+        .background(OnboardingScaffoldVeil().ignoresSafeArea())
     }
 }
 

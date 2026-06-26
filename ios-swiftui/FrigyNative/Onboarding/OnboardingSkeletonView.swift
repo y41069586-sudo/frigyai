@@ -10,15 +10,23 @@ struct OnboardingSkeletonView: View {
         let goingForward = coordinator.transitionDirection == .forward
 
         ZStack {
-            stepContent(
-                step: step,
-                progress: coordinator.progressFraction,
-                canGoBack: coordinator.canGoBack
-            )
-            .id(step)
-            .transition(.onboardingSlide(forward: goingForward))
+            // Persistent cinematic backdrop — mounted once, never re-created as
+            // steps swap, so its light/particles drift continuously across the
+            // whole flow ("one continuous motion"). The glass step-panels slide
+            // over it as floating layers.
+            OnboardingAmbientBackground()
+
+            ZStack {
+                stepContent(
+                    step: step,
+                    progress: coordinator.progressFraction,
+                    canGoBack: coordinator.canGoBack
+                )
+                .id(step)
+                .transition(.onboardingSlide(forward: goingForward))
+            }
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: step)
         }
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: step)
     }
 
     // MARK: - Step routing
