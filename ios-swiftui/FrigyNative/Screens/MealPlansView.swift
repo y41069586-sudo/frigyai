@@ -375,7 +375,7 @@ struct MealPlansView: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(UIColor.secondarySystemFill)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(FrigyBrand.selectedBg.opacity(0.18)))
     }
 
     // MARK: - Actions
@@ -472,17 +472,48 @@ private func makeDemoWeek() -> [DayPlan] {
     let dayNames = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
     let shortNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
-    return (0..<7).map { i in
-        let date = calendar.date(byAdding: .day, value: i, to: startOfWeek) ?? today
-        let isToday = calendar.isDateInToday(date)
-
-        let meals: [PlannedMeal] = i < 5 ? [
+    let weekMeals: [[PlannedMeal]] = [
+        // Montag
+        [
             PlannedMeal(category: .breakfast, name: "Haferflocken mit Beeren", calories: 320, protein: 12, carbs: 52, fat: 8, duration: 5, tags: ["Vegan"]),
             PlannedMeal(category: .lunch, name: "Hähnchen-Quinoa Bowl", calories: 520, protein: 42, carbs: 48, fat: 16, duration: 20, tags: ["High Protein"]),
             PlannedMeal(category: .snack, name: "Griechischer Joghurt", calories: 130, protein: 15, carbs: 9, fat: 4, duration: 0, tags: ["Proteinreich"]),
-            PlannedMeal(category: .dinner, name: "Lachs mit Gemüse", calories: 480, protein: 38, carbs: 22, fat: 26, duration: 25, tags: ["Omega-3"]),
-        ] : []
+            PlannedMeal(category: .dinner, name: "Lachs mit Ofengemüse", calories: 480, protein: 38, carbs: 22, fat: 26, duration: 25, tags: ["Omega-3"]),
+        ],
+        // Dienstag
+        [
+            PlannedMeal(category: .breakfast, name: "Rührei mit Vollkornbrot", calories: 290, protein: 18, carbs: 28, fat: 12, duration: 10, tags: ["Low Carb"]),
+            PlannedMeal(category: .lunch, name: "Linsensuppe mit Brot", calories: 410, protein: 22, carbs: 58, fat: 8, duration: 15, tags: ["Vegan"]),
+            PlannedMeal(category: .snack, name: "Apfel mit Mandelbutter", calories: 180, protein: 4, carbs: 24, fat: 9, duration: 0, tags: ["Vegan"]),
+            PlannedMeal(category: .dinner, name: "Hähnchen mit Süßkartoffeln", calories: 510, protein: 40, carbs: 44, fat: 14, duration: 30, tags: ["High Protein"]),
+        ],
+        // Mittwoch
+        [
+            PlannedMeal(category: .breakfast, name: "Smoothie Bowl mit Granola", calories: 340, protein: 10, carbs: 56, fat: 10, duration: 5, tags: ["Vegan"]),
+            PlannedMeal(category: .lunch, name: "Caesar Salad mit Hähnchen", calories: 420, protein: 34, carbs: 18, fat: 22, duration: 10, tags: ["Low Carb"]),
+            PlannedMeal(category: .snack, name: "Proteinriegel", calories: 200, protein: 20, carbs: 22, fat: 6, duration: 0, tags: ["High Protein"]),
+            PlannedMeal(category: .dinner, name: "Pasta mit Tomatensoße", calories: 560, protein: 18, carbs: 82, fat: 12, duration: 20, tags: []),
+        ],
+        // Donnerstag
+        [
+            PlannedMeal(category: .breakfast, name: "Avocado-Toast mit Ei", calories: 370, protein: 16, carbs: 32, fat: 20, duration: 10, tags: []),
+            PlannedMeal(category: .lunch, name: "Buddha Bowl mit Tofu", calories: 450, protein: 24, carbs: 50, fat: 18, duration: 15, tags: ["Vegan"]),
+            PlannedMeal(category: .snack, name: "Hüttenkäse mit Beeren", calories: 140, protein: 16, carbs: 12, fat: 3, duration: 0, tags: ["Low Fat"]),
+            PlannedMeal(category: .dinner, name: "Forelle mit Quinoa", calories: 470, protein: 36, carbs: 38, fat: 16, duration: 25, tags: ["Omega-3"]),
+        ],
+        // Freitag
+        [
+            PlannedMeal(category: .breakfast, name: "Pancakes mit Ahornsirup", calories: 380, protein: 10, carbs: 62, fat: 12, duration: 15, tags: []),
+            PlannedMeal(category: .lunch, name: "Chicken Wrap mit Salat", calories: 490, protein: 36, carbs: 46, fat: 16, duration: 10, tags: ["High Protein"]),
+            PlannedMeal(category: .snack, name: "Hummus mit Gemüsesticks", calories: 150, protein: 6, carbs: 18, fat: 6, duration: 0, tags: ["Vegan"]),
+            PlannedMeal(category: .dinner, name: "Lachs-Teriyaki mit Reis", calories: 540, protein: 38, carbs: 52, fat: 18, duration: 20, tags: ["Omega-3"]),
+        ],
+    ]
 
+    return (0..<7).map { i in
+        let date = calendar.date(byAdding: .day, value: i, to: startOfWeek) ?? today
+        let isToday = calendar.isDateInToday(date)
+        let meals: [PlannedMeal] = i < weekMeals.count ? weekMeals[i] : []
         return DayPlan(weekday: dayNames[i], shortDay: shortNames[i], isToday: isToday, meals: meals)
     }
 }
