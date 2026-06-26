@@ -10,23 +10,15 @@ struct OnboardingSkeletonView: View {
         let goingForward = coordinator.transitionDirection == .forward
 
         ZStack {
-            // Persistent cinematic backdrop — mounted once, never re-created as
-            // steps swap, so its light/particles drift continuously across the
-            // whole flow ("one continuous motion"). The glass step-panels slide
-            // over it as floating layers.
-            OnboardingAmbientBackground()
-
-            ZStack {
-                stepContent(
-                    step: step,
-                    progress: coordinator.progressFraction,
-                    canGoBack: coordinator.canGoBack
-                )
-                .id(step)
-                .transition(.onboardingSlide(forward: goingForward))
-            }
-            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: step)
+            stepContent(
+                step: step,
+                progress: coordinator.progressFraction,
+                canGoBack: coordinator.canGoBack
+            )
+            .id(step)
+            .transition(.onboardingSlide(forward: goingForward))
         }
+        .animation(.spring(response: 0.46, dampingFraction: 0.88), value: step)
     }
 
     // MARK: - Step routing
@@ -376,35 +368,55 @@ struct OnboardingSkeletonView: View {
     }
 }
 
-// MARK: - Slide transition
+// MARK: - Cinematic transition
 
-private struct OnboardingSlideModifier: ViewModifier {
-    var xOffset: CGFloat
-    var opacity: Double
-    var scale: Double
+private struct OnboardingInsertModifier: ViewModifier {
+    let active: Bool
+    let dir: CGFloat  // +1 forward, -1 back
 
     func body(content: Content) -> some View {
         content
-            .offset(x: xOffset)
-            .opacity(opacity)
-            .scaleEffect(scale)
+            // Incoming: travels further (70pt) + floats up 10pt + mild blur.
+            // The greater travel distance vs the outgoing screen's 28pt retreat
+            // creates genuine parallax depth — it feels like a layer coming
+            // forward from behind rather than a flat page flip.
+            .offset(x: active ? 70 * dir : 0, y: active ? 10 : 0)
+            .scaleEffect(active ? 0.93 : 1)
+            .opacity(active ? 0 : 1)
+            .blur(radius: active ? 4 : 0)
+    }
+}
+
+private struct OnboardingRemoveModifier: ViewModifier {
+    let active: Bool
+    let dir: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            // Outgoing: retreats only 28pt (parallax — it "falls behind" slowly),
+            // scales down more, very gentle blur. This asymmetry is the key to
+            // the depth illusion: the new card accelerates past the old one.
+            .offset(x: active ? -28 * dir : 0, y: 0)
+            .scaleEffect(active ? 0.96 : 1)
+            .opacity(active ? 0 : 1)
+            .blur(radius: active ? 2 : 0)
     }
 }
 
 private extension AnyTransition {
-    /// Slide + fade + subtle scale — consistent for every onboarding step change.
-    /// `forward: true` = new screen arrives from the right (next).
-    /// `forward: false` = new screen arrives from the left (back).
+    /// Parallax cinematic transition: new screen travels further and from a
+    /// vertical float, old screen recedes slowly — creates genuine z-depth.
+    /// Consistent physics across every step change, both directions.
     static func onboardingSlide(forward: Bool) -> AnyTransition {
         let dir: CGFloat = forward ? 1 : -1
         return .asymmetric(
             insertion: .modifier(
-                active: OnboardingSlideModifier(xOffset: 64 * dir, opacity: 0, scale: 0.94),
-                identity: OnboardingSlideModifier(xOffset: 0, opacity: 1, scale: 1)
+                active: OnboardingInsertModifier(active: true,  dir: dir),
+                identity: OnboardingInsertModifier(active: false, dir: dir)
             ),
             removal: .modifier(
-                active: OnboardingSlideModifier(xOffset: -64 * dir, opacity: 0, scale: 0.94),
-                identity: OnboardingSlideModifier(xOffset: 0, opacity: 1, scale: 1)
+                active: OnboardingRemoveModifier(active: true,  dir: dir),
+                identity: OnboardingRemoveModifier(active: false, dir: dir)
             )
         )
     }

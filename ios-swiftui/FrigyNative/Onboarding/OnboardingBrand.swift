@@ -284,10 +284,7 @@ struct OnboardingStepScaffold<Content: View>: View {
         // phone-like and centered instead of stretching edge-to-edge.
         .frame(maxWidth: 540)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // Translucent veil instead of a solid fill: the shared
-        // OnboardingAmbientBackground glows through, tying every step to one
-        // continuous cinematic backdrop while keeping content fully legible.
-        .background(OnboardingScaffoldVeil().ignoresSafeArea())
+        .background(FrigyGlassBackground().ignoresSafeArea())
     }
 }
 
