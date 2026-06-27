@@ -3,6 +3,9 @@ import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintTextHighlight } from "./MintTextHighlight";
 
 type Props = {
   userData: UserData;
@@ -12,11 +15,11 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  accent: "#D4FFEA",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  primaryDeep: "#2EB56D",
+  bg: "#FBFFFD",
+  accent: "#DCFEEF",
   border: "#6EECC0",
   text: "#1F2937",
   subtext: "#7C9388",
@@ -47,7 +50,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
           height: 18,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(18,217,120,0.22) 0%, rgba(18,217,120,0) 70%)",
+            "radial-gradient(ellipse, rgba(74, 232, 150,0.22) 0%, rgba(74, 232, 150,0) 70%)",
           filter: "blur(2px)",
         }}
       />
@@ -150,7 +153,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
             style={{
               width: 22,
               background:
-                "linear-gradient(180deg, #B0FFDC 0%, #24FF8F 100%)",
+                "linear-gradient(180deg, #FBFFFD 0%, #75FBB2 100%)",
             }}
           />
           {/* Spiral rings */}
@@ -164,7 +167,7 @@ function MealNotebook({ headerTitle, lng }: { headerTitle: string; lng: Lng }) {
                 width: 10,
                 height: 10,
                 background: "#FFFFFF",
-                border: "2px solid #12D978",
+                border: "2px solid #39D47F",
                 boxShadow: "inset 0 1px 1px rgba(15,40,30,0.1)",
               }}
             />
@@ -255,22 +258,25 @@ export function WeeklyPlanPreviewStep({
 
   const L = {
     de: {
-      title:
-        "Erreiche dein Ziel durch einen Wochenplan gezielt auf dein Kalorienziel.",
+      titleBefore: "Erreiche dein Ziel durch einen ",
+      titleHighlight: "Wochenplan",
+      titleAfter: " gezielt auf dein Kalorienziel.",
       bookHeader: "Mein Plan",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
-      title:
-        "Hit your goal with a weekly plan dialled in to your calorie target.",
+      titleBefore: "Hit your goal with a ",
+      titleHighlight: "weekly plan",
+      titleAfter: " dialled in to your calorie target.",
       bookHeader: "My plan",
       next: "Next",
       back: "Back",
     },
     fr: {
-      title:
-        "Atteins ton objectif grâce à un plan hebdomadaire calé sur ton apport calorique.",
+      titleBefore: "Atteins ton objectif grâce à un ",
+      titleHighlight: "plan hebdomadaire",
+      titleAfter: " calé sur ton apport calorique.",
       bookHeader: "Mon plan",
       next: "Suivant",
       back: "Retour",
@@ -284,7 +290,7 @@ export function WeeklyPlanPreviewStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -293,7 +299,7 @@ export function WeeklyPlanPreviewStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -305,20 +311,16 @@ export function WeeklyPlanPreviewStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-snug tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.title}
+          {t.titleBefore}
+          <MintTextHighlight>{t.titleHighlight}</MintTextHighlight>
+          {t.titleAfter}
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
       {/* Hero: notebook with food */}
       <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
@@ -330,6 +332,7 @@ export function WeeklyPlanPreviewStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -338,7 +341,7 @@ export function WeeklyPlanPreviewStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

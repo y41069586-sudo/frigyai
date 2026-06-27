@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { formatTranslation, useLanguage } from "@/contexts/LanguageContext";
 import frigLogo from "@/assets/frigy-mascot.png";
+import { getPublicErrorMessage } from "@/lib/publicErrorMessage";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -30,13 +31,13 @@ const ResetPasswordPage = () => {
 
       setEmailSent(true);
       toast({
-        title: "E-Mail gesendet!",
-        description: "Überprüfe dein Postfach für den Reset-Link.",
+        title: t.resetPasswordEmailSentTitle,
+        description: formatTranslation(t.resetPasswordEmailSentDesc, { email }),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: t.error,
-        description: error.message,
+        description: getPublicErrorMessage(error, t.resetPasswordSendFailed),
         variant: "destructive",
       });
     } finally {
@@ -65,16 +66,13 @@ const ResetPasswordPage = () => {
               <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="h-8 w-8 text-primary" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">E-Mail gesendet!</h2>
+              <h2 className="text-2xl font-bold mb-2">{t.resetPasswordEmailSentTitle}</h2>
               <p className="text-muted-foreground mb-6">
-                Wir haben dir einen Link zum Zurücksetzen deines Passworts an{" "}
-                <span className="text-foreground font-medium">{email}</span> gesendet.
+                {formatTranslation(t.resetPasswordEmailSentDesc, { email })}
               </p>
-              <p className="text-sm text-muted-foreground mb-6">
-                Überprüfe auch deinen Spam-Ordner, falls du die E-Mail nicht findest.
-              </p>
+              <p className="text-sm text-muted-foreground mb-6">{t.resetPasswordCheckSpam}</p>
               <Button onClick={() => navigate("/auth")} className="w-full">
-                Zurück zur Anmeldung
+                {t.resetPasswordBackToLogin}
               </Button>
             </div>
           </motion.div>
@@ -107,7 +105,7 @@ const ResetPasswordPage = () => {
 
             <h2 className="text-xl font-bold text-center mb-2">{t.forgotPassword}</h2>
             <p className="text-sm text-muted-foreground text-center mb-6">
-              Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen.
+              {t.resetPasswordInstructions}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -132,7 +130,7 @@ const ResetPasswordPage = () => {
                 className="w-full glow-button h-12"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? t.loading : "Reset-Link senden"}
+                {isSubmitting ? t.loading : t.resetPasswordSendLink}
               </Button>
             </form>
 
@@ -141,7 +139,7 @@ const ResetPasswordPage = () => {
                 onClick={() => navigate("/auth")}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
-                Zurück zur Anmeldung
+                {t.resetPasswordBackToLogin}
               </button>
             </div>
           </div>

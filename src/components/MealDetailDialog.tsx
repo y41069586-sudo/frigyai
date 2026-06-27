@@ -1,11 +1,29 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Clock, Flame, Beef, Wheat, Droplets, Check, Loader2 } from 'lucide-react';
-import { useFoodEntries } from '@/hooks/useFoodEntries';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from '@/hooks/use-toast';
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Clock, Flame, Beef, Wheat, Droplets, Check, Loader2, ChefHat, Lightbulb, X } from "lucide-react";
+import {
+  getDetailedInstructions,
+  parseAllCookingSteps,
+  sumStepMinutes,
+  groupStepsByPhase,
+  phaseBadgeClass,
+} from "@/lib/cookingInstructions";
+import { useFoodEntries } from "@/hooks/useFoodEntries";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  viewportPanelExit,
+  viewportPanelFrom,
+  viewportPanelTo,
+  viewportPanelTransition,
+} from "@/lib/motionPresets";
+import { cn } from "@/lib/utils";
+import { localizeMealTypeLabel, cleanMealDisplayName, getCookingPhaseLabel } from "@/lib/mealI18n";
+import { normalizeMealTypeForSave } from "@/lib/mealFocus";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 
 interface Ingredient {
   name: string;
@@ -32,35 +50,131 @@ interface MealDetailDialogProps {
   onMealLogged?: () => void;
 }
 
+const LOG_BTN_COPY = {
+  de: {
+    log: "Gegessen loggen",
+    logShort: "Gegessen",
+    logLong: "Als gegessen markieren",
+    logging: "Wird geloggt…",
+    done: "Gegessen!",
+    close: "Schließen",
+  },
+  en: {
+    log: "Log meal",
+    logShort: "Log",
+    logLong: "Mark as eaten",
+    logging: "Logging…",
+    done: "Logged!",
+    close: "Close",
+  },
+  fr: {
+    log: "Noter repas",
+    logShort: "Noter",
+    logLong: "Marquer mangé",
+    logging: "Enregistrement…",
+    done: "Noté !",
+    close: "Fermer",
+  },
+} as const;
+
 export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: MealDetailDialogProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
+    ? (language as "de" | "en" | "fr")
+    : "de";
+  const btn = LOG_BTN_COPY[lng];
+  const copy = {
+    de: {
+      loggedTitle: "✅ Gegessen geloggt",
+      loggedDesc: "zu deinem Tracker hinzugefuegt",
+      errorTitle: "Fehler",
+      errorDesc: "Konnte Mahlzeit nicht speichern",
+      kcal: "kcal",
+      protein: "Protein",
+      carbs: "Carbs",
+      fat: "Fett",
+      totalTime: "ca.",
+      totalDuration: "Min Gesamtzeit",
+      timedSteps: "Min in den Schritten",
+      ingredients: "Zutaten",
+      total: "Gesamt",
+      cookingHint: "Schritt fuer Schritt nachkochen - Zeit, Phase und genaue Handgriffe in jedem Schritt.",
+      instructions: "Zubereitung",
+      steps: "Schritte",
+    },
+    en: {
+      loggedTitle: "✅ Meal logged",
+      loggedDesc: "added to your tracker",
+      errorTitle: "Error",
+      errorDesc: "Could not save meal",
+      kcal: "kcal",
+      protein: "Protein",
+      carbs: "Carbs",
+      fat: "Fat",
+      totalTime: "approx.",
+      totalDuration: "min total time",
+      timedSteps: "min in steps",
+      ingredients: "Ingredients",
+      total: "Total",
+      cookingHint: "Cook it step by step - each step includes time, phase, and exact actions.",
+      instructions: "Preparation",
+      steps: "steps",
+    },
+    fr: {
+      loggedTitle: "✅ Repas enregistre",
+      loggedDesc: "ajoute a ton suivi",
+      errorTitle: "Erreur",
+      errorDesc: "Impossible d enregistrer le repas",
+      kcal: "kcal",
+      protein: "Proteines",
+      carbs: "Glucides",
+      fat: "Lipides",
+      totalTime: "env.",
+      totalDuration: "min au total",
+      timedSteps: "min dans les etapes",
+      ingredients: "Ingredients",
+      total: "Total",
+      cookingHint: "Cuisine pas a pas - temps, phase et gestes precis dans chaque etape.",
+      instructions: "Preparation",
+      steps: "etapes",
+    },
+  } as const;
+  const ui = copy[lng];
   const { addEntry } = useFoodEntries();
+  const isMobile = useIsMobile();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [isLogged, setIsLogged] = useState(false);
+  const [displayMeal, setDisplayMeal] = useState<Meal | null>(null);
+
+  useEffect(() => {
+    if (open && meal) setDisplayMeal(meal);
+  }, [open, meal]);
+
+  const activeMeal = displayMeal ?? meal;
 
   const handleLogMeal = async () => {
-    if (!meal) return;
+    if (!activeMeal) return;
 
     setIsLogging(true);
     try {
-      // Ensure all values are numbers and handle potential undefined values
-      const prepTime = meal.prepTime || 20;
+      const prepTime = activeMeal.prepTime || 20;
 
       const result = await addEntry({
-        name: meal.name,
-        calories: Number(meal.calories) || 0,
-        protein: Number(meal.protein) || 0,
-        carbs: Number(meal.carbs) || 0,
-        fat: Number(meal.fat) || 0,
+        name: activeMeal.name,
+        calories: Number(activeMeal.calories) || 0,
+        protein: Number(activeMeal.protein) || 0,
+        carbs: Number(activeMeal.carbs) || 0,
+        fat: Number(activeMeal.fat) || 0,
         portion: `${prepTime}min`,
-        meal_type: meal.type,
+        meal_type: normalizeMealTypeForSave(activeMeal.type),
       });
 
       if (result) {
         setIsLogged(true);
         toast({
-          title: '✅ Gegessen geloggt',
-          description: `${meal.name} zu deinem Tracker hinzugefügt`,
+          title: ui.loggedTitle,
+          description: `${activeMeal.name} ${ui.loggedDesc}`,
         });
         onMealLogged?.();
         setTimeout(() => {
@@ -69,134 +183,248 @@ export const MealDetailDialog = ({ meal, open, onOpenChange, onMealLogged }: Mea
         }, 1000);
       }
     } catch (error) {
-      console.error('[MealDetailDialog] Error logging meal:', error);
+      console.error("[MealDetailDialog] Error logging meal:", error);
       toast({
-        title: 'Fehler',
-        description: 'Konnte Mahlzeit nicht speichern',
-        variant: 'destructive',
+        title: ui.errorTitle,
+        description: ui.errorDesc,
+        variant: "destructive",
       });
     } finally {
       setIsLogging(false);
     }
   };
 
-  // Early return before hooks - hooks must run before any conditionals
-  if (!meal) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
-          <p className="text-center text-muted-foreground">Keine Mahlzeit ausgewählt</p>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const detailedInstructions = activeMeal ? getDetailedInstructions(activeMeal, lng) : [];
+  const parsedSteps = activeMeal ? parseAllCookingSteps(detailedInstructions) : [];
+  const timedMinutes = sumStepMinutes(parsedSteps);
+  const phaseGroups = groupStepsByPhase(parsedSteps);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-card border-primary/20">
-        <DialogHeader>
-          <Badge className="w-fit mb-2" variant="secondary">{meal.type}</Badge>
-          <DialogTitle className="text-2xl neon-text">{meal.name}</DialogTitle>
-        </DialogHeader>
-
-        {/* Macros */}
-        <div className="grid grid-cols-4 gap-3 my-4">
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Flame className="h-5 w-5 mx-auto text-orange-500 mb-1" />
-            <p className="text-lg font-bold">{meal.calories}</p>
-            <p className="text-xs text-muted-foreground">kcal</p>
-          </div>
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Beef className="h-5 w-5 mx-auto text-red-500 mb-1" />
-            <p className="text-lg font-bold">{meal.protein}g</p>
-            <p className="text-xs text-muted-foreground">Protein</p>
-          </div>
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Wheat className="h-5 w-5 mx-auto text-amber-500 mb-1" />
-            <p className="text-lg font-bold">{meal.carbs}g</p>
-            <p className="text-xs text-muted-foreground">Carbs</p>
-          </div>
-          <div className="text-center p-3 bg-background/50 rounded-xl">
-            <Droplets className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-            <p className="text-lg font-bold">{meal.fat}g</p>
-            <p className="text-xs text-muted-foreground">Fett</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-          <Clock className="h-4 w-4" />
-          <span>{meal.prepTime} Minuten Zubereitung</span>
-        </div>
-
-        {/* Ingredients */}
-        <div className="mb-4">
-          <h4 className="font-semibold mb-2 text-primary">Zutaten</h4>
-          <ul className="space-y-2">
-            {meal.ingredients.map((ing, idx) => (
-              <li key={idx} className="flex justify-between items-center p-2 bg-background/30 rounded-lg">
-                <span>{ing.amount} {ing.name}</span>
-                <span className="text-muted-foreground">€{ing.price.toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 pt-2 border-t border-primary/20 flex justify-between font-semibold">
-            <span>Gesamt</span>
-            <span className="text-primary">
-              €{meal.ingredients.reduce((sum, ing) => sum + ing.price, 0).toFixed(2)}
-            </span>
-          </div>
-        </div>
-
-        {/* Instructions */}
-        {meal.instructions && meal.instructions.length > 0 && (
-          <div className="mb-6">
-            <h4 className="font-semibold mb-2 text-primary">Zubereitung</h4>
-            <ol className="space-y-3">
-              {meal.instructions.map((step, idx) => (
-                <li key={idx} className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-medium">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        {/* Log as eaten button */}
-        <div className="flex gap-2 mt-6 pt-4 border-t border-primary/20">
-          <Button
-            onClick={handleLogMeal}
-            disabled={isLogging || isLogged}
-            className="flex-1 bg-primary hover:bg-primary/90"
-          >
-            {isLogged ? (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                {t.toastFoodLogged || 'Gegessen!'}
-              </>
-            ) : isLogging ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Wird geloggt...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                Als gegessen markieren
-              </>
-            )}
-          </Button>
-          <Button
+    <AnimatePresence onExitComplete={() => { if (!open) setDisplayMeal(null); }}>
+      {open && activeMeal && (
+        <>
+          <motion.button
+            type="button"
+            aria-label={btn.close}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             onClick={() => onOpenChange(false)}
-            variant="outline"
-            className="flex-1"
+            className="fixed inset-0 z-[60] bg-black/45"
+          />
+
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="meal-detail-title"
+            initial={viewportPanelFrom(isMobile)}
+            animate={viewportPanelTo()}
+            exit={viewportPanelExit(isMobile)}
+            transition={viewportPanelTransition(isMobile)}
+            className={cn(
+              "fixed z-[61] flex flex-col overflow-hidden bg-[#F7FAF7] shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]",
+              !isMobile && "gpu-smooth",
+              isMobile
+                ? "left-3 right-3 top-[max(4.5rem,env(safe-area-inset-top,0px)+3rem)] bottom-[max(5.75rem,env(safe-area-inset-bottom,0px)+4.75rem)] rounded-[1.75rem] border border-primary/15"
+                : "left-1/2 top-1/2 max-h-[88vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-primary/20",
+            )}
           >
-            Schließen
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+            <div className={cn("shrink-0", !isMobile && "pt-2")}>
+              <div className={cn("flex items-start gap-2 px-5", isMobile ? "pb-2 pt-3" : "px-6 pt-4")}>
+                <div className="min-w-0 flex-1">
+                  <Badge
+                    className="mb-2 w-fit rounded-full border-primary/20 bg-primary/10 text-primary"
+                    variant="secondary"
+                  >
+                    {localizeMealTypeLabel(activeMeal.type, t)}
+                  </Badge>
+                  <h2
+                    id="meal-detail-title"
+                    className="pr-2 text-[22px] font-black leading-tight tracking-[-0.04em] text-foreground sm:text-[24px]"
+                  >
+                    {cleanMealDisplayName(activeMeal.name) || activeMeal.name}
+                  </h2>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onOpenChange(false)}
+                  className="h-9 w-9 shrink-0 rounded-full"
+                  aria-label={btn.close}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div
+              ref={scrollRef}
+              data-sheet-scroll
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-1 sm:px-6 sm:pb-24"
+            >
+              <div className="my-3 grid grid-cols-4 gap-2">
+                <MacroCard icon={Flame} iconClass="text-orange-500 bg-orange-50" value={Math.round(activeMeal.calories)} label={ui.kcal} />
+                <MacroCard icon={Beef} iconClass="text-rose-500 bg-rose-50" value={Math.round(activeMeal.protein)} label={ui.protein} unit="g" />
+                <MacroCard icon={Wheat} iconClass="text-amber-500 bg-amber-50" value={Math.round(activeMeal.carbs)} label={ui.carbs} unit="g" />
+                <MacroCard icon={Droplets} iconClass="text-sky-500 bg-sky-50" value={Math.round(activeMeal.fat)} label={ui.fat} unit="g" />
+              </div>
+
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-3 py-2.5 text-sm">
+                <Clock className="h-4 w-4 shrink-0 text-primary" />
+                <span className="font-medium text-foreground">{ui.totalTime} {activeMeal.prepTime} {ui.totalDuration}</span>
+                {timedMinutes > 0 && (
+                  <span className="text-xs text-muted-foreground">· {timedMinutes} {ui.timedSteps}</span>
+                )}
+              </div>
+
+              <section className="mb-5 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
+                <AiDisclaimer className="mb-3" />
+                <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">{ui.ingredients}</h4>
+                <ul className="space-y-2">
+                  {activeMeal.ingredients.map((ing, idx) => (
+                    <li key={idx} className="flex items-center justify-between gap-3 rounded-2xl bg-muted/35 px-3 py-2.5">
+                      <span className="min-w-0 text-sm font-medium text-foreground">
+                        <span className="text-muted-foreground">{ing.amount}</span> {ing.name}
+                      </span>
+                      <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                        €{(Number(ing.price) || 0).toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex justify-between border-t border-slate-200/80 pt-3 text-sm font-semibold">
+                  <span>{ui.total}</span>
+                  <span className="text-primary">
+                    €{activeMeal.ingredients.reduce((sum, ing) => sum + (Number(ing.price) || 0), 0).toFixed(2)}
+                  </span>
+                </div>
+              </section>
+
+              <section className="mb-6 rounded-3xl border border-slate-200/85 bg-white/72 p-4">
+                <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+                  <ChefHat className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {ui.cookingHint}
+                  </p>
+                </div>
+                <h4 className="mb-3 text-[17px] font-bold tracking-[-0.02em] text-foreground">
+                  {t.preparation} ({parsedSteps.length} {ui.steps})
+                </h4>
+                <div className="space-y-5">
+                  {phaseGroups.map(({ phase, steps }) => (
+                    <div key={phase}>
+                      <p
+                        className={`mb-2 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${phaseBadgeClass[phase]}`}
+                      >
+                        {getCookingPhaseLabel(phase, lng)}
+                      </p>
+                      <ol className="space-y-3">
+                        {steps.map((step) => (
+                          <li key={step.index} className="rounded-2xl border border-slate-200/70 bg-muted/25 p-3.5">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+                                {step.index + 1}
+                              </span>
+                              {step.minutes != null && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-foreground ring-1 ring-slate-200/80">
+                                  <Clock className="h-3 w-3 text-primary" />
+                                  {step.minutes} min
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm leading-relaxed text-foreground">{step.text}</p>
+                            {step.tip && (
+                              <p className="mt-2.5 flex gap-2 rounded-xl bg-amber-50/90 px-2.5 py-2 text-xs leading-relaxed text-amber-900">
+                                <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                <span>{step.tip}</span>
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div
+              className={cn(
+                "absolute inset-x-0 bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-xl",
+                "gap-3 px-5 pt-3",
+                "pb-[max(0.75rem,env(safe-area-inset-bottom,0px)+0.5rem)]",
+                isMobile ? "grid grid-cols-2" : "flex items-center",
+                isMobile && "rounded-b-[1.75rem]",
+              )}
+            >
+              <Button
+                onClick={handleLogMeal}
+                disabled={isLogging || isLogged}
+                className={cn(
+                  "h-11 min-h-11 gap-2 rounded-xl bg-primary text-sm font-semibold hover:bg-primary/90 sm:h-12",
+                  isMobile ? "w-full" : "min-w-0 flex-1",
+                )}
+              >
+                {isLogged ? (
+                  <>
+                    <Check className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="truncate">{t.toastFoodLogged || btn.done}</span>
+                  </>
+                ) : isLogging ? (
+                  <>
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                    <span className="truncate">{btn.logging}</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="truncate">{isMobile ? btn.logShort : btn.logLong}</span>
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => onOpenChange(false)}
+                variant="outline"
+                className={cn(
+                  "h-11 min-h-11 rounded-xl px-4 text-sm font-semibold sm:h-12",
+                  isMobile ? "w-full" : "shrink-0 sm:min-w-[6.5rem]",
+                )}
+              >
+                {btn.close}
+              </Button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
+
+function MacroCard({
+  icon: Icon,
+  iconClass,
+  value,
+  label,
+  unit = "",
+}: {
+  icon: typeof Flame;
+  iconClass: string;
+  value: number;
+  label: string;
+  unit?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/75 bg-white/75 px-1.5 py-2.5 text-center">
+      <span className={`mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full ${iconClass}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="text-[14px] font-black leading-none tabular-nums text-foreground">
+        {value}
+        {unit}
+      </p>
+      <p className="mt-1 text-[9px] font-semibold leading-none text-muted-foreground">{label}</p>
+    </div>
+  );
+}

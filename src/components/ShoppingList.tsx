@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, formatTranslation, type Translations } from '@/contexts/LanguageContext';
+import { getAppLocale } from '@/lib/mealPlanLanguage';
 import { toast } from '@/hooks/use-toast';
 import { groupByCategory, getCategoryColor, getCategoryEmoji, IngredientCategory } from '@/lib/ingredient-categories';
 import { FRIGY_STORAGE_UPDATED, notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
@@ -13,6 +14,15 @@ import {
   readCheckedShoppingNames,
   writeCheckedShoppingNames,
 } from '@/lib/shoppingSync';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  buildGapShoppingList,
+  readFridgeIngredientsFromStorage,
+} from '@/lib/shoppingGap';
+import {
+  formatShoppingListAmount,
+} from '@/lib/shoppingListNormalize';
+import { normalizeShoppingListItems } from '@/lib/shoppingListItems';
 
 interface Ingredient {
   name: string;
@@ -32,12 +42,28 @@ interface ShoppingListProps {
 const OFFLINE_SHOPPING_LIST_KEY = 'frigai_offline_shopping_list';
 const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 
+function getShoppingCategoryLabel(t: Translations, category: IngredientCategory): string {
+  const labels: Record<IngredientCategory, string> = {
+    'Obst & Gemüse': t.shoppingCategoryFruitVeg,
+    'Fleisch & Fisch': t.shoppingCategoryMeatFish,
+    Milchprodukte: t.shoppingCategoryDairy,
+    'Brot & Getreide': t.shoppingCategoryBreadGrains,
+    Pantry: t.shoppingCategoryPantry,
+    Sonstiges: t.shoppingCategoryOther,
+  };
+  return labels[category] ?? category;
+}
+
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const defaultIngredientName = t.ingredientDefaultName ?? 'Zutat';
+  const isMobile = useIsMobile();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
+  const lastToggleAtRef = useRef<Record<string, number>>({});
+  const locale = getAppLocale(language);
 
   // Offline-Status überwachen
   useEffect(() => {
@@ -45,8 +71,8 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     const handleOffline = () => {
       setIsOffline(true);
       toast({
-        title: "📴 Offline-Modus",
-        description: "Einkaufsliste ist weiterhin verfügbar!",
+        title: t.shoppingListOfflineToastTitle,
+        description: t.shoppingListOfflineToastDesc,
       });
     };
     
@@ -86,18 +112,30 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     }));
   };
 
-  // Priorität: gespeicherte Liste (Gap vom Server/Mock) → sonst alle Zutaten aus dem Plan aggregieren
+  // Wochenplan ist Quelle der Wahrheit — Einkaufsliste daraus ableiten (Mengen + Preise aggregiert)
   useEffect(() => {
+    const mapGapToItems = (gap: Array<{ name: string; amount: string; price: number }>): ShoppingItem[] =>
+      gap
+        .filter((ing) => ing.name.trim().length > 0)
+        .map((ing, idx) => ({
+          name: ing.name,
+          amount: formatShoppingListAmount(ing.name, ing.amount),
+          price: typeof ing.price === 'number' ? ing.price : 0,
+          id: `stored-${ing.name.toLowerCase()}-${idx}`,
+          purchased: false,
+        }));
+
     const tryStoredList = (): ShoppingItem[] | null => {
       const raw = localStorage.getItem('weeklyShoppingList');
       if (raw === null) return null;
       try {
-        const parsed = JSON.parse(raw) as Array<{ name: string; amount: string; price: number }>;
+        const parsed = JSON.parse(raw) as unknown;
+        const normalized = normalizeShoppingListItems(parsed, defaultIngredientName);
         if (!Array.isArray(parsed)) return null;
-        if (parsed.length === 0) return [];
-        return parsed.map((ing, idx) => ({
+        if (normalized.length === 0) return [];
+        return normalized.map((ing, idx) => ({
           name: ing.name,
-          amount: ing.amount || '—',
+          amount: formatShoppingListAmount(ing.name, ing.amount),
           price: typeof ing.price === 'number' ? ing.price : 0,
           id: `stored-${ing.name.toLowerCase()}-${idx}`,
           purchased: false,
@@ -112,13 +150,30 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       const cached = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
       if (cached) {
         try {
-          const parsedItems = JSON.parse(cached);
-          setItems(parsedItems);
+          const parsedItems = JSON.parse(cached) as unknown;
+          const normalized = normalizeShoppingListItems(parsedItems, defaultIngredientName);
+          setItems(applyPurchasedFromCache(
+            normalized.map((ing, idx) => ({
+              name: ing.name,
+              amount: formatShoppingListAmount(ing.name, ing.amount),
+              price: ing.price,
+              id: `offline-${ing.name.toLowerCase()}-${idx}`,
+              purchased: false,
+            })),
+          ));
           return;
         } catch (e) {
           console.error('[SHOPPING] Failed to load cache:', e);
         }
       }
+    }
+
+    const fridge = readFridgeIngredientsFromStorage();
+
+    if (mealPlan?.length) {
+      const fromPlan = mapGapToItems(buildGapShoppingList(mealPlan, fridge));
+      setItems(applyPurchasedFromCache(fromPlan));
+      return;
     }
 
     const fromStorage = tryStoredList();
@@ -127,51 +182,38 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       return;
     }
 
-    if (!mealPlan?.length) {
-      setItems([]);
-      return;
-    }
-
-    const ingredientMap = new Map<string, ShoppingItem>();
-
-    mealPlan.forEach((day) => {
-      day.meals?.forEach((meal: any) => {
-        meal.ingredients?.forEach((ing: Ingredient) => {
-          const key = ing.name.toLowerCase();
-          if (ingredientMap.has(key)) {
-            const existing = ingredientMap.get(key)!;
-            existing.price += ing.price;
-          } else {
-            ingredientMap.set(key, {
-              ...ing,
-              id: `${key}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              purchased: false,
-            });
-          }
-        });
-      });
-    });
-
-    const newItems = Array.from(ingredientMap.values());
-    setItems(applyPurchasedFromCache(newItems));
-  }, [mealPlan, isOffline]);
+    setItems([]);
+  }, [mealPlan, isOffline, defaultIngredientName]);
 
   useEffect(() => {
     const onStorage = () => {
-      const raw = localStorage.getItem('weeklyShoppingList');
-      if (raw === null) return;
-      try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed) || parsed.length === 0) return;
-        const withIds: ShoppingItem[] = parsed.map(
-          (ing: { name: string; amount: string; price: number }, idx: number) => ({
+      if (mealPlan?.length) {
+        const fromPlan = buildGapShoppingList(mealPlan, readFridgeIngredientsFromStorage()).map(
+          (ing, idx) => ({
             name: ing.name,
             amount: ing.amount || '—',
-            price: typeof ing.price === 'number' ? ing.price : 0,
+            price: ing.price,
             id: `stored-${ing.name.toLowerCase()}-${idx}`,
             purchased: false,
           }),
         );
+        setItems(applyPurchasedFromCache(fromPlan));
+        return;
+      }
+
+      const raw = localStorage.getItem('weeklyShoppingList');
+      if (raw === null) return;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        const normalized = normalizeShoppingListItems(parsed, defaultIngredientName);
+        if (!Array.isArray(parsed) || normalized.length === 0) return;
+        const withIds: ShoppingItem[] = normalized.map((ing, idx) => ({
+          name: ing.name,
+          amount: ing.amount || '—',
+          price: typeof ing.price === 'number' ? ing.price : 0,
+          id: `stored-${ing.name.toLowerCase()}-${idx}`,
+          purchased: false,
+        }));
         setItems(applyPurchasedFromCache(withIds));
       } catch {
         /* ignore */
@@ -179,13 +221,13 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     };
     window.addEventListener(FRIGY_STORAGE_UPDATED, onStorage);
     return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, onStorage);
-  }, []);
+  }, [defaultIngredientName, mealPlan]);
 
   // Einkaufsliste im Cache speichern bei jeder Änderung
   const saveToCache = useCallback((itemsToCache: ShoppingItem[]) => {
     try {
       localStorage.setItem(OFFLINE_SHOPPING_LIST_KEY, JSON.stringify(itemsToCache));
-      const timestamp = new Date().toLocaleString('de-DE');
+      const timestamp = new Date().toLocaleString(locale);
       localStorage.setItem(SHOPPING_LIST_TIMESTAMP_KEY, timestamp);
       setLastSyncTime(timestamp);
       console.log('[SHOPPING] Saved to cache:', itemsToCache.length, 'items');
@@ -201,9 +243,20 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     }
   }, [items, saveToCache]);
 
-  const setPurchased = (id: string, purchased: boolean) => {
+  const updatePurchasedState = useCallback((id: string, purchased: boolean | ((current: boolean) => boolean)) => {
+    const now = Date.now();
+    const lastToggleAt = lastToggleAtRef.current[id] ?? 0;
+    if (now - lastToggleAt < 160) {
+      return;
+    }
+    lastToggleAtRef.current[id] = now;
+
     setItems((prev) => {
-      const next = prev.map((item) => (item.id === id ? { ...item, purchased } : item));
+      const next = prev.map((item) => {
+        if (item.id !== id) return item;
+        const nextPurchased = typeof purchased === 'function' ? purchased(item.purchased) : purchased;
+        return { ...item, purchased: nextPurchased };
+      });
       const nextCheckedNames = new Set(
         next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
       );
@@ -211,18 +264,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       notifyFrigyStorageUpdated();
       return next;
     });
+  }, []);
+
+  const setPurchased = (id: string, purchased: boolean) => {
+    updatePurchasedState(id, purchased);
   };
 
   const toggleItem = (id: string) => {
-    setItems((prev) => {
-      const next = prev.map((item) => (item.id === id ? { ...item, purchased: !item.purchased } : item));
-      const nextCheckedNames = new Set(
-        next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
-      );
-      writeCheckedShoppingNames(nextCheckedNames);
-      notifyFrigyStorageUpdated();
-      return next;
-    });
+    updatePurchasedState(id, (current) => !current);
   };
 
   const toggleCategory = (category: IngredientCategory) => {
@@ -311,8 +360,8 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const forceSync = () => {
     saveToCache(items);
     toast({
-      title: "✅ Offline gespeichert!",
-      description: "Einkaufsliste ist jetzt im Supermarkt ohne Internet verfügbar.",
+      title: t.shoppingListOfflineSavedTitle,
+      description: t.shoppingListOfflineSavedDesc,
     });
   };
 
@@ -323,9 +372,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         <Card className="p-3 bg-amber-500/20 border-amber-500/50 flex items-center gap-3">
           <WifiOff className="h-5 w-5 text-amber-500" />
           <div className="flex-1">
-            <p className="font-medium text-amber-500">Offline-Modus aktiv</p>
+            <p className="font-medium text-amber-500">{t.shoppingListOfflineMode}</p>
             <p className="text-xs text-muted-foreground">
-              {lastSyncTime ? `Zuletzt gespeichert: ${lastSyncTime}` : 'Daten aus Cache geladen'}
+              {lastSyncTime ? `${t.shoppingListLastSaved}: ${lastSyncTime}` : t.shoppingListCacheLoaded}
             </p>
           </div>
         </Card>
@@ -348,9 +397,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <div className="text-right">
             <p className="text-2xl font-bold text-primary">€{totalPrice.toFixed(2)}</p>
             <div className="space-y-0.5 text-xs text-muted-foreground">
-              <p>€{purchasedPrice.toFixed(2)} {t.spent}</p>
+                <p>€{purchasedPrice.toFixed(2)} {t.spent}</p>
               {remainingPrice > 0 && (
-                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} noch nötig</p>
+                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} {t.shoppingListStillNeeded}</p>
               )}
             </div>
           </div>
@@ -365,7 +414,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               onClick={() => setExpandedCategories(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']))}
               className="h-7 text-xs"
             >
-              Alle anzeigen
+              {t.shoppingListShowAll}
             </Button>
             <Button
               variant="ghost"
@@ -373,7 +422,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               onClick={() => setExpandedCategories(new Set())}
               className="h-7 text-xs"
             >
-              Alle minimieren
+              {t.shoppingListCollapseAll}
             </Button>
           </div>
         )}
@@ -381,9 +430,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         {/* Progress bar */}
         <div className="mt-3 h-2 bg-background/50 rounded-full overflow-hidden">
           <motion.div 
-            className="h-full bg-primary"
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPct}%` }}
+            className="h-full origin-left bg-primary"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: progressPct / 100 }}
             transition={{ duration: 0.3 }}
           />
         </div>
@@ -396,14 +445,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
             onClick={forceSync}
           >
             <RefreshCw className="h-4 w-4" />
-            Für Offline speichern
+            {t.shoppingListSaveOffline}
           </Button>
         </div>
 
         {/* Sync Status */}
         {lastSyncTime && !isOffline && (
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Zuletzt gespeichert: {lastSyncTime}
+            {t.shoppingListLastSaved}: {lastSyncTime}
           </p>
         )}
       </Card>
@@ -425,9 +474,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                 <div className="flex items-center gap-3 flex-1 text-left">
                   <span className="text-xl">{getCategoryEmoji(group.category)}</span>
                   <div className="flex-1">
-                    <p className="font-semibold text-sm">{group.category}</p>
+                    <p className="font-semibold text-sm">{getShoppingCategoryLabel(t, group.category)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {categoryPurchasedCount} von {group.items.length} • €{categoryTotalPrice.toFixed(2)}
+                      {categoryPurchasedCount} {t.shoppingListOfCount} {group.items.length} • €{categoryTotalPrice.toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -442,20 +491,20 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
               {/* Category Items */}
               <motion.div
                 initial={false}
-                animate={{
+                animate={isMobile ? undefined : {
                   height: isExpanded ? 'auto' : 0,
                   opacity: isExpanded ? 1 : 0,
                   marginBottom: isExpanded ? 16 : 0
                 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden space-y-2"
+                className={isMobile ? (isExpanded ? "space-y-2 pb-4" : "hidden") : "overflow-hidden space-y-2"}
               >
                 {group.items.map((item, index) => (
                   <motion.div
                     key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.02 }}
+                    initial={isMobile ? false : { opacity: 0, x: -10 }}
+                    animate={isMobile ? undefined : { opacity: 1, x: 0 }}
+                    transition={isMobile ? { duration: 0 } : { delay: index * 0.02 }}
                   >
                     <Card
                       className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
@@ -463,13 +512,14 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                           ? 'bg-primary/10 border-primary/30'
                           : 'bg-card/60 border-primary/10 hover:border-primary/30'
                       }`}
-                      onPointerUp={() => toggleItem(item.id)}
+                      onClick={() => toggleItem(item.id)}
                     >
                       <div className="flex items-center gap-3">
                         <Checkbox
                           checked={item.purchased}
                           onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
                           onPointerDown={(e) => e.stopPropagation()}
+                          onPointerUp={(e) => e.stopPropagation()}
                           onClick={(e) => e.stopPropagation()}
                           className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                         />
@@ -477,7 +527,9 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
                           <p className={`font-medium text-sm ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
                             {item.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">{item.amount}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatShoppingListAmount(item.name, item.amount)}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={`font-semibold text-sm ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>
@@ -502,7 +554,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
           <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground mb-2">{t.generateMealPlanForList}</p>
           <p className="text-xs text-muted-foreground/60">
-            Wochenplan: {mealPlan?.length > 0 ? `${mealPlan.length} Tage` : 'Nicht generiert'}
+            {t.mealPlans}: {mealPlan?.length > 0 ? formatTranslation(t.shoppingListDayCount, { count: mealPlan.length }) : t.shoppingListNotGenerated}
           </p>
         </Card>
       )}

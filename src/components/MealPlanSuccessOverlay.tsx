@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Calendar, Sparkles } from "lucide-react";
 import { useEffect } from "react";
-import confetti from "canvas-confetti";
+import { confettiBurst } from "@/lib/mobileEffects";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MealPlanSuccessOverlayProps {
   isVisible: boolean;
@@ -20,38 +21,32 @@ const MealPlanSuccessOverlay = ({
   onComplete,
 }: MealPlanSuccessOverlayProps) => {
   const { playGoalReached } = useSoundEffects();
+  const { language } = useLanguage();
+  const copy = language === "fr"
+    ? {
+        perfect: "Parfait !",
+        replaced: "Plat remplace",
+        updated: "Ton plan hebdomadaire a ete mis a jour",
+      }
+    : language === "en"
+      ? {
+          perfect: "Perfect!",
+          replaced: "Meal replaced",
+          updated: "Your weekly plan has been updated",
+        }
+      : {
+          perfect: "Perfekt!",
+          replaced: "Gericht ersetzt",
+          updated: "Dein Wochenplan wurde aktualisiert",
+        };
 
   useEffect(() => {
     if (isVisible) {
       // Play success sound
       playGoalReached();
 
-      // Trigger confetti
-      const duration = 2000;
-      const end = Date.now() + duration;
-
       const colors = ["#22c55e", "#4ade80", "#86efac", "#bbf7d0"];
-
-      (function frame() {
-        confetti({
-          particleCount: 3,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.7 },
-          colors: colors,
-        });
-        confetti({
-          particleCount: 3,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.7 },
-          colors: colors,
-        });
-
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      })();
+      confettiBurst({ particleCount: 80, spread: 70, origin: { y: 0.65 }, colors });
 
       // Auto-close after animation
       const timer = setTimeout(() => {
@@ -125,11 +120,11 @@ const MealPlanSuccessOverlay = ({
               >
                 <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5 text-primary" />
-                  Perfekt!
+                  {copy.perfect}
                   <Sparkles className="h-5 w-5 text-primary" />
                 </h2>
                 <p className="text-lg text-foreground font-medium">
-                  Gericht ersetzt
+                  {copy.replaced}
                 </p>
               </motion.div>
 
@@ -158,7 +153,7 @@ const MealPlanSuccessOverlay = ({
                 transition={{ delay: 0.5 }}
                 className="text-center text-sm text-muted-foreground"
               >
-                Dein Wochenplan wurde aktualisiert
+                {copy.updated}
               </motion.p>
             </div>
           </motion.div>

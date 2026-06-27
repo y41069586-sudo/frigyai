@@ -1,0 +1,231 @@
+# Frigy — iOS + Android (Capacitor). Setup: docs/CODEMAGIC.md + codemagic.env.example
+
+workflows:
+  android-build:
+    name: Android Build
+
+    max_build_duration: 120
+    # mac_mini_m2: 500 free min/month on personal accounts. linux_x2 needs billing enabled.
+    instance_type: mac_mini_m2
+
+    environment:
+      xcode: latest
+      node: 22
+      java: 21
+      # Must match Reference name in Codemagic → Code signing identities → Android keystores
+      android_signing:
+        - frigy_android
+      groups:
+        - frigy
+      vars:
+        NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+        PACKAGE_NAME: com.frigy.app
+        VITE_REVENUECAT_ENTITLEMENT_ID: premium
+        VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
+        VITE_TERMS_URL: https://app.frigy.app/legal/agb
+        VITE_APP_WEB_HOST: app.frigy.app
+        # Decoupled from CM_BUILD_NUMBER — Android versionCode must not leak to iOS.
+        ANDROID_VERSION_CODE: "4"
+
+    scripts:
+      - name: Verify build environment
+        script: bash scripts/codemagic-verify-env.sh
+
+      - name: Install dependencies
+        script: |
+          set -e
+          npm ci --legacy-peer-deps
+
+      - name: Build web app (Vite → dist/)
+        script: |
+          set -e
+          npm run build
+          test -d dist || (echo "ERROR: dist/ missing after vite build" && exit 1)
+
+      - name: Sync Capacitor Android
+        script: |
+          set -e
+          npx cap sync android
+          test -d android/app/src/main/assets/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
+          # Play Console app uses com.frigy.app (not com.frigyapp.app)
+          if ! grep -q 'applicationId "com.frigy.app"' android/app/build.gradle; then
+            echo "ERROR: applicationId must be com.frigy.app for Google Play."
+            exit 1
+          fi
+
+      - name: Set Android version code
+        script: |
+          set -e
+          BUILD_NUM="${ANDROID_VERSION_CODE:-4}"
+          if [ -n "${CM_BUILD_NUMBER:-}" ] && [ "$CM_BUILD_NUMBER" -gt "$BUILD_NUM" ]; then
+            BUILD_NUM="$CM_BUILD_NUMBER"
+          fi
+          GRADLE_FILE="android/app/build.gradle"
+          # macOS (BSD sed) needs -i ''; GNU sed (Linux) uses -i alone
+          if [ "$(uname -s)" = "Darwin" ]; then
+            sed -i '' "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" "$GRADLE_FILE"
+          else
+            sed -i "s/versionCode [0-9]*/versionCode ${BUILD_NUM}/" "$GRADLE_FILE"
+          fi
+          echo "Android versionCode=${BUILD_NUM}"
+
+      - name: Verify Android release signing
+        script: |
+          set -e
+          if [ -z "${CM_KEYSTORE_PATH:-}" ] || [ ! -f "${CM_KEYSTORE_PATH}" ]; then
+            echo "ERROR: No release keystore on build machine."
+            echo "Fix: Codemagic → Code signing identities → Android keystore with reference 'frigy_android'"
+            echo "      and android_signing in codemagic.yaml must use the same reference name."
+            exit 1
+          fi
+          echo "Release keystore OK: ${CM_KEYSTORE_PATH} (alias=${CM_KEY_ALIAS:-unset})"
+
+      - name: Build AAB + APK (release)
+        script: |
+          set -e
+          java -version
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease --no-daemon
+          test -f app/build/outputs/bundle/release/app-release.aab || (echo "ERROR: AAB not found" && exit 1)
+          test -f app/build/outputs/apk/release/app-release.apk || (echo "ERROR: APK not found" && exit 1)
+
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/apk/release/*.apk
+
+    publishing:
+      scripts:
+        - name: Build info
+          script: echo "AAB + APK ready — download from Artifacts."
+
+  ios-build:
+    name: iOS Build
+
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    environment:
+      xcode: 26.4
+      node: 22
+      # Secrets live in Codemagic variable group "frigy" (name must match UI exactly).
+      # Required for publishing: APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_IDENTIFIER,
+      # APP_STORE_CONNECT_PRIVATE_KEY (see codemagic.env.example).
+      groups:
+        - frigy
+      # Reference names must match Code signing identities exactly (avoids wrong profile e.g. "Doaa Attia").
+      ios_signing:
+        provisioning_profiles:
+          - Frigy
+        certificates:
+          - frigy_distribution
+      vars:
+        NPM_CONFIG_LEGACY_PEER_DEPS: "true"
+        XCODE_SCHEME: App
+        BUNDLE_ID: com.frigyapp.app
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        VITE_REVENUECAT_ENTITLEMENT_ID: premium
+        VITE_APPLE_BUNDLE_ID: com.frigyapp.app
+        VITE_APPLE_CLIENT_ID: com.frigyapp.app
+        VITE_APPLE_REDIRECT_URI: https://app.frigy.app/auth/callback
+        VITE_PRIVACY_POLICY_URL: https://app.frigy.app/legal/datenschutz
+        VITE_TERMS_URL: https://app.frigy.app/legal/agb
+        VITE_APP_WEB_HOST: app.frigy.app
+        # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
+        IOS_BUILD_NUMBER: "18"
+
+    scripts:
+      - name: Verify build environment
+        script: bash scripts/codemagic-verify-env.sh
+
+      - name: Install dependencies
+        script: |
+          set -e
+          npm ci --legacy-peer-deps
+
+      - name: Build web app (Vite → dist/)
+        script: |
+          set -e
+          npm run build
+          test -d dist || (echo "ERROR: dist/ missing after vite build" && exit 1)
+
+      - name: Sync Capacitor iOS
+        script: |
+          set -e
+          npx cap sync ios
+          test -d ios/App/App/public || (echo "ERROR: cap sync did not copy web assets" && exit 1)
+          # cap sync on Windows can write backslashes — SPM on macOS needs forward slashes
+          sed -i '' 's|\\|/|g' ios/App/CapApp-SPM/Package.swift
+          if grep -q '\\\\' ios/App/CapApp-SPM/Package.swift; then
+            echo "ERROR: Package.swift still contains backslashes — SPM will fail on macOS."
+            exit 1
+          fi
+          if ! grep -q "RevenuecatPurchasesCapacitor\|purchases-capacitor" ios/App/CapApp-SPM/Package.swift; then
+            echo "WARNING: RevenueCat not in CapApp-SPM — IAP may fail on device."
+          fi
+
+      - name: Resolve Swift packages
+        script: |
+          set -e
+          xcodebuild -resolvePackageDependencies \
+            -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
+            -scheme "$XCODE_SCHEME"
+
+      - name: Set up code signing
+        script: |
+          set -e
+          xcode-project use-profiles \
+            --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-method app-store \
+            --code-signing-setup-verbose-logging
+
+      - name: Verify signing profile
+        script: |
+          set -e
+          echo "=== Code signing settings ==="
+          xcodebuild -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" -scheme "$XCODE_SCHEME" -showBuildSettings 2>/dev/null \
+            | grep -E 'PROVISIONING_PROFILE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER' || true
+          PROFILE_SPEC=$(xcodebuild -project "$CM_BUILD_DIR/ios/App/App.xcodeproj" -scheme "$XCODE_SCHEME" -showBuildSettings 2>/dev/null \
+            | sed -n 's/^[[:space:]]*PROVISIONING_PROFILE_SPECIFIER = //p' | head -1)
+          echo "PROVISIONING_PROFILE_SPECIFIER=${PROFILE_SPEC:-<empty>}"
+          # "Doaa Attia" in CODE_SIGN_IDENTITY is the distribution cert name — OK. Only reject old profile name.
+          if [ "$PROFILE_SPEC" = "Doaa Attia" ] || [ -z "$PROFILE_SPEC" ]; then
+            echo ""
+            echo "ERROR: Provisioning profile is missing or still 'Doaa Attia' (old profile without Associated Domains)."
+            echo "Fix: Apple → new App Store profile → Codemagic Fetch → reference Frigy → rebuild."
+            exit 1
+          fi
+          echo "Signing profile OK: $PROFILE_SPEC"
+
+      - name: Set iOS build number
+        script: |
+          set -e
+          bash scripts/codemagic-set-ios-build.sh
+
+      - name: Build IPA
+        script: |
+          set -e
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/ios/App/App.xcodeproj" \
+            --scheme "$XCODE_SCHEME" \
+            --export-options-plist "$HOME/export_options.plist" \
+            --archive-flags="-destination 'generic/platform=iOS'" \
+            --disable-xcpretty
+
+      - name: Verify IPA artifact
+        script: |
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-18}"
+          bash scripts/codemagic-locate-ipa.sh
+
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $CM_BUILD_DIR/tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID

@@ -3,6 +3,9 @@ import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintTextHighlight } from "./MintTextHighlight";
 
 type Props = {
   userData: UserData;
@@ -12,17 +15,11 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  accent: "#D4FFEA",
-  border: "#6EECC0",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#FBFFFD",
   text: "#1F2937",
-  fridgeBody: "#FBFEFC",
-  fridgeBorder: "#D8E8E0",
-  shelfLine: "#E2EFE7",
-  innerBg: "#F4FBF7",
+  subtext: "#7C9388",
 };
 
 type Lng = "de" | "en" | "fr";
@@ -36,7 +33,6 @@ function CameraIcon() {
       className="relative flex items-center justify-center"
       style={{ width: 200, height: 200 }}
     >
-      {/* Soft floor glow */}
       <div
         className="pointer-events-none absolute"
         style={{
@@ -47,25 +43,23 @@ function CameraIcon() {
           height: 22,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(18,217,120,0.25) 0%, rgba(18,217,120,0) 70%)",
+            "radial-gradient(ellipse, rgba(74, 232, 150,0.25) 0%, rgba(74, 232, 150,0) 70%)",
           filter: "blur(2px)",
         }}
       />
 
-      {/* Soft pulsing halo */}
       <motion.div
         className="pointer-events-none absolute rounded-full"
         style={{
           width: 200,
           height: 200,
           background:
-            "radial-gradient(circle, rgba(36,255,143,0.25) 0%, rgba(36,255,143,0) 65%)",
+            "radial-gradient(circle, rgba(110, 240, 168,0.25) 0%, rgba(110, 240, 168,0) 65%)",
         }}
         animate={{ scale: [1, 1.08, 1], opacity: [0.6, 0.9, 0.6] }}
         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Camera icon container */}
       <motion.div
         animate={{ y: [0, -4, 0] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
@@ -73,11 +67,10 @@ function CameraIcon() {
         style={{
           width: 140,
           height: 140,
-          background:
-            "linear-gradient(135deg, #B0FFDC 0%, #24FF8F 100%)",
+          background: "linear-gradient(135deg, #FBFFFD 0%, #75FBB2 100%)",
           color: "#fff",
           boxShadow:
-            "0 24px 50px -16px rgba(18,217,120,0.55), 0 6px 14px -4px rgba(18,217,120,0.30), inset 0 1px 2px rgba(255,255,255,0.6)",
+            "0 24px 50px -16px rgba(74, 232, 150,0.55), 0 6px 14px -4px rgba(74, 232, 150,0.30), inset 0 1px 2px rgba(255,255,255,0.6)",
         }}
       >
         <Camera className="size-[78px]" strokeWidth={1.6} />
@@ -90,46 +83,51 @@ export function FridgeScanStep({
   onBack,
   onNext,
 }: Props) {
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
   const lng: Lng = (["de", "en", "fr"] as const).includes(language as never)
     ? (language as Lng)
     : "de";
 
   const L = {
     de: {
-      title: "Scanne deinen Kühlschrank",
-      cta: "Weiter",
+      titleBefore: "Erkenne deine ",
+      titleHighlight: "Zutaten",
+      subtitle:
+        "Scanne später deinen Kühlschrank — Frigy erkennt, was du hast und was für deinen Plan noch fehlt.",
       back: "Zurück",
     },
     en: {
-      title: "Scan your fridge",
-      cta: "Next",
+      titleBefore: "Detect your ",
+      titleHighlight: "ingredients",
+      subtitle:
+        "Scan your fridge later — Frigy detects what you have and what's still missing for your plan.",
       back: "Back",
     },
     fr: {
-      title: "Scanne ton frigo",
-      cta: "Suivant",
+      titleBefore: "Reconnais tes ",
+      titleHighlight: "ingrédients",
+      subtitle:
+        "Scanne ton frigo plus tard — Frigy détecte ce que tu as et ce qu'il te manque pour ton plan.",
       back: "Retour",
     },
   } as const;
-  const t = L[lng];
+  const copy = L[lng];
 
   return (
     <div
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label={t.back}
+            aria-label={copy.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -139,33 +137,37 @@ export function FridgeScanStep({
         ) : (
           <div className="h-9 w-9 shrink-0" />
         )}
-</div>
+      </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.title}
+          {copy.titleBefore}
+          <MintTextHighlight>{copy.titleHighlight}</MintTextHighlight>
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
-      {/* Hero: camera icon */}
+      <motion.p
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05, ease: [0.4, 0, 0.2, 1] }}
+        className="mt-1 px-5 text-[15px] leading-relaxed"
+        style={{ color: PALETTE.subtext }}
+      >
+        {copy.subtitle}
+      </motion.p>
+
       <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
         <CameraIcon />
       </div>
 
-      {/* Continue */}
       <div
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -174,10 +176,10 @@ export function FridgeScanStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
-          {t.cta}
+          {t.next}
           <ChevronRight className="size-5" strokeWidth={2.5} />
         </motion.button>
       </div>

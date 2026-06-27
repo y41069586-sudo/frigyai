@@ -1,16 +1,9 @@
 import { motion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
 import { Plus, CloudSun, SunMedium, Moon, Cookie, Refrigerator } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
 import type { MealFocusKey } from "@/lib/mealFocus";
-
-const slots: { key: MealFocusKey; label: string; icon: LucideIcon }[] = [
-  { key: "breakfast", label: "Frühstück", icon: CloudSun },
-  { key: "lunch", label: "Mittagessen", icon: SunMedium },
-  { key: "dinner", label: "Abendessen", icon: Moon },
-  { key: "snack", label: "Snacks", icon: Cookie },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type MealSlotsWidgetProps = {
   delay?: number;
@@ -19,49 +12,58 @@ type MealSlotsWidgetProps = {
 };
 
 export function MealSlotsWidget({ delay = 0, onAddMeal, onFindMeals }: MealSlotsWidgetProps) {
+  const { t } = useLanguage();
+
+  const slots = [
+    { key: "breakfast" as const, label: t.breakfast, icon: CloudSun },
+    { key: "lunch" as const, label: t.lunch, icon: SunMedium },
+    { key: "dinner" as const, label: t.dinner, icon: Moon },
+    { key: "snack" as const, label: t.snack, icon: Cookie },
+  ];
+
   return (
     <WidgetCard delay={delay} variant="glass" interactive={false} className="w-full">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Mahlzeiten</p>
-      <h3 className="mt-1 text-base min-[360px]:text-lg font-semibold tracking-tight">Heute eintragen</h3>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t.dashboardMealsTitle}</p>
+      <h3 className="mt-1 text-base min-[360px]:text-lg font-semibold tracking-tight">{t.dashboardMealSlotsSubtitle}</h3>
       <ul className="mt-3 min-[360px]:mt-4 space-y-2">
         {slots.map((s, i) => (
           <motion.li
             key={s.key}
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.04 * i }}
-            className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 rounded-xl min-[360px]:rounded-2xl border border-border/40 bg-background/50 px-3 min-[360px]:px-4 py-2.5 min-[360px]:py-3 backdrop-blur-sm"
+            transition={{ delay: delay + i * 0.05 }}
           >
-            <span className="flex min-w-0 items-center gap-2 min-[360px]:gap-3">
-              <span className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 shrink-0 items-center justify-center rounded-lg min-[360px]:rounded-xl bg-primary/10">
-                <s.icon className="h-3.5 w-3.5 min-[360px]:h-4 min-[360px]:w-4 text-primary" />
-              </span>
-              <span className="truncate text-sm min-[360px]:text-base font-medium text-foreground">{s.label}</span>
-            </span>
             <button
               type="button"
               onClick={() => onAddMeal(s.key)}
               className={cn(
-                "flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg min-[360px]:rounded-xl",
-                "bg-primary text-primary-foreground shadow-md shadow-primary/25",
-                "transition-transform active:scale-95",
+                "flex w-full items-center justify-between gap-3 rounded-2xl border border-border/40 bg-background/50 px-3 py-2.5 text-left backdrop-blur-sm transition-colors",
+                "hover:border-primary/30 hover:bg-primary/5 active:scale-[0.99]",
               )}
-              aria-label={`${s.label} hinzufügen`}
             >
-              <Plus className="h-4 w-4 min-[360px]:h-5 min-[360px]:w-5" strokeWidth={2.5} />
+              <span className="flex items-center gap-2.5">
+                <s.icon className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">{s.label}</span>
+              </span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Plus className="h-3.5 w-3.5" />
+              </span>
             </button>
           </motion.li>
         ))}
       </ul>
       {onFindMeals && (
-        <button
+        <motion.button
           type="button"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: delay + 0.2 }}
           onClick={onFindMeals}
-          className="mt-2.5 min-[360px]:mt-3 flex w-full items-center justify-center gap-1.5 min-[360px]:gap-2 rounded-lg min-[360px]:rounded-xl border border-border/50 bg-background/60 px-2.5 min-[360px]:px-3 py-2 min-[360px]:py-2.5 text-xs min-[360px]:text-sm font-medium text-foreground transition-colors hover:border-primary/35"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2.5 text-sm font-semibold text-primary"
         >
-          <Refrigerator className="h-3.5 w-3.5 min-[360px]:h-4 min-[360px]:w-4 text-primary" />
-          3 Gerichte suchen
-        </button>
+          <Refrigerator className="h-4 w-4" />
+          {t.dashboardFindThreeMeals}
+        </motion.button>
       )}
     </WidgetCard>
   );

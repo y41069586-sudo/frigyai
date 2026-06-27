@@ -1,6 +1,13 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { entryFrom, entryTo, dashboardScrollTransition, dashboardScrollViewport } from "@/lib/motionPresets";
+import {
+  dashboardCardBorder,
+  dashboardCardShadow,
+  dashboardCardShadowHover,
+} from "./dashboardCardStyles";
 
 export type WidgetCardProps = {
   children: ReactNode;
@@ -15,11 +22,11 @@ export type WidgetCardProps = {
 
 const variantStyles: Record<NonNullable<WidgetCardProps["variant"]>, string> = {
   glass:
-    "border border-white/50 bg-white/55 shadow-[0_12px_40px_-12px_rgba(15,40,30,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]",
+    `${dashboardCardBorder} bg-white/88 ${dashboardCardShadow} sm:bg-white/72 sm:backdrop-blur-xl dark:bg-white/[0.06]`,
   soft:
-    "border border-border/40 bg-card/80 shadow-[0_8px_32px_-10px_rgba(0,0,0,0.08)] backdrop-blur-md",
+    `${dashboardCardBorder} bg-card/96 ${dashboardCardShadow} sm:bg-card/82 sm:backdrop-blur-md`,
   gradient:
-    "border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-background/90 to-muted/30 shadow-[0_16px_48px_-16px_hsl(var(--primary)/0.25)] backdrop-blur-sm",
+    `${dashboardCardBorder} bg-gradient-to-br from-primary/[0.05] via-white/[0.98] to-muted/[0.16] ${dashboardCardShadow} sm:backdrop-blur-sm dark:from-primary/[0.08] dark:via-white/[0.04]`,
 };
 
 export function WidgetCard({
@@ -30,28 +37,32 @@ export function WidgetCard({
   interactive = true,
   variant = "glass",
 }: WidgetCardProps) {
+  const isMobile = useIsMobile();
+
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={entryFrom(isMobile, 18)}
+      whileInView={entryTo(isMobile)}
+      viewport={dashboardScrollViewport}
+      transition={dashboardScrollTransition(isMobile, delay)}
       whileHover={
-        interactive
+        interactive && !isMobile
           ? { y: -3, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }
           : undefined
       }
       whileTap={onClick ? { scale: 0.992 } : undefined}
       onClick={onClick}
+      style={isMobile ? undefined : { transform: "translateZ(0)" }}
       className={cn(
-        "relative w-full min-w-0 overflow-hidden rounded-2xl rounded-tl-xl rounded-br-3xl p-3.5 min-[360px]:p-4 sm:rounded-[1.75rem] sm:rounded-tl-2xl sm:rounded-br-[2.25rem] sm:p-6 transition-shadow duration-300 touch-manipulation",
-        interactive && onClick && "cursor-pointer hover:shadow-[0_20px_50px_-18px_rgba(0,0,0,0.12)]",
+        "relative w-full min-w-0 overflow-hidden rounded-2xl p-2.5 min-[360px]:p-3 sm:rounded-[1.35rem] sm:p-4 transition-shadow duration-300 touch-manipulation",
+        !isMobile && "sm:will-change-transform",
+        interactive && onClick && `cursor-pointer ${dashboardCardShadowHover}`,
         variantStyles[variant],
         className,
       )}
     >
-      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-primary/[0.08] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-emerald-400/[0.06] blur-2xl" />
+      <div className="pointer-events-none absolute -right-8 -top-8 hidden h-24 w-24 rounded-full bg-primary/[0.08] blur-2xl sm:block" />
+      <div className="pointer-events-none absolute -bottom-6 -left-6 hidden h-20 w-20 rounded-full bg-emerald-400/[0.06] blur-xl sm:block" />
       <div className="relative z-[1]">{children}</div>
     </motion.div>
   );

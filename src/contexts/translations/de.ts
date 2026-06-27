@@ -28,7 +28,6 @@ export const de = {
   homeTitle: "Leichter Abnehmen",
   homeSubtitle: "Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen",
   scanFridge: "Kühlschrank scannen",
-  scansRemaining: "Scans heute übrig",
   unlimitedWithPremium: "Unlimited mit Premium",
   tip: "Tipp",
   tipText: "Scanne deinen Kühlschrank und erhalte sofort kalorienarme Rezepte mit nur 3-4 Zutaten.",

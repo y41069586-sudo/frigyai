@@ -1,5 +1,7 @@
 /** Mock data for Health Dashboard widgets (replace with API / context later) */
 
+import { normalizeShoppingListItems } from "@/lib/shoppingListItems";
+
 export type WeekPlanPreviewDay = {
   dayLabel: string;
   meals: string[];
@@ -11,6 +13,11 @@ export type WeekPlanPreviewData = {
 };
 
 const SHORT_DE = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"] as const;
+const SHORT_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const SHORT_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"] as const;
+
+const DAY_FULL_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+const DAY_FULL_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"] as const;
 
 const ROTATING_MEALS: string[][] = [
   ["Rührei", "Bowl", "Gemüsepfanne"],
@@ -20,24 +27,27 @@ const ROTATING_MEALS: string[][] = [
 ];
 
 /** Heute links, danach die nächsten drei Kalendertage (Dashboard-Widget). */
-export function getWeekPlanPreviewForDashboard(): WeekPlanPreviewData {
+export function getWeekPlanPreviewForDashboard(language: "de" | "en" | "fr" = "de"): WeekPlanPreviewData {
+  const todayLabel = language === "en" ? "Today" : language === "fr" ? "Aujourd'hui" : "Heute";
+  const weekLabel = language === "en" ? "This week" : language === "fr" ? "Cette semaine" : "Diese Woche";
+  const shortDays = language === "en" ? SHORT_EN : language === "fr" ? SHORT_FR : SHORT_DE;
   const now = new Date();
   const days: WeekPlanPreviewDay[] = [];
   days.push({
-    dayLabel: "Heute",
+    dayLabel: todayLabel,
     meals: ROTATING_MEALS[now.getDay() % ROTATING_MEALS.length],
   });
   for (let i = 1; i <= 3; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() + i);
-    const label = SHORT_DE[d.getDay()];
+    const label = shortDays[d.getDay()];
     days.push({
       dayLabel: label,
       meals: ROTATING_MEALS[(now.getDay() + i) % ROTATING_MEALS.length],
     });
   }
   return {
-    weekLabel: "Diese Woche",
+    weekLabel,
     days,
   };
 }
@@ -131,7 +141,7 @@ function slugId(s: string, i: number): string {
 /**
  * Liest `weeklyMealPlan` aus localStorage; sonst Demo wie {@link getWeekPlanPreviewForDashboard}.
  */
-export function getWeekPlanPreviewFromStorage(): WeekPlanPreviewData {
+export function getWeekPlanPreviewFromStorage(language: "de" | "en" | "fr" = "de"): WeekPlanPreviewData {
   let plan: StoredDay[] = [];
   try {
     const raw = localStorage.getItem("weeklyMealPlan");
@@ -144,19 +154,26 @@ export function getWeekPlanPreviewFromStorage(): WeekPlanPreviewData {
   }
 
   if (plan.length === 0) {
-    return getWeekPlanPreviewForDashboard();
+    const weekLabel = language === "en" ? "This week" : language === "fr" ? "Cette semaine" : "Diese Woche";
+    return { weekLabel, days: [] };
   }
 
   const now = new Date();
   const todayIdx = now.getDay();
-  const todayFull = DE_WEEKDAY_FULL[todayIdx];
+  const todayFull =
+    language === "en" ? DAY_FULL_EN[todayIdx] : language === "fr" ? DAY_FULL_FR[todayIdx] : DE_WEEKDAY_FULL[todayIdx];
+  const todayLabel = language === "en" ? "Today" : language === "fr" ? "Aujourd'hui" : "Heute";
+  const noEntryLabel =
+    language === "en" ? "No entry in plan" : language === "fr" ? "Aucune entrée dans le plan" : "Kein Eintrag im Plan";
+  const weekLabel = language === "en" ? "This week" : language === "fr" ? "Cette semaine" : "Diese Woche";
+  const shortDays = language === "en" ? SHORT_EN : language === "fr" ? SHORT_FR : SHORT_DE;
 
   const days: WeekPlanPreviewDay[] = [];
 
   const todayMeals = mealTitlesForDay(plan, todayFull);
   days.push({
-    dayLabel: "Heute",
-    meals: todayMeals.length > 0 ? todayMeals.slice(0, 4) : ["Kein Eintrag im Plan"],
+    dayLabel: todayLabel,
+    meals: todayMeals.length > 0 ? todayMeals.slice(0, 4) : [noEntryLabel],
   });
 
   for (let i = 1; i <= 3; i++) {
@@ -164,7 +181,7 @@ export function getWeekPlanPreviewFromStorage(): WeekPlanPreviewData {
     d.setDate(d.getDate() + i);
     const idx = d.getDay();
     const full = DE_WEEKDAY_FULL[idx];
-    const short = SHORT_DE[idx];
+    const short = shortDays[idx];
     const titles = mealTitlesForDay(plan, full);
     days.push({
       dayLabel: short,
@@ -173,7 +190,7 @@ export function getWeekPlanPreviewFromStorage(): WeekPlanPreviewData {
   }
 
   return {
-    weekLabel: "Diese Woche",
+    weekLabel,
     days,
   };
 }
@@ -193,10 +210,10 @@ export function getShoppingPreviewFromStorage(): ShoppingPreviewItem[] {
     list = [];
   }
 
-  const normalized = list
+  const normalized = normalizeShoppingListItems(list, "Zutat")
     .map((it) => ({
-      name: (it.name ?? "").trim(),
-      amount: (it.amount ?? "").trim(),
+      name: it.name.trim(),
+      amount: it.amount.trim(),
     }))
     .filter((it) => it.name.length > 0);
 

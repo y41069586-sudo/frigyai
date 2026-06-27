@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { BRAND } from "@/lib/brandColors";
 
 type SegmentedOption<T extends string> = {
   id: T;
@@ -30,9 +31,9 @@ export function MintSegmentedControl<T extends string>({
       aria-label={ariaLabel}
       className="relative inline-flex h-10 items-center rounded-full p-1 [@media(min-height:701px)]:h-11 [@media(min-height:800px)]:h-[52px]"
       style={{
-        backgroundColor: "#E8FFF2",
-        border: "1px solid #CDF5E0",
-        boxShadow: "inset 0 1px 1px rgba(15,40,30,0.04)",
+        backgroundColor: "#DCFEEF",
+        border: "1px solid #BCFDDC",
+        boxShadow: "inset 0 1px 1px rgba(15,40,30,0.04), 0 6px 18px -16px rgba(57,212,127,0.35)",
       }}
     >
       {/* Animated mint indicator — translate X % is relative to the pill width, so use left + segment width */}
@@ -47,9 +48,9 @@ export function MintSegmentedControl<T extends string>({
           top: 4,
           bottom: 4,
           width: `calc((100% - 8px) / ${count})`,
-          background: "linear-gradient(135deg, #24FF8F 0%, #12D978 100%)",
+          background: `linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 100%)`,
           boxShadow:
-            "0 6px 14px -6px rgba(18,217,120,0.55), 0 1px 2px rgba(15,40,30,0.05)",
+            "0 6px 14px -6px rgba(57,212,127,0.55), 0 1px 2px rgba(15,40,30,0.05)",
           pointerEvents: "none",
         }}
       />

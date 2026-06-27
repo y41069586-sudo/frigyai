@@ -1,111 +1,192 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { CalendarRange, Sparkles, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { WidgetCard } from "./WidgetCard";
+import { motion } from "framer-motion";
+import { CalendarDays, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useScrollFriendlyTap } from "@/hooks/useScrollFriendlyTap";
 import type { WeekPlanPreviewData } from "@/lib/food-ai/dashboardMock";
+import {
+  buildWeekDayStatuses,
+  buildWeekDayStatusesFromPreview,
+  countPlannedMeals,
+  getNextMeal,
+  getTodayPlan,
+  getTodayWeekdayFull,
+  readWeeklyPlanFromStorage,
+  type NextMealInfo,
+} from "@/lib/food-ai/weeklyPlanWidgetData";
 import { cn } from "@/lib/utils";
-
-type Preview = WeekPlanPreviewData;
+import { dashboardScrollTransition, dashboardScrollViewport } from "@/lib/motionPresets";
+import {
+  dashboardCardBorder,
+  dashboardCardShadow,
+  dashboardCardShadowHover,
+} from "./dashboardCardStyles";
 
 type WeeklyPlanWidgetProps = {
-  preview: Preview;
+  preview: WeekPlanPreviewData;
   delay?: number;
-  expanded?: boolean;
-  onToggleExpand?: () => void;
   onOpenPlan: () => void;
-  onRegenerate?: () => void;
 };
 
-export function WeeklyPlanWidget({
-  preview,
-  delay = 0,
-  expanded,
-  onToggleExpand,
-  onOpenPlan,
-  onRegenerate,
-}: WeeklyPlanWidgetProps) {
-  const today = preview.days.find((d) => d.dayLabel === "Heute") ?? preview.days[preview.days.length - 1];
+function resolveNextFromPreview(
+  preview: WeekPlanPreviewData,
+  todayLabel: string,
+  noPlanLabel: string,
+  slotLabel: string,
+): NextMealInfo | null {
+  const today = preview.days.find((d) => d.dayLabel === todayLabel) ?? preview.days[0];
+  const name = today?.meals?.[0];
+  if (!name || name === "—" || name === noPlanLabel) return null;
+
+  const hour = new Date().getHours();
+  const timeLabel =
+    hour < 10 ? "08:00" : hour < 14 ? "12:30" : hour < 18 ? "15:30" : "19:00";
+
+  return {
+    meal: { name, type: slotLabel },
+    slotLabel,
+    timeLabel,
+  };
+}
+
+export function WeeklyPlanWidget({ preview, delay = 0, onOpenPlan }: WeeklyPlanWidgetProps) {
+  const { language, t } = useLanguage();
+  const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
+    ? (language as "de" | "en" | "fr")
+    : "de";
+
+  const plan = useMemo(() => readWeeklyPlanFromStorage(), [preview]);
+  const hasPlan = plan.length > 0 && countPlannedMeals(plan) > 0;
+
+  const todayPlan = useMemo(() => getTodayPlan(plan), [plan]);
+  const nextMeal = useMemo(() => {
+    if (hasPlan && todayPlan?.meals?.length) {
+      return getNextMeal(todayPlan.meals);
+    }
+    return resolveNextFromPreview(preview, t.today, t.dashboardNoPlanEntry, t.defaultMealName);
+  }, [hasPlan, todayPlan, preview, t.today, t.dashboardNoPlanEntry, t.defaultMealName]);
+
+  const weekDays = useMemo(
+    () =>
+      hasPlan ? buildWeekDayStatuses(plan) : buildWeekDayStatusesFromPreview(preview.days),
+    [plan, hasPlan, preview.days],
+  );
+
+  const weekday = getTodayWeekdayFull(lng);
+  const hasNext = Boolean(nextMeal?.meal.name?.trim());
+  const mealName = hasNext ? nextMeal!.meal.name!.trim() : t.dashboardWeeklyPlanNextFallback;
+  const ctaText = hasNext ? t.dashboardWeeklyPlanCta : t.dashboardWeeklyPlanCtaEmpty;
+  const openPlanTap = useScrollFriendlyTap(onOpenPlan);
 
   return (
-    <WidgetCard
-      delay={delay}
-      variant="gradient"
-      interactive={!!onToggleExpand}
-      onClick={onToggleExpand}
-      className="w-full pb-2.5 min-[360px]:pb-3 sm:pb-4"
+    <motion.div
+      role="button"
+      tabIndex={0}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={dashboardScrollViewport}
+      transition={dashboardScrollTransition(false, delay)}
+      {...openPlanTap}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenPlan();
+        }
+      }}
+      aria-label={`${t.weeklyPlan}: ${mealName}`}
+      className={cn(
+        "group relative w-full min-w-0 overflow-hidden rounded-[1.65rem] p-5 text-left",
+        dashboardCardBorder,
+        "bg-gradient-to-br from-white via-white to-primary/[0.06]",
+        dashboardCardShadow,
+        dashboardCardShadowHover,
+        "transition-[box-shadow,transform] duration-300",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2",
+        "dark:from-white/[0.07] dark:to-primary/[0.08]",
+      )}
     >
-      <div className="flex items-center gap-2.5 text-primary">
-        <div className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 items-center justify-center rounded-xl min-[360px]:rounded-2xl rounded-br-md bg-primary/15">
-          <CalendarRange className="h-4 w-4" />
+      <div
+        className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-primary/15 blur-2xl"
+        aria-hidden
+      />
+
+      <div className="relative space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+              <CalendarDays className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-[17px] font-bold tracking-[-0.03em] text-foreground">
+                {t.weeklyPlan}
+              </h3>
+              <p className="text-[12px] font-medium text-primary/75">{weekday}</p>
+            </div>
+          </div>
+          <ChevronRight
+            className="h-5 w-5 shrink-0 text-primary/35 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary/65"
+            strokeWidth={2.2}
+            aria-hidden
+          />
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Wochenplan</p>
-          <h3 className="text-base min-[360px]:text-lg font-semibold tracking-tight text-foreground truncate">{preview.weekLabel}</h3>
+
+        <div className="rounded-2xl bg-primary/[0.08] px-4 py-3.5">
+          {hasNext ? (
+            <>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
+                {t.dashboardWeeklyPlanNextLabel}
+              </p>
+              <p className="mt-1.5 line-clamp-2 text-[19px] font-bold leading-snug tracking-[-0.03em] text-foreground">
+                {mealName}
+              </p>
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                {nextMeal?.timeLabel && (
+                  <span className="text-[16px] font-semibold tabular-nums tracking-tight text-[#39D47F]">
+                    {nextMeal.timeLabel}
+                  </span>
+                )}
+                {nextMeal?.slotLabel && (
+                  <span className="text-[12px] font-medium text-muted-foreground">
+                    {nextMeal.slotLabel}
+                  </span>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-[15px] font-semibold leading-snug text-muted-foreground">{t.dashboardWeeklyPlanHint}</p>
+          )}
         </div>
-      </div>
 
-      <div className="mt-3 flex gap-1.5 min-[360px]:gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {preview.days.map((d, i) => (
-          <motion.div
-            key={d.dayLabel + i}
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.05 * i }}
-            className={cn(
-              "min-w-[88px] min-[360px]:min-w-[96px] sm:min-w-[112px] rounded-xl sm:rounded-2xl rounded-tr-lg border border-border/50 bg-background/60 px-2 min-[360px]:px-2.5 sm:px-3 py-2 backdrop-blur-sm",
-              d.dayLabel === "Heute" && "border-primary/35 ring-1 ring-primary/20",
-            )}
-          >
-            <p className="text-[11px] font-bold text-muted-foreground">{d.dayLabel}</p>
-            <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-foreground">{d.meals.join(" · ")}</p>
-          </motion.div>
-        ))}
-      </div>
+        <div className="flex items-end justify-between gap-0.5 px-0.5" aria-hidden>
+          {weekDays.map((day) => (
+            <div key={day.short} className="flex flex-1 flex-col items-center gap-1.5">
+              <span
+                className={cn(
+                  "rounded-full",
+                  day.isToday
+                    ? "h-2 w-2 bg-primary shadow-[0_0_0_3px_rgba(110,240,168,0.25)]"
+                    : "h-1.5 w-1.5",
+                  !day.isToday &&
+                    (day.hasMeals ? "bg-primary/45" : "bg-slate-200/90 dark:bg-white/12"),
+                )}
+              />
+              <span
+                className={cn(
+                  "text-[9px] font-semibold leading-none",
+                  day.isToday ? "text-primary" : "text-muted-foreground/65",
+                )}
+              >
+                {day.short}
+              </span>
+            </div>
+          ))}
+        </div>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Fokus heute: <span className="font-medium text-foreground">{today?.meals.join(", ")}</span>
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:items-center">
-        <Button
-          type="button"
-          size="sm"
-          className="h-11 touch-target flex-1 rounded-2xl rounded-bl-md rounded-tr-xl font-semibold shadow-md shadow-primary/20"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenPlan();
-          }}
-        >
-          Plan öffnen
-          <ChevronRight className="ml-1 h-4 w-4" />
-        </Button>
-        {onRegenerate && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-11 touch-target flex-1 rounded-2xl border-dashed border-primary/30 bg-background/50"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRegenerate();
-            }}
-          >
-            <Sparkles className="mr-1.5 h-4 w-4 text-primary" />
-            Neu generieren
-          </Button>
-        )}
+        <p className="flex items-center gap-1.5 text-[13px] font-semibold text-primary/80 transition-colors group-hover:text-primary">
+          <span>{ctaText}</span>
+          <ChevronRight className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+        </p>
       </div>
-    </WidgetCard>
+    </motion.div>
   );
 }

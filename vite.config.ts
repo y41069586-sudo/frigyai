@@ -6,9 +6,15 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  appType: "spa",
+  optimizeDeps: {
+    entries: [path.resolve(__dirname, "index.html")],
+  },
   server: {
-    host: "::",
-    port: 8080,
+    host: true,
+    port: 4137,
+    strictPort: true,
+    open: false,
     // Prevent browser / proxy from caching HTML & hashed chunks during dev — avoids
     // "Failed to fetch dynamically imported module" after HMR or server restarts.
     ...(mode === "development"
@@ -20,9 +26,12 @@ export default defineConfig(({ mode }) => ({
       : {}),
   },
   preview: {
-    host: "::",
-    port: 5180,
-    strictPort: true,
+    host: true,
+    port: 4173,
+    strictPort: false,
+    headers: {
+      "Cache-Control": "no-store",
+    },
   },
   plugins: [
     react(),

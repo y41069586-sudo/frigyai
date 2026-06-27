@@ -16,24 +16,61 @@ interface LoggedMeal {
   fat: number;
 }
 
+interface MealPlanDay {
+  day: string;
+  meals?: LoggedMeal[];
+}
+
 export const DashboardTodayMealsCard = () => {
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { entries, todayTotals } = useFoodEntries();
   const { settings: trackerSettings } = useTrackerSettings();
   const [todayMealPlan, setTodayMealPlan] = useState<LoggedMeal[]>([]);
+  const copy = language === 'fr'
+    ? {
+        title: 'Mange aujourd hui',
+        calorieGoal: 'Objectif calories',
+        protein: 'Proteines',
+        carbs: 'Glucides',
+        fat: 'Lipides',
+        noMeals: 'Aucun repas enregistre aujourd hui',
+        more: 'autres',
+        addFood: 'Ajouter un repas',
+      }
+    : language === 'en'
+      ? {
+          title: 'Eaten today',
+          calorieGoal: 'Calorie goal',
+          protein: 'Protein',
+          carbs: 'Carbs',
+          fat: 'Fat',
+          noMeals: 'No meals logged today',
+          more: 'more',
+          addFood: 'Add food',
+        }
+      : {
+          title: 'Heute gegessen',
+          calorieGoal: 'Kalorienziel',
+          protein: 'Protein',
+          carbs: 'Carbs',
+          fat: 'Fett',
+          noMeals: 'Noch keine Mahlzeiten gegessen heute',
+          more: 'weitere',
+          addFood: 'Essen hinzufuegen',
+        };
 
   useEffect(() => {
     // Load today's meal plan from localStorage
     const saved = localStorage.getItem('weeklyMealPlan');
     if (saved) {
       try {
-        const mealPlan = JSON.parse(saved);
+        const mealPlan = JSON.parse(saved) as MealPlanDay[];
         const today = new Date();
         const dayIndex = today.getDay();
         const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
         
-        const todayPlan = mealPlan.find((day: any) => day.day.toLowerCase() === dayNames[dayIndex].toLowerCase());
+        const todayPlan = mealPlan.find((day) => day.day.toLowerCase() === dayNames[dayIndex].toLowerCase());
         if (todayPlan?.meals) {
           setTodayMealPlan(todayPlan.meals);
         }
@@ -62,13 +99,13 @@ export const DashboardTodayMealsCard = () => {
     >
       <Card className="p-4 bg-gradient-to-br from-primary/10 via-card to-primary/5 border-primary/20 hover:shadow-neon transition-all duration-300">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-foreground">Heute gegessen</h3>
+          <h3 className="text-lg font-bold text-foreground">{copy.title}</h3>
         </div>
 
         {/* Progress bar */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs text-muted-foreground">Kalorienziel</span>
+            <span className="text-xs text-muted-foreground">{copy.calorieGoal}</span>
             <span className="text-sm font-semibold text-primary">
               {Math.round(todayTotals.calories)} / {targetCalories} kcal
             </span>
@@ -88,17 +125,17 @@ export const DashboardTodayMealsCard = () => {
           <div className="text-center p-2 bg-background/30 rounded-lg">
             <Beef className="h-4 w-4 mx-auto text-red-500 mb-1" />
             <p className="text-xs font-semibold">{Math.round(todayTotals.protein)}g</p>
-            <p className="text-[10px] text-muted-foreground">Protein</p>
+            <p className="text-[10px] text-muted-foreground">{copy.protein}</p>
           </div>
           <div className="text-center p-2 bg-background/30 rounded-lg">
             <Wheat className="h-4 w-4 mx-auto text-amber-500 mb-1" />
             <p className="text-xs font-semibold">{Math.round(todayTotals.carbs)}g</p>
-            <p className="text-[10px] text-muted-foreground">Carbs</p>
+            <p className="text-[10px] text-muted-foreground">{copy.carbs}</p>
           </div>
           <div className="text-center p-2 bg-background/30 rounded-lg">
             <Droplets className="h-4 w-4 mx-auto text-blue-500 mb-1" />
             <p className="text-xs font-semibold">{Math.round(todayTotals.fat)}g</p>
-            <p className="text-[10px] text-muted-foreground">Fett</p>
+            <p className="text-[10px] text-muted-foreground">{copy.fat}</p>
           </div>
         </div>
 
@@ -106,7 +143,7 @@ export const DashboardTodayMealsCard = () => {
         <div className="space-y-2 mb-4">
           {entries.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-3">
-              Noch keine Mahlzeiten gegessen heute
+              {copy.noMeals}
             </p>
           ) : (
             <div className="space-y-2">
@@ -127,7 +164,7 @@ export const DashboardTodayMealsCard = () => {
               ))}
               {entries.length > 3 && (
                 <p className="text-xs text-center text-muted-foreground pt-1">
-                  + {entries.length - 3} weitere
+                  + {entries.length - 3} {copy.more}
                 </p>
               )}
             </div>
@@ -141,12 +178,12 @@ export const DashboardTodayMealsCard = () => {
           transition={{ delay: 0.4 }}
         >
           <Button
-            onClick={() => navigate('/meal-plans?tab=tracker')}
+            onClick={() => navigate('/')}
             variant="outline"
             className="w-full h-10 flex items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/10 transition-all"
           >
             <Plus className="h-4 w-4" />
-            <span className="text-sm font-medium">Essen hinzufügen</span>
+            <span className="text-sm font-medium">{copy.addFood}</span>
           </Button>
         </motion.div>
       </Card>

@@ -1,20 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Scale, ArrowUp, Plus, Crown } from 'lucide-react';
+import { Scale, ArrowUp, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { toast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { getPublicErrorMessage } from '@/lib/publicErrorMessage';
 
 interface DashboardWeightWidgetProps {
   onWeightUpdate?: (weight: number) => void;
   targetWeight?: number;
+  /** Im Dashboard-Karussell / Dialog: keine Scroll-Animation, feste Höhe */
+  embedded?: boolean;
+  /** Dialog-Modus: Titel kommt vom Dialog-Header */
+  hideTitle?: boolean;
 }
 
 interface WeightEntry {
@@ -23,12 +27,10 @@ interface WeightEntry {
   recorded_at: string;
 }
 
-export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: DashboardWeightWidgetProps) => {
-  const { user, subscriptionStatus } = useAuth();
+export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight, embedded = false, hideTitle = false }: DashboardWeightWidgetProps) => {
+  const { user } = useAuth();
+  const { language } = useLanguage();
   const { settings } = useTrackerSettings();
-  const navigate = useNavigate();
-  const [showPremiumOverlay, setShowPremiumOverlay] = useState(false);
-  const isPremium = subscriptionStatus?.subscribed;
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [previousWeight, setPreviousWeight] = useState<number | null>(null);
   const [inputWeight, setInputWeight] = useState('');
@@ -37,6 +39,69 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [initialWeight, setInitialWeight] = useState<number | null>(null);
   const [weightHistory, setWeightHistory] = useState<number[]>([]);
+  const locale = language === 'fr' ? 'fr-FR' : language === 'en' ? 'en-US' : 'de-DE';
+  const copy = language === 'fr'
+    ? {
+        error: 'Erreur',
+        enterWeight: 'Entre ton poids',
+        invalidWeight: 'Poids invalide',
+        invalidWeightDesc: 'Le poids doit etre entre 20 kg et 500 kg',
+        savedTitle: '✅ Poids enregistre !',
+        savedDesc: 'enregistre avec succes',
+        saveError: 'Le poids n a pas pu etre enregistre. Reessaie.',
+        title: 'Evolution du poids',
+        current: 'Actuel',
+        goal: 'Objectif',
+        noWeight: 'Aucun poids enregistre pour le moment',
+        history: 'Historique',
+        goalProgress: 'Progression vers l objectif',
+        remaining: 'restants',
+        placeholder: 'ex. 75.5',
+        save: 'Enregistrer',
+        cancel: 'Annuler',
+        addWeight: 'Ajouter le poids',
+      }
+    : language === 'en'
+      ? {
+          error: 'Error',
+          enterWeight: 'Please enter your weight',
+          invalidWeight: 'Invalid weight',
+          invalidWeightDesc: 'Weight must be between 20 kg and 500 kg',
+          savedTitle: '✅ Weight saved!',
+          savedDesc: 'saved successfully',
+          saveError: 'Weight could not be saved. Please try again.',
+          title: 'Weight progress',
+          current: 'Current',
+          goal: 'Goal',
+          noWeight: 'No weight logged yet',
+          history: 'History',
+          goalProgress: 'Progress to goal',
+          remaining: 'remaining',
+          placeholder: 'e.g. 75.5',
+          save: 'Save',
+          cancel: 'Cancel',
+          addWeight: 'Add weight',
+        }
+      : {
+          error: 'Fehler',
+          enterWeight: 'Bitte gib dein Gewicht ein',
+          invalidWeight: 'Ungueltiges Gewicht',
+          invalidWeightDesc: 'Gewicht muss zwischen 20 kg und 500 kg liegen',
+          savedTitle: '✅ Gewicht eingetragen!',
+          savedDesc: 'erfolgreich gespeichert',
+          saveError: 'Gewicht konnte nicht gespeichert werden. Bitte versuche es erneut.',
+          title: 'Gewichtsverlauf',
+          current: 'Aktuell',
+          goal: 'Ziel',
+          noWeight: 'Noch kein Gewicht eingetragen',
+          history: 'Verlauf',
+          goalProgress: 'Fortschritt zum Ziel',
+          remaining: 'verbleibend',
+          placeholder: 'z.B. 75.5',
+          save: 'Speichern',
+          cancel: 'Abbrechen',
+          addWeight: 'Gewicht hinzufuegen',
+        };
 
   const goal = targetWeight || settings?.targetWeight || 70;
 
@@ -51,7 +116,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           .from('weight_entries')
           .select('*')
           .eq('user_id', user.id)
-          .order('recorded_at', { ascending: true });
+          .order('recorded_at', { ascending: false })
+          .limit(30);
 
         if (error) {
           console.error('Error loading weight entries:', error);
@@ -59,19 +125,20 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
         }
 
         if (data && data.length > 0) {
-          const weights = data.map((entry: WeightEntry) => entry.weight);
+          const orderedData = [...data].reverse() as WeightEntry[];
+          const weights = orderedData.map((entry) => entry.weight);
           setWeightHistory(weights);
 
           // Set initial weight (oldest entry)
           setInitialWeight(weights[0]);
 
           // Set current weight (newest entry)
-          const latest = data[data.length - 1] as WeightEntry;
+          const latest = orderedData[orderedData.length - 1];
           setCurrentWeight(latest.weight);
           setLastUpdated(latest.recorded_at);
 
-          if (data.length > 1) {
-            const previous = data[data.length - 2] as WeightEntry;
+          if (orderedData.length > 1) {
+            const previous = orderedData[orderedData.length - 2];
             setPreviousWeight(previous.weight);
           }
         }
@@ -86,8 +153,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const handleAddWeight = async () => {
     if (!inputWeight || !user) {
       toast({
-        title: 'Fehler',
-        description: 'Bitte gib dein Gewicht ein',
+        title: copy.error,
+        description: copy.enterWeight,
         variant: 'destructive',
       });
       return;
@@ -96,8 +163,8 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
     const weight = parseFloat(inputWeight);
     if (isNaN(weight) || weight < 20 || weight > 500) {
       toast({
-        title: 'Ungültiges Gewicht',
-        description: 'Gewicht muss zwischen 20kg und 500kg liegen',
+        title: copy.invalidWeight,
+        description: copy.invalidWeightDesc,
         variant: 'destructive',
       });
       return;
@@ -109,7 +176,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
         user_id: user.id,
         weight,
         recorded_at: new Date().toISOString(),
-      } as any);
+      });
 
       if (error) throw error;
 
@@ -125,13 +192,13 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
       onWeightUpdate?.(weight);
 
       toast({
-        title: '✅ Gewicht eingetragen!',
-        description: `${weight}kg erfolgreich gespeichert`,
+        title: copy.savedTitle,
+        description: `${weight}kg ${copy.savedDesc}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
-        title: 'Fehler',
-        description: error.message || 'Gewicht konnte nicht gespeichert werden',
+        title: copy.error,
+        description: getPublicErrorMessage(error, copy.saveError),
         variant: 'destructive',
       });
     } finally {
@@ -144,60 +211,59 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
   const isBelowInitial = currentWeight && initialWeight ? currentWeight < initialWeight : false;
   const isAboveInitial = currentWeight && initialWeight ? currentWeight >= initialWeight : false;
   const progressToGoal = currentWeight && goal ? Math.max(0, 100 - (Math.abs(goal - currentWeight) / Math.abs(goal)) * 100) : 0;
+  const chartData = useMemo(
+    () =>
+      weightHistory.map((weight, index, arr) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (arr.length - 1 - index));
+
+        return {
+          date: d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' }),
+          weight,
+        };
+      }),
+    [locale, weightHistory],
+  );
 
   const handleCardClick = () => {
-    if (!isAdding) {
-      if (!isPremium) {
-        setShowPremiumOverlay(true);
-      } else {
-        navigate('/meal-plans?tab=tracker&view=weight');
-      }
+    if (!isAdding && !embedded) {
+      setInputWeight(currentWeight != null ? String(currentWeight) : '');
+      setIsAdding(true);
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-30px" }}
-      transition={{ delay: 0.15, duration: 0.4 }}
-      onClick={handleCardClick}
-      className="relative"
+  const root = (
+    <div
+      onClick={embedded ? undefined : handleCardClick}
+      className={`dashboard-touch-scroll relative ${embedded ? '' : 'cursor-pointer'}`}
     >
-      <Card className={`p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/10 backdrop-blur-lg border border-emerald-500/20 ${!isPremium ? 'cursor-pointer' : 'cursor-pointer'} active:scale-[0.99] transition-transform ${showPremiumOverlay ? 'blur-sm' : ''}`}>
-        {/* Header with Icon and Premium Badge */}
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-full bg-gradient-to-br from-emerald-500/30 to-emerald-500/30">
-              <Scale className="h-5 w-5 text-emerald-500" />
+      <Card className={`${embedded ? '' : 'min-h-[23rem]'} p-4 bg-gradient-to-br from-white via-[#F2FFF8]/90 to-white backdrop-blur-lg border border-[#75FBB2]/25 shadow-[0_18px_44px_-28px_rgba(117,251,178,0.55),0_0_32px_-12px_rgba(57,212,127,0.35)] ${embedded ? '' : 'cursor-pointer active:scale-[0.99] transition-transform'}`}>
+        {!hideTitle && (
+          <div className="mb-4 flex items-center gap-2">
+            <div className="p-2 rounded-full bg-gradient-to-br from-[#D4FFE8] to-[#75FBB2]/40 shadow-[0_0_18px_rgba(117,251,178,0.45)]">
+              <Scale className="h-4 w-4 text-[#39D47F]" />
             </div>
-            <h3 className="font-semibold text-sm">Gewichtsverlauf</h3>
+            <h3 className="font-semibold text-xs text-[#39D47F]">{copy.title}</h3>
           </div>
-          {!isPremium && (
-            <Badge className="bg-primary/20 text-primary border-primary/30">
-              <Crown className="h-3 w-3 mr-1" />
-              Premium
-            </Badge>
-          )}
-        </div>
+        )}
 
         {/* Top Section: Current Weight + Goal + Change */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="mb-4 flex items-start justify-between">
           {/* Left: Current Weight & Goal */}
           {currentWeight !== null ? (
             <div className="flex gap-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Aktuell</p>
-                <p className="text-3xl font-bold text-emerald-600">{currentWeight}<span className="text-sm">kg</span></p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.current}</p>
+                <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-[#75FBB2] to-[#39D47F] drop-shadow-[0_0_16px_rgba(117,251,178,0.35)]">{currentWeight}<span className="text-sm">kg</span></p>
               </div>
-              <div className="border-l border-emerald-300/50" />
+              <div className="border-l border-[#75FBB2]/40" />
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Ziel</p>
-                <p className="text-3xl font-bold text-muted-foreground">{goal}<span className="text-sm">kg</span></p>
+                <p className="text-xs text-muted-foreground mb-1">{copy.goal}</p>
+                <p className="text-2xl font-bold text-muted-foreground">{goal}<span className="text-xs">kg</span></p>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Noch kein Gewicht eingetragen</p>
+            <p className="text-sm text-muted-foreground">{copy.noWeight}</p>
           )}
 
           {/* Right: Change Indicator with Animation */}
@@ -208,23 +274,16 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, type: 'spring' }}
             >
-              <motion.div
-                className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`}
-                animate={isBelowInitial ? { y: [0, -6, 0] } : { y: 0 }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <motion.div
-                  animate={isBelowInitial ? { y: -4 } : { y: 0 }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  <ArrowUp className={`h-4 w-4 ${isBelowInitial ? 'text-red-500' : 'text-green-600'}`} />
-                </motion.div>
+              <div className={`flex items-center justify-end gap-1 mb-2 ${isBelowInitial ? 'text-red-500' : 'text-[#39D47F]'}`}>
+                <div>
+                  <ArrowUp className={`h-4 w-4 ${isBelowInitial ? 'text-red-500' : 'text-[#39D47F]'}`} />
+                </div>
                 <span className="font-semibold text-sm">
                   {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)}kg
                 </span>
-              </motion.div>
+              </div>
               <p className="text-xs text-muted-foreground">
-                {lastUpdated ? new Date(lastUpdated).toLocaleDateString('de-DE') : ''}
+                {lastUpdated ? new Date(lastUpdated).toLocaleDateString(locale) : ''}
               </p>
             </motion.div>
           )}
@@ -232,32 +291,21 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
 
         {/* Mini Weight Chart with Fade Out */}
         {weightHistory.length > 1 && (
-          <div className="mb-4 relative">
-            <p className="text-xs text-muted-foreground mb-2">Verlauf</p>
-            <div className="h-28 relative overflow-hidden rounded-lg">
+          <div className="relative mb-5">
+            <p className="text-xs text-muted-foreground mb-2">{copy.history}</p>
+            <div className="relative h-24 overflow-hidden rounded-xl">
               {/* Fade out overlay on both sides */}
               <div className="absolute inset-0 bg-gradient-to-r from-card via-transparent to-card pointer-events-none z-10" />
 
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={weightHistory.map((weight, index, arr) => {
-                    let date = '';
-                    if (index < arr.length) {
-                      const d = new Date();
-                      d.setDate(d.getDate() - (arr.length - 1 - index));
-                      date = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
-                    }
-                    return {
-                      date,
-                      weight,
-                    };
-                  })}
+                  data={chartData}
                   margin={{ top: 10, right: 10, left: -15, bottom: 20 }}
                 >
                   <defs>
                     <linearGradient id="dashWeightGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#75FBB2" stopOpacity={0.55} />
+                      <stop offset="100%" stopColor="#39D47F" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -276,7 +324,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                   <Area
                     type="natural"
                     dataKey="weight"
-                    stroke="#10b981"
+                    stroke="#39D47F"
                     strokeWidth={2}
                     fill="url(#dashWeightGradient)"
                     dot={false}
@@ -290,17 +338,17 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
 
         {/* Progress Bar */}
         {currentWeight !== null && (
-          <div className="mb-4">
+          <div className="mb-5">
             <div className="flex justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Fortschritt zum Ziel</span>
-              <span className="text-xs font-semibold text-emerald-600">
-                {Math.abs(goal - currentWeight).toFixed(1)}kg verbleibend
+              <span className="text-xs text-muted-foreground">{copy.goalProgress}</span>
+              <span className="text-xs font-semibold text-[#39D47F]">
+                {Math.abs(goal - currentWeight).toFixed(1)}kg {copy.remaining}
               </span>
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
-                initial={{ width: 0 }}
+                className="h-full bg-gradient-to-r from-[#75FBB2] to-[#39D47F] shadow-[0_0_12px_rgba(117,251,178,0.45)]"
+                initial={embedded ? false : { width: 0 }}
                 animate={{ width: `${Math.min(Math.abs(progressToGoal), 100)}%` }}
                 transition={{ duration: 0.8 }}
               />
@@ -319,7 +367,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
           >
             <Input
               type="number"
-              placeholder="z.B. 75.5"
+              placeholder={copy.placeholder}
               value={inputWeight}
               onChange={(e) => setInputWeight(e.target.value)}
               step={0.1}
@@ -335,10 +383,10 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                   handleAddWeight();
                 }}
                 disabled={!inputWeight}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 text-white"
+                className="flex-1 bg-gradient-to-r from-[#75FBB2] to-[#39D47F] hover:from-[#39D47F] hover:to-[#2EBF6E] text-white shadow-[0_0_16px_rgba(117,251,178,0.35)]"
                 size="sm"
               >
-                Speichern
+                {copy.save}
               </Button>
               <Button
                 onClick={(e) => {
@@ -350,7 +398,7 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
                 size="sm"
                 className="flex-1"
               >
-                Abbrechen
+                {copy.cancel}
               </Button>
             </div>
           </motion.div>
@@ -360,57 +408,30 @@ export const DashboardWeightWidget = ({ onWeightUpdate, targetWeight }: Dashboar
               e.stopPropagation();
               setIsAdding(true);
             }}
-            className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+            className="w-full gap-2 bg-gradient-to-r from-[#75FBB2] to-[#39D47F] hover:from-[#39D47F] hover:to-[#2EBF6E] text-white shadow-[0_0_16px_rgba(117,251,178,0.35)]"
             size="sm"
           >
             <Plus className="h-4 w-4" />
-            Gewicht hinzufügen
+            {copy.addWeight}
           </Button>
         )}
       </Card>
 
-      {/* Premium Overlay */}
-      {showPremiumOverlay && !isPremium && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 rounded-xl bg-black/60 backdrop-blur-md flex items-center justify-center z-50"
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center justify-center gap-4 px-6"
-          >
-            <Crown className="h-12 w-12 text-amber-400" />
-            <div className="text-center">
-              <h3 className="font-bold text-white text-lg mb-1">Gewichtsverlauf freischalten</h3>
-              <p className="text-sm text-white/70">
-                Um den Gewichtsverlauf freizuschalten, kaufe Premium
-              </p>
-            </div>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate('/premium');
-              }}
-              className="w-full gradient-neon text-black font-semibold mt-2"
-            >
-              Zu Premium
-            </Button>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowPremiumOverlay(false);
-              }}
-              variant="ghost"
-              className="text-white hover:text-white/80"
-            >
-              Abbrechen
-            </Button>
-          </motion.div>
-        </motion.div>
-      )}
+    </div>
+  );
+
+  if (embedded) {
+    return root;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-30px" }}
+      transition={{ delay: 0.15, duration: 0.4 }}
+    >
+      {root}
     </motion.div>
   );
 };

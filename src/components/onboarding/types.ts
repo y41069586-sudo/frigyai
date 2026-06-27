@@ -26,7 +26,6 @@ export type OnboardingStep =
   | "weight"
   | "height"
   | "activity"
-  | "apple-health-connect"
   | "main-goal"
   | "goal-preview"
   | "goal-mode"
@@ -38,6 +37,8 @@ export type OnboardingStep =
   | "weekly-plan-preview"
   | "scan-fridge"
   | "shopping-list"
+  | "data-consent"
+  | "referral-code"
   | "cooking-time"
   | "cooking-experience"
   | "planning-setup"
@@ -51,8 +52,8 @@ export type OnboardingStep =
   | "structured-mode-2"
   | "structured-mode-3"
   | "save-progress"
+  | "paywall"
   | "premium-hint"
-  | "community"
   | "celebration"
   | "done";
 
@@ -93,6 +94,10 @@ export interface UserData {
   dailyProtein: number;
   dailyCarbs: number;
   dailyFat: number;
+  birthdateConfirmed: boolean;
+  weightConfirmed: boolean;
+  heightConfirmed: boolean;
+  targetWeightConfirmed: boolean;
 }
 
 export interface StepProps {
@@ -139,6 +144,10 @@ export const defaultUserData: UserData = {
   dailyProtein: 0,
   dailyCarbs: 0,
   dailyFat: 0,
+  birthdateConfirmed: false,
+  weightConfirmed: false,
+  heightConfirmed: false,
+  targetWeightConfirmed: false,
 };
 
 // Steps array for navigation - logically structured flow
@@ -149,7 +158,6 @@ export const onboardingSteps: OnboardingStep[] = [
   "weight",
   "height",
   "activity",
-  "apple-health-connect",
   "main-goal",
   "target-weight",
   "goal-preview",
@@ -160,10 +168,45 @@ export const onboardingSteps: OnboardingStep[] = [
   "weekly-plan-preview",
   "scan-fridge",
   "shopping-list",
+  "notification-prefs",
+  "data-consent",
+  "referral-code",
+  "analyzing",
+  "macro-preview",
+  "save-progress",
+  "paywall",
 ];
 
-/** Steps after splash: mint fullscreen body (no global progress bar). */
-export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(onboardingSteps.slice(1));
+/** Fullscreen mint body steps after the splash welcome screen. */
+export const ONBOARDING_MINT_BODY_STEPS: ReadonlySet<OnboardingStep> = new Set(
+  onboardingSteps.slice(1).filter(
+    (step) =>
+      step !== "analyzing" &&
+      step !== "save-progress" &&
+      step !== "paywall" &&
+      step !== "macro-preview",
+  ),
+);
 
-/** Thin top progress line on these steps (includes splash). */
-export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(onboardingSteps);
+/** No top progress bar from this step onward (macro plan / goal summary screen). */
+export const ONBOARDING_HIDE_TOP_PROGRESS_FROM: OnboardingStep = "macro-preview";
+
+const hideTopProgressFromIndex = onboardingSteps.indexOf(ONBOARDING_HIDE_TOP_PROGRESS_FROM);
+
+/** Thin mint progress line — after splash, until before macro-preview. */
+export const ONBOARDING_MINT_PROGRESS_LINE_STEPS: ReadonlySet<OnboardingStep> = new Set(
+  onboardingSteps.slice(1).filter(
+    (step) =>
+      onboardingSteps.indexOf(step) < hideTopProgressFromIndex &&
+      step !== "analyzing" &&
+      step !== "save-progress" &&
+      step !== "paywall" &&
+      step !== "macro-preview",
+  ),
+);
+
+export function showsOnboardingTopProgress(step: OnboardingStep): boolean {
+  const idx = onboardingSteps.indexOf(step);
+  if (idx < 0 || hideTopProgressFromIndex < 0) return false;
+  return idx < hideTopProgressFromIndex;
+}

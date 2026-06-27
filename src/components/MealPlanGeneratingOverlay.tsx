@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { ArrowLeft } from "lucide-react";
-import { AnimatedFrigyMascot } from "./AnimatedFrigyMascot";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+type GenerationStage = "preparing" | "requesting" | "waiting_ai" | "processing" | "saving" | "finalizing";
 
 interface MealPlanGeneratingOverlayProps {
   isGenerating: boolean;
@@ -10,97 +11,80 @@ interface MealPlanGeneratingOverlayProps {
   onMinimize?: () => void;
   onBack?: () => void;
   isMinimized?: boolean;
+  progressPercent?: number;
+  stageKey?: GenerationStage;
+  /** Full-screen lock: no back/minimize, show stay-on-tab warning */
+  locked?: boolean;
+  stayOnTabMessage?: string;
 }
-
-// Floating ingredient component
-const FloatingIngredient = ({ 
-  emoji, 
-  delay, 
-  x, 
-  duration 
-}: { 
-  emoji: string; 
-  delay: number; 
-  x: number; 
-  duration: number;
-}) => (
-  <motion.div
-    className="absolute text-xl pointer-events-none"
-    style={{ left: `${x}%` }}
-    initial={{ opacity: 0, y: 40, scale: 0.5 }}
-    animate={{ 
-      opacity: [0, 0.8, 0.8, 0],
-      y: [40, 0, -30, -60],
-      scale: [0.5, 1, 1, 0.7],
-      rotate: [-10, 8, -8, 10]
-    }}
-    transition={{ 
-      duration: duration,
-      delay: delay,
-      repeat: Infinity,
-      repeatDelay: 2,
-      ease: "easeOut"
-    }}
-  >
-    {emoji}
-  </motion.div>
-);
-
-// Mini mascot for minimized state
-const MiniFrigyMascot = () => (
-  <motion.svg
-    width={40}
-    height={48}
-    viewBox="0 0 200 240"
-    animate={{ rotate: [-5, 5, -5] }}
-    transition={{ duration: 1, repeat: Infinity }}
-  >
-    <defs>
-      <linearGradient id="miniFridgeBodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#86efac" />
-        <stop offset="50%" stopColor="#6ee7b7" />
-        <stop offset="100%" stopColor="#4ade80" />
-      </linearGradient>
-      <linearGradient id="miniFreezerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#f0fdf4" />
-        <stop offset="100%" stopColor="#dcfce7" />
-      </linearGradient>
-    </defs>
-    <rect x="40" y="25" width="120" height="200" rx="12" fill="url(#miniFridgeBodyGrad)" />
-    <rect x="50" y="35" width="100" height="75" rx="8" fill="url(#miniFreezerGrad)" />
-    <rect x="50" y="120" width="100" height="95" rx="8" fill="url(#miniFreezerGrad)" />
-    <ellipse cx="80" cy="65" rx="8" ry="9" fill="#1f2937" />
-    <ellipse cx="83" cy="62" rx="3" ry="3" fill="white" />
-    <ellipse cx="120" cy="65" rx="8" ry="9" fill="#1f2937" />
-    <ellipse cx="123" cy="62" rx="3" ry="3" fill="white" />
-    <path d="M75 85 Q100 105 125 85" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" fill="none" />
-    <ellipse cx="65" cy="78" rx="10" ry="6" fill="#fca5a5" opacity="0.5" />
-    <ellipse cx="135" cy="78" rx="10" ry="6" fill="#fca5a5" opacity="0.5" />
-  </motion.svg>
-);
 
 export const MealPlanGeneratingOverlay = ({ 
   isGenerating, 
   elapsedSeconds,
   onMinimize,
   onBack,
-  isMinimized = false
+  isMinimized = false,
+  progressPercent,
+  stageKey = "preparing",
+  locked = false,
+  stayOnTabMessage,
 }: MealPlanGeneratingOverlayProps) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const copy = {
+    de: {
+      title: "Dein Wochenplan entsteht",
+      stageTitles: {
+        preparing: "Deine Ziele werden vorbereitet",
+        requesting: "Die Anfrage wird gesendet",
+        waiting_ai: "Rezepte und Struktur werden geplant",
+        processing: "Makros und Tage werden abgestimmt",
+        saving: "Einkaufsliste und Plan werden gespeichert",
+        finalizing: "Fast fertig",
+      },
+    },
+    en: {
+      title: "Your weekly plan is coming together",
+      stageTitles: {
+        preparing: "Preparing your targets",
+        requesting: "Sending the request",
+        waiting_ai: "Planning recipes and structure",
+        processing: "Aligning macros and days",
+        saving: "Saving plan and shopping list",
+        finalizing: "Almost done",
+      },
+    },
+    fr: {
+      title: "Ton plan hebdomadaire prend forme",
+      stageTitles: {
+        preparing: "Preparation de tes objectifs",
+        requesting: "Envoi de la demande",
+        waiting_ai: "Planification des recettes",
+        processing: "Ajustement des macros et des jours",
+        saving: "Enregistrement du plan et de la liste",
+        finalizing: "Presque termine",
+      },
+    },
+  } as const;
+  const currentCopy = copy[(language as "de" | "en" | "fr") ?? "de"] ?? copy.de;
+  const effectiveProgress = typeof progressPercent === "number"
+    ? Math.max(0, Math.min(100, Math.round(progressPercent)))
+    : Math.max(0, Math.min(96, 8 + elapsedSeconds * 4));
 
-  const motivationalTexts = [
-    t.mealPlanGenerating1,
-    t.mealPlanGenerating2,
-    t.mealPlanGenerating3,
-    t.mealPlanGenerating4,
-    t.mealPlanGenerating5,
-    t.mealPlanGenerating6,
-    t.mealPlanGenerating7,
-  ];
+  const motivationalTexts = useMemo(
+    () => [
+      t.mealPlanGenerating1,
+      t.mealPlanGenerating2,
+      t.mealPlanGenerating3,
+      t.mealPlanGenerating4,
+      t.mealPlanGenerating5,
+      t.mealPlanGenerating6,
+      t.mealPlanGenerating7,
+    ],
+    [t],
+  );
 
-  // Simple: show overlay only when actively generating and not minimized
-  const showOverlay = isGenerating && !isMinimized;
+  const showOverlay = isGenerating && (!isMinimized || locked);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -113,9 +97,9 @@ export const MealPlanGeneratingOverlay = ({
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [isGenerating]);
+  }, [isGenerating, motivationalTexts.length]);
 
-  const handleBackgroundPointerDown = (e: any) => {
+  const handleBackgroundTap = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (!onMinimize) return;
 
     const target = e?.target as HTMLElement | null;
@@ -130,39 +114,46 @@ export const MealPlanGeneratingOverlay = ({
 
     if (typeof clientX !== "number" || typeof clientY !== "number") return;
 
-    // Forward the original tap to the element underneath so navigation works with a single tap.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
-        if (!el) return;
+    // Forward the tap after the full-screen layer disappears so one tap can also navigate.
+    window.setTimeout(() => {
+      const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+      const interactiveTarget =
+        el?.closest?.('button, a, [role="button"], [role="tab"], [data-radix-collection-item]') as
+          | HTMLElement
+          | null;
+      const nextTarget = interactiveTarget ?? el;
+      if (!nextTarget) return;
 
-        try {
-          el.dispatchEvent(
-            new PointerEvent("pointerdown", {
-              bubbles: true,
-              clientX,
-              clientY,
-              pointerId: pointerId ?? 1,
-              pointerType,
-              isPrimary: true,
-            })
-          );
-          el.dispatchEvent(
-            new PointerEvent("pointerup", {
-              bubbles: true,
-              clientX,
-              clientY,
-              pointerId: pointerId ?? 1,
-              pointerType,
-              isPrimary: true,
-            })
-          );
-          el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX, clientY }));
-        } catch {
-          // ignore
+      try {
+        nextTarget.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            bubbles: true,
+            clientX,
+            clientY,
+            pointerId: pointerId ?? 1,
+            pointerType,
+            isPrimary: true,
+          }),
+        );
+        nextTarget.dispatchEvent(
+          new PointerEvent("pointerup", {
+            bubbles: true,
+            clientX,
+            clientY,
+            pointerId: pointerId ?? 1,
+            pointerType,
+            isPrimary: true,
+          }),
+        );
+        if (typeof (nextTarget as HTMLButtonElement).click === "function") {
+          (nextTarget as HTMLButtonElement).click();
+        } else {
+          nextTarget.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX, clientY }));
         }
-      });
-    });
+      } catch {
+        // ignore
+      }
+    }, 34);
   };
 
   // Minimized floating indicator
@@ -172,7 +163,7 @@ export const MealPlanGeneratingOverlay = ({
         initial={{ scale: 0, y: 100 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0, y: 100 }}
-        className="fixed bottom-24 right-4 z-50"
+        className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] right-4 z-[110]"
       >
         <div className="relative">
           <motion.div
@@ -183,9 +174,9 @@ export const MealPlanGeneratingOverlay = ({
               ]
             }}
             transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-14 h-14 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border border-emerald-200 dark:border-emerald-800 shadow-lg flex items-center justify-center overflow-hidden"
+            className="flex min-w-[4.25rem] items-center justify-center rounded-[999px] border border-emerald-200 bg-white/92 px-3 py-3 shadow-lg backdrop-blur-md dark:border-emerald-800 dark:bg-slate-800/90"
           >
-            <MiniFrigyMascot />
+            <span className="text-[11px] font-bold text-emerald-600">{effectiveProgress}%</span>
           </motion.div>
           <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm">
             <motion.div
@@ -207,21 +198,17 @@ export const MealPlanGeneratingOverlay = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+          className="fixed inset-0 z-[260] flex items-center justify-center overflow-hidden"
           style={{ pointerEvents: showOverlay ? "auto" : "none" }}
-          onPointerDown={handleBackgroundPointerDown}
+          onClick={handleBackgroundTap}
         >
-          {/* Blurred background - shows content behind with blur effect */}
-          <div className="absolute inset-0 backdrop-blur-2xl bg-white/60 dark:bg-slate-900/70" />
-          
-          {/* Very light gradient overlay for modern feel */}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 via-white/20 to-teal-50/40 dark:from-emerald-900/20 dark:via-transparent dark:to-teal-900/20" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,#FFFFFF_0%,#FCFFFD_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(117,251,178,0.12),transparent_24%)]" />
 
-          {/* Zurück: direkt zum Dashboard (Generation läuft im Hintergrund) */}
-          {(onBack || onMinimize) && (
+          {!locked && (onBack || onMinimize) && (
             <motion.button
               data-mealplan-overlay-card="true"
-              onPointerDown={(e) => {
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 (onBack ?? onMinimize)?.();
@@ -230,7 +217,7 @@ export const MealPlanGeneratingOverlay = ({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
               aria-label={t.back}
-              className="absolute top-4 left-4 p-2 rounded-full bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm
+              className="absolute top-4 left-4 p-2 rounded-full bg-white/80 dark:bg-slate-800/70 backdrop-blur-sm
                          border border-slate-200/50 dark:border-slate-700/50
                          hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all shadow-sm z-20"
             >
@@ -238,111 +225,71 @@ export const MealPlanGeneratingOverlay = ({
             </motion.button>
           )}
 
-          <div data-mealplan-overlay-card="true" className="relative flex flex-col items-center gap-5 px-6 py-8 text-center z-10">
-
-            {/* Floating ingredients - smaller and more subtle */}
-            <div className="absolute inset-x-0 top-0 h-40 pointer-events-none">
-              <FloatingIngredient emoji="🥕" delay={0} x={15} duration={3} />
-              <FloatingIngredient emoji="🥦" delay={0.6} x={80} duration={3.2} />
-              <FloatingIngredient emoji="🍳" delay={1.2} x={25} duration={2.8} />
-              <FloatingIngredient emoji="🥗" delay={0.3} x={70} duration={3.1} />
-              <FloatingIngredient emoji="🍎" delay={0.9} x={50} duration={3} />
-            </div>
-
-            {/* Main Frigy mascot - SMALLER SIZE */}
+          <div data-mealplan-overlay-card="true" className="relative z-10 flex w-full max-w-sm flex-col items-center px-5 py-8 text-center sm:px-6">
             <motion.div
-              className="relative mt-8"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full overflow-hidden rounded-[28px] border border-transparent bg-white/92 px-5 py-6 shadow-[0_18px_54px_-30px_rgba(34,197,94,0.16)] backdrop-blur-xl"
             >
-              {/* Soft glow behind mascot */}
-              <motion.div 
-                className="absolute inset-0 -m-8 bg-emerald-300/20 dark:bg-emerald-400/10 rounded-full blur-3xl"
-                animate={{ 
-                  scale: [1, 1.08, 1],
-                  opacity: [0.5, 0.7, 0.5]
-                }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              />
-              
-              {/* Mascot with gentle bounce */}
-              <motion.div
-                animate={{ 
-                  y: [0, -8, 0],
-                }}
-                transition={{ 
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="relative z-10"
-              >
-                {/* Smaller mascot size: 120 instead of 200 */}
-                <AnimatedFrigyMascot size={120} animate={false} />
-              </motion.div>
-              
-              {/* Landing shadow - more subtle */}
-              <motion.div
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-16 h-3 bg-slate-900/8 dark:bg-white/5 rounded-full blur-sm"
-                animate={{
-                  scaleX: [1, 1.15, 1],
-                  opacity: [0.4, 0.6, 0.4]
-                }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
+              <div className="flex flex-col items-center">
+                <div className="relative flex h-24 w-24 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border border-emerald-100 bg-emerald-50/60" />
+                  <div className="absolute inset-[9px] rounded-full border-[3px] border-emerald-100 border-t-[#39D47F] animate-spin" />
+                  <div className="relative flex h-full w-full items-center justify-center">
+                    <span className="inline-flex items-center text-[30px] font-black leading-none tracking-[-0.04em] text-slate-950 tabular-nums">
+                      {effectiveProgress}
+                      <span className="ml-0.5 text-[18px] font-extrabold leading-none text-slate-500">%</span>
+                    </span>
+                  </div>
+                </div>
+
+                <h2 className="mt-6 text-[26px] font-black leading-[1.04] tracking-[-0.055em] text-slate-950">
+                  {currentCopy.title}
+                </h2>
+                <p className="mt-2 text-sm font-medium text-slate-500">
+                  {currentCopy.stageTitles[stageKey]}
+                </p>
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-full bg-slate-100/90">
+                <motion.div
+                  className="relative h-2.5 rounded-full bg-[linear-gradient(90deg,#75FBB2_0%,#4BE08E_55%,#39D47F_100%)]"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${effectiveProgress}%` }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="absolute inset-y-0 right-0 w-12 bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.6),rgba(255,255,255,0))]" />
+                </motion.div>
+              </div>
+
+              <div className="mt-5">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentTextIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="min-h-[2.5rem] text-left text-sm font-medium text-slate-600"
+                  >
+                    {motivationalTexts[currentTextIndex]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
             </motion.div>
 
-            {/* Motivational text - cleaner typography */}
-            <div className="h-12 flex items-center justify-center mt-4">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={currentTextIndex}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="text-lg font-medium text-slate-700 dark:text-slate-200 tracking-tight"
-                >
-                  {motivationalTexts[currentTextIndex]}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-
-            {/* Modern breathing dots - smaller */}
-            <div className="flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-2 h-2 rounded-full bg-emerald-400 dark:bg-emerald-500"
-                  animate={{ 
-                    scale: [1, 1.4, 1],
-                    opacity: [0.5, 1, 0.5]
-                  }}
-                  transition={{ 
-                    duration: 1.2, 
-                    repeat: Infinity, 
-                    delay: i * 0.15,
-                    ease: "easeInOut"
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Minimize hint - cleaner */}
-            {onMinimize && (
-              <motion.p 
-                className="text-xs text-slate-400 dark:text-slate-500 mt-4 font-normal"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.5 }}
+            {locked && stayOnTabMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mt-2 max-w-xs rounded-2xl border border-amber-300/60 bg-amber-50/90 px-4 py-3"
               >
-                {t.mealPlanBackgroundHint}
-              </motion.p>
+                <p className="text-sm font-medium text-amber-900">
+                  {stayOnTabMessage}
+                </p>
+              </motion.div>
             )}
           </div>
         </motion.div>

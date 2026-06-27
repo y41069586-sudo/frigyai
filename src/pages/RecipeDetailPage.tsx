@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import ShareRecipeDialog from "@/components/ShareRecipeDialog";
 import OrderIngredientsDialog from "@/components/OrderIngredientsDialog";
 import { safeJsonParse } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Recipe {
   id: string;
@@ -22,6 +23,7 @@ interface Recipe {
 }
 
 const RecipeDetailPage = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
@@ -72,7 +74,7 @@ const RecipeDetailPage = () => {
       // Store recipe details
       const recipes = safeJsonParse<Record<string, Recipe>>(localStorage.getItem("recipeDetails"), {});
       if (typeof recipes === "object" && recipes !== null) {
-        (recipes as any)[recipe.id] = recipe;
+        recipes[recipe.id] = recipe;
         localStorage.setItem("recipeDetails", JSON.stringify(recipes));
       }
 
@@ -147,7 +149,7 @@ const RecipeDetailPage = () => {
               <div className="text-center">
                 <Clock className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold">{recipe.prepTime} min</div>
-                <div className="text-sm text-muted-foreground">Zubereitung</div>
+                <div className="text-sm text-muted-foreground">{t.recipePrepTimeMin}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">{recipe.protein}g</div>
@@ -167,7 +169,7 @@ const RecipeDetailPage = () => {
             transition={{ delay: 0.1 }}
             className="bg-card rounded-3xl p-8 shadow-xl border border-border/50"
           >
-            <h2 className="text-2xl font-bold mb-6">Zutaten</h2>
+            <h2 className="text-2xl font-bold mb-6">{t.recipeIngredientsHeading}</h2>
             <ul className="space-y-3">
               {recipe.ingredients.map((ingredient, index) => (
                 <li key={index} className="flex items-center gap-3">
@@ -185,7 +187,7 @@ const RecipeDetailPage = () => {
             transition={{ delay: 0.2 }}
             className="bg-card rounded-3xl p-8 shadow-xl border border-border/50"
           >
-            <h2 className="text-2xl font-bold mb-6">Zubereitung</h2>
+            <h2 className="text-2xl font-bold mb-6">{t.recipeInstructionsHeading}</h2>
             <ol className="space-y-4">
               {recipe.instructions.map((instruction, index) => (
                 <li key={index} className="flex gap-4">
@@ -207,7 +209,7 @@ const RecipeDetailPage = () => {
               className="bg-primary/10 rounded-3xl p-8 border border-primary/20"
             >
               <h2 className="text-2xl font-bold mb-4 text-neon">
-                💡 Gesündere Alternativen
+                💡 {t.recipeHealthierAlternatives}
               </h2>
               <ul className="space-y-2">
                 {recipe.healthierAlternatives.map((alternative, index) => (
@@ -227,19 +229,19 @@ const RecipeDetailPage = () => {
             transition={{ delay: 0.4 }}
             className="bg-card rounded-3xl p-8 shadow-xl border border-border/50"
           >
-            <h2 className="text-2xl font-bold mb-6">Nährwerte</h2>
+            <h2 className="text-2xl font-bold mb-6">{t.recipeNutritionHeading}</h2>
             <div className="grid grid-cols-3 gap-6">
               <div className="text-center p-6 bg-primary/10 rounded-2xl border border-primary/20">
                 <div className="text-3xl font-bold text-primary mb-2">{recipe.protein}g</div>
-                <div className="text-sm text-muted-foreground">Eiweiß</div>
+                <div className="text-sm text-muted-foreground">{t.proteinLabel}</div>
               </div>
               <div className="text-center p-6 bg-primary/10 rounded-2xl border border-primary/20">
                 <div className="text-3xl font-bold text-primary mb-2">{recipe.carbs}g</div>
-                <div className="text-sm text-muted-foreground">Kohlenhydrate</div>
+                <div className="text-sm text-muted-foreground">{t.carbsMacroLabel}</div>
               </div>
               <div className="text-center p-6 bg-primary/10 rounded-2xl border border-primary/20">
                 <div className="text-3xl font-bold text-primary mb-2">{recipe.fat}g</div>
-                <div className="text-sm text-muted-foreground">Fett</div>
+                <div className="text-sm text-muted-foreground">{t.fatMacroLabel}</div>
               </div>
             </div>
           </motion.div>

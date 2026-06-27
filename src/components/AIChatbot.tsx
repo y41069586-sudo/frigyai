@@ -9,6 +9,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  viewportPanelExit,
+  viewportPanelFrom,
+  viewportPanelTo,
+  viewportPanelTransition,
+} from '@/lib/motionPresets';
+import { cn } from '@/lib/utils';
+import { AiDisclaimer } from '@/components/AiDisclaimer';
 
 interface Message {
   id: string;
@@ -44,9 +53,10 @@ export const AIChatbot = ({
   onBootstrapConsumed,
 }: AIChatbotProps) => {
   // All hooks MUST be called unconditionally, before any conditional returns
-  const { session, subscriptionStatus } = useAuth();
+  const { session } = useAuth();
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const isMobile = useIsMobile();
   const [localIsOpen, setLocalIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -54,14 +64,12 @@ export const AIChatbot = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: isMobile ? 'auto' : 'smooth' });
+  }, [isMobile, messages]);
 
   // Use external state if provided, otherwise use local state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : localIsOpen;
   const setIsOpen = externalSetIsOpen || setLocalIsOpen;
-
-  const isPremium = subscriptionStatus?.subscribed === true;
 
   const processActions = (response: string): string => {
     let processedResponse = response;
@@ -82,8 +90,8 @@ export const AIChatbot = ({
     if (processedResponse.includes('[ACTION:TOGGLE_DARK_MODE:ON]')) {
       setTheme('dark');
       toast({
-        title: "🌙 Dark Mode aktiviert",
-        description: "Deine App ist jetzt im dunklen Modus",
+        title: t.chatDarkModeOnTitle,
+        description: t.chatDarkModeOnDesc,
       });
       processedResponse = processedResponse.replace('[ACTION:TOGGLE_DARK_MODE:ON]', '').trim();
     }
@@ -91,8 +99,8 @@ export const AIChatbot = ({
     if (processedResponse.includes('[ACTION:TOGGLE_DARK_MODE:OFF]')) {
       setTheme('light');
       toast({
-        title: "☀️ Light Mode aktiviert",
-        description: "Deine App ist jetzt im hellen Modus",
+        title: t.chatDarkModeOffTitle,
+        description: t.chatDarkModeOffDesc,
       });
       processedResponse = processedResponse.replace('[ACTION:TOGGLE_DARK_MODE:OFF]', '').trim();
     }
@@ -102,8 +110,8 @@ export const AIChatbot = ({
       if (onRegenerateMealPlan) {
         onRegenerateMealPlan();
         toast({
-          title: "📋 Neuer Wochenplan",
-          description: "Dein Wochenplan wird generiert",
+          title: t.chatRegeneratePlanTitle,
+          description: t.chatRegeneratePlanDesc,
         });
       }
       processedResponse = processedResponse.replace('[ACTION:REGENERATE_MEAL_PLAN]', '').trim();
@@ -143,7 +151,7 @@ export const AIChatbot = ({
       if (error) throw error;
 
       const aiResponse = data?.message || data?.response || "";
-      if (!aiResponse) throw new Error("Leere Antwort");
+      if (!aiResponse) throw new Error(t.couldNotProcess);
 
       const processedResponse = processActions(aiResponse);
 
@@ -173,20 +181,16 @@ export const AIChatbot = ({
   sendMessageWithTextRef.current = sendMessageWithText;
 
   useEffect(() => {
-    if (!isPremium || !bootstrapMessage?.trim() || !isOpen) return;
+    if (!bootstrapMessage?.trim() || !isOpen) return;
     const msg = bootstrapMessage.trim();
     onBootstrapConsumed?.();
     void sendMessageWithTextRef.current(msg);
-  }, [bootstrapMessage, isOpen, isPremium, onBootstrapConsumed]);
+  }, [bootstrapMessage, isOpen, onBootstrapConsumed]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
     await sendMessageWithText(input);
   };
-
-  if (!isPremium) {
-    return null;
-  }
 
   return (
     <>
@@ -195,30 +199,44 @@ export const AIChatbot = ({
         <motion.button
           onClick={() => setIsOpen(true)}
           className="fixed right-4 top-20 z-[60] p-4 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-xl ring-4 ring-emerald-200/50"
-          whileHover={{ scale: 1.08 }}
+          whileHover={isMobile ? undefined : { scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
-          initial={{ scale: 0, opacity: 0 }}
+          initial={isMobile ? { opacity: 0 } : { scale: 0, opacity: 0 }}
           animate={{ scale: isOpen ? 0 : 1, opacity: isOpen ? 0 : 1 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: isMobile ? 0.12 : 0.2 }}
         >
           <Bot className="h-6 w-6" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-background animate-pulse" />
         </motion.button>
       )}
 
-      {/* Chat Panel */}
+      {/* Chat Bottom Sheet */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed inset-x-4 top-[88px] z-50 flex flex-col md:inset-auto md:right-4 md:top-24 md:w-96 md:h-[500px]"
-          >
-            <Card className="flex flex-col h-full bg-gradient-to-br from-white to-emerald-50/30 backdrop-blur-xl border-emerald-200/40 overflow-hidden">
+          <>
+            <motion.button
+              type="button"
+              aria-label={t.closeAiChatAria}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: isMobile ? 0.12 : 0.2 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-50 bg-black/45"
+            />
+            <motion.div
+              initial={viewportPanelFrom(isMobile)}
+              animate={viewportPanelTo()}
+              exit={viewportPanelExit(isMobile)}
+              transition={viewportPanelTransition(isMobile)}
+              className={cn(
+                "fixed z-[51] flex flex-col left-3 right-3 md:left-auto md:right-4 md:w-[28rem] top-[max(4.75rem,env(safe-area-inset-top,0px)+3.25rem)] bottom-[max(5.25rem,env(safe-area-inset-bottom,0px)+4.75rem)]",
+                !isMobile && "gpu-smooth",
+              )}
+            >
+            <Card className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.75rem] border-slate-200/90 bg-gradient-to-br from-white to-emerald-50/30 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)]">
               {/* Header */}
-              <div className="p-4 border-b border-emerald-200/40 flex items-center justify-between bg-gradient-to-r from-emerald-100/60 to-green-50/40">
+              <div className="flex shrink-0 items-center justify-between border-b border-emerald-200/40 bg-gradient-to-r from-emerald-100/60 to-green-50/40 p-4">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-full bg-emerald-200/50">
                     <Sparkles className="h-5 w-5 text-emerald-600" />
@@ -234,7 +252,7 @@ export const AIChatbot = ({
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain">
                 {messages.length === 0 && (
                   <div className="text-center text-emerald-600 py-8">
                     <Bot className="h-12 w-12 mx-auto mb-3 text-emerald-400" />
@@ -252,8 +270,8 @@ export const AIChatbot = ({
                 {messages.map((msg) => (
                   <motion.div
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={isMobile ? false : { opacity: 0, y: 10 }}
+                    animate={isMobile ? undefined : { opacity: 1, y: 0 }}
                     className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {msg.role === 'assistant' && (
@@ -301,7 +319,7 @@ export const AIChatbot = ({
               </div>
 
               {/* Input */}
-              <div className="p-4 border-t border-emerald-200/40 bg-gradient-to-t from-emerald-50/40">
+              <div className="p-4 border-t border-emerald-200/40 bg-gradient-to-t from-emerald-50/40 pb-[max(1rem,env(safe-area-inset-bottom,0px)+0.75rem)]">
                 <div className="flex gap-2">
                   <Input
                     placeholder={t.askMeSomething}
@@ -320,9 +338,11 @@ export const AIChatbot = ({
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
+                <AiDisclaimer className="mt-2 text-center" compact />
               </div>
             </Card>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

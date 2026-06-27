@@ -8,55 +8,55 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Hell leuchtend Grün + Weiß — einheitliche Hue ~150° (elektrisches Mint/Lime) */
+    /* Neue Mint-Palette + Weiß — zentrale App-Farbe #75FBB2 */
     --background: 0 0% 100%;
-    --foreground: 152 28% 11%;
+    --foreground: 95 28% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 152 28% 11%;
+    --card-foreground: 95 28% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 152 28% 11%;
+    --popover-foreground: 95 28% 10%;
 
-    /* Primär: leuchtendes Grün, gut lesbar auf Weiß */
-    --primary: 150 100% 46%;
-    --primary-foreground: 0 0% 100%;
+    /* Primär: Mint #75FBB2 */
+    --primary: 147 94% 72%;
+    --primary-foreground: 95 32% 9%;
 
-    --secondary: 148 55% 96%;
-    --secondary-foreground: 152 22% 16%;
+    --secondary: 148 100% 97%;
+    --secondary-foreground: 95 24% 15%;
 
-    --muted: 148 42% 96%;
-    --muted-foreground: 152 12% 40%;
+    --muted: 148 100% 97%;
+    --muted-foreground: 95 10% 39%;
 
-    --accent: 148 100% 44%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 147 94% 72%;
+    --accent-foreground: 95 32% 9%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 148 48% 90%;
-    --input: 148 42% 94%;
-    --ring: 150 100% 46%;
+    --border: 150 94% 86%;
+    --input: 148 78% 94%;
+    --ring: 147 94% 72%;
 
     --radius: 1rem;
 
     /* Neon-Varianten (Tailwind neon / neon-dark) */
-    --neon-green: 148 100% 52%;
-    --neon-green-dark: 152 100% 34%;
-    --neon-green-light: 148 90% 88%;
-    --soft-green: 148 45% 97%;
+    --neon-green: 147 94% 72%;
+    --neon-green-dark: 147 64% 53%;
+    --neon-green-light: 148 100% 97%;
+    --soft-green: 148 100% 97%;
     
-    /* Verläufe: weiß → sehr helles Mint, kräftiges Grün für Akzente */
-    --gradient-bg: linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(148, 55%, 98%) 55%, hsl(0, 0%, 100%) 100%);
-    --gradient-neon: linear-gradient(135deg, hsl(148, 100%, 52%) 0%, hsl(152, 100%, 38%) 100%);
-    --gradient-card: linear-gradient(145deg, hsla(0, 0%, 100%, 0.98) 0%, hsla(148, 60%, 99%, 0.95) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(148, 100%, 50%) 0%, hsl(152, 100%, 36%) 100%);
+    /* Verläufe: weiß → sehr helles Mint, helles Mint-Grün für Akzente */
+    --gradient-bg: radial-gradient(circle at 50% 0%, hsla(147, 94%, 72%, 0.16), transparent 34%), linear-gradient(145deg, hsl(0, 0%, 100%) 0%, hsl(148, 100%, 97%) 55%, hsl(0, 0%, 100%) 100%);
+    --gradient-neon: linear-gradient(135deg, hsl(147, 94%, 72%) 0%, hsl(147, 82%, 64%) 48%, hsl(147, 64%, 53%) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(0, 0%, 100%, 0.98) 0%, hsla(148, 100%, 98%, 0.95) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(147, 94%, 72%) 0%, hsl(147, 64%, 53%) 100%);
     
     /* Schatten mit Grün-Glow */
-    --shadow-glow: 0 0 32px hsla(148, 100%, 50%, 0.35);
-    --shadow-glow-lg: 0 0 56px hsla(148, 100%, 55%, 0.42);
-    --shadow-soft: 0 4px 24px -4px hsla(152, 45%, 35%, 0.1);
-    --shadow-card: 0 10px 36px -10px hsla(152, 50%, 40%, 0.12);
+    --shadow-glow: 0 0 36px hsla(147, 94%, 72%, 0.46);
+    --shadow-glow-lg: 0 0 64px hsla(147, 94%, 72%, 0.58);
+    --shadow-soft: 0 4px 24px -4px hsla(147, 30%, 30%, 0.1);
+    --shadow-card: 0 10px 36px -10px hsla(147, 35%, 35%, 0.12);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -117,10 +117,10 @@ All colors MUST be HSL.
   
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 22px hsla(148, 100%, 55%, 0.35);
+      box-shadow: 0 0 22px hsla(147, 94%, 72%, 0.38);
     }
     50% {
-      box-shadow: 0 0 48px hsla(148, 100%, 58%, 0.55);
+      box-shadow: 0 0 48px hsla(147, 94%, 72%, 0.58);
     }
   }
   
@@ -145,14 +145,14 @@ All colors MUST be HSL.
   
   
   .hero-gradient {
-    background: linear-gradient(135deg, hsl(148, 100%, 52%) 0%, hsl(152, 100%, 38%) 100%);
+    background: linear-gradient(135deg, hsl(147, 94%, 72%) 0%, hsl(147, 64%, 53%) 100%);
   }
   
   .mesh-gradient {
     background: 
-      radial-gradient(at 40% 20%, hsla(148, 100%, 65%, 0.35) 0px, transparent 52%),
-      radial-gradient(at 80% 0%, hsla(150, 100%, 55%, 0.22) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(152, 100%, 72%, 0.22) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, hsla(147, 94%, 72%, 0.34) 0px, transparent 52%),
+      radial-gradient(at 80% 0%, hsla(147, 94%, 72%, 0.22) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(150, 94%, 86%, 0.22) 0px, transparent 50%);
   }
 
   .gradient-primary {
@@ -166,11 +166,12 @@ All colors MUST be HSL.
 
   /* Scroll padding under fixed BottomNavigation (bottom offset + pill + FAB) + home indicator */
   .pb-bottom-nav {
-    padding-bottom: calc(8rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(9.5rem + env(safe-area-inset-bottom, 0px));
   }
 
   .safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
   }
   
   .safe-area-inset {
@@ -197,6 +198,24 @@ All colors MUST be HSL.
     input, textarea, select {
       font-size: 16px; /* Prevents zoom on iOS */
     }
+
+    html {
+      scroll-behavior: auto;
+    }
+
+  }
+
+  .dashboard-scroll-main {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  /* Let vertical scroll pass through dashboard cards/buttons (override global manipulation). */
+  .dashboard-scroll-main .dashboard-touch-scroll,
+  .dashboard-scroll-main .dashboard-touch-scroll button,
+  .dashboard-scroll-main .dashboard-touch-scroll [role="button"] {
+    touch-action: pan-y;
   }
 
   /* Better scrolling on mobile */
@@ -205,11 +224,17 @@ All colors MUST be HSL.
     scroll-behavior: smooth;
   }
 
-  /* Rendering helper for animated/smoothed elements */
+  /* Rendering helper for animated/smoothed elements (desktop panels only) */
   .gpu-smooth {
     transform: translateZ(0);
     backface-visibility: hidden;
-    will-change: transform, opacity;
+    will-change: opacity;
+  }
+
+  @media (min-width: 768px) {
+    .gpu-smooth {
+      will-change: transform, opacity;
+    }
   }
 
   /* Hide scrollbar but keep functionality */
@@ -349,6 +374,30 @@ All colors MUST be HSL.
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
+    }
+
+    .animate-pulse {
+      animation: none !important;
+    }
+  }
+
+  /* Onboarding: promote step surfaces to their own layer to reduce mobile transition jank */
+  .onboarding-flow-root {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .onboarding-step-surface {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: opacity;
+  }
+
+  @media (max-width: 767px) {
+    .onboarding-step-surface {
+      will-change: opacity;
     }
   }
 }

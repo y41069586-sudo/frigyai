@@ -1,8 +1,11 @@
-import { motion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { MINT_STEP_HEADER_PT } from "../layout";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
 
 type GenderSelectStepProps = {
   userData: UserData;
@@ -12,14 +15,22 @@ type GenderSelectStepProps = {
 };
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  bg: "#F0FFF7",
-  selectedBg: "#D4FFEA",
-  border: "#6EECC0",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#FBFFFD",
+  selectedBg: "#DCFEEF",
+  border: "#75FBB2",
   text: "#1F2937",
-  cardBorderIdle: "#D1D5DB",
+  cardBorderIdle: "#BCFDDC",
 };
+
+const GENDER_IMAGES = {
+  male: "/gender-male.png",
+  female: "/gender-female.png",
+} as const;
+
+const SELECTED_RING =
+  "0 0 0 3px #DCFEEF, 0 0 0 5px #75FBB2";
 
 export function GenderSelectStep({
   userData,
@@ -27,193 +38,170 @@ export function GenderSelectStep({
   onBack,
   onNext,
 }: GenderSelectStepProps) {
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
 
-  const binaryOptions: { id: "male" | "female"; emoji: string; label: string }[] = [
-    {
-      id: "male",
-      emoji: "👨",
-      label: language === "de" ? "Männlich" : language === "fr" ? "Homme" : "Male",
-    },
-    {
-      id: "female",
-      emoji: "👩",
-      label: language === "de" ? "Weiblich" : language === "fr" ? "Femme" : "Female",
-    },
+  const binaryOptions: {
+    id: "male" | "female";
+    image: string;
+    label: string;
+  }[] = [
+    { id: "male", image: GENDER_IMAGES.male, label: t.onboardingMale },
+    { id: "female", image: GENDER_IMAGES.female, label: t.onboardingFemale },
   ];
 
-  const nonBinaryLabel =
-    language === "de" ? "Nicht-binär" : language === "fr" ? "Non-binaire" : "Non-binary";
+  const nonBinaryLabel = t.onboardingNonBinaryLabel;
 
-  const title =
-    language === "de"
-      ? "Was ist dein Geschlecht?"
-      : language === "fr"
-        ? "Quel est ton genre ?"
-        : "What is your gender?";
+  const title = t.onboardingGenderQuestionTitle;
 
   const canProceed = userData.gender !== null;
+
+  const selectGender = (gender: "male" | "female") => {
+    setUserData((prev) => ({ ...prev, gender }));
+  };
+
+  const toggleNonBinary = () => {
+    setUserData((prev) => ({
+      ...prev,
+      gender: prev.gender === "non-binary" ? null : "non-binary",
+    }));
+  };
+
+  const nonBinarySelected = userData.gender === "non-binary";
 
   return (
     <div
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
-      {/* ── Top bar: back ── */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div
+        className="flex shrink-0 items-center px-5 pb-1"
+        style={{ paddingTop: MINT_STEP_HEADER_PT }}
+      >
         {onBack ? (
-          <motion.button
+          <button
             type="button"
-            whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-neutral-500 transition-colors hover:bg-white"
+            aria-label={t.back}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 text-neutral-500 transition-transform active:scale-95 hover:bg-white"
             style={{ boxShadow: "0 1px 2px rgba(15,40,30,0.04)" }}
           >
             <ChevronLeft className="size-5" />
-          </motion.button>
+          </button>
         ) : (
-          <div className="h-9 w-9 shrink-0" />
+          <div className="h-9 w-9 shrink-0" aria-hidden />
         )}
       </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
-      {/* ── Männlich / Weiblich zentriert, Nicht-binär als eigene Zeile mit Kästchen ── */}
-      <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-5 pt-1 mt-6">
-        <div className="mx-auto grid w-full max-w-[320px] grid-cols-2 gap-3">
-          {binaryOptions.map((opt, i) => {
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-5 pb-4 pt-6">
+        <div className="mx-auto grid w-full max-w-[300px] grid-cols-2 gap-4">
+          {binaryOptions.map((opt) => {
             const selected = userData.gender === opt.id;
+
             return (
-              <motion.button
+              <button
                 key={opt.id}
                 type="button"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  scale: selected ? 1.02 : 1,
-                }}
-                transition={{
-                  opacity: { delay: 0.08 + i * 0.06, duration: 0.35 },
-                  y: { delay: 0.08 + i * 0.06, duration: 0.35 },
-                  scale: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
-                }}
-                whileTap={{ scale: selected ? 1.0 : 0.985 }}
-                onClick={() => setUserData({ ...userData, gender: opt.id })}
-                className="group relative flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-[20px] px-3 py-3 text-center transition-all duration-200"
-                style={{
-                  backgroundColor: selected ? PALETTE.selectedBg : "#FFFFFF",
-                  border: `1.5px solid ${selected ? PALETTE.border : PALETTE.cardBorderIdle}`,
-                  boxShadow: selected
-                    ? "0 8px 24px -10px rgba(36,255,143,0.55), 0 2px 6px rgba(15,40,30,0.04)"
-                    : "0 1px 2px rgba(15,40,30,0.03)",
-                }}
+                onClick={() => selectGender(opt.id)}
+                aria-pressed={selected}
+                className={cn(
+                  "flex flex-col items-center gap-2.5 border-0 bg-transparent p-0 outline-none",
+                  "transition-[transform,opacity] duration-200 ease-out active:scale-[0.97]",
+                  "focus-visible:ring-2 focus-visible:ring-[#75FBB2]/50",
+                  selected ? "scale-[1.03] opacity-100" : "scale-100 opacity-[0.88]",
+                )}
               >
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xl transition-colors"
+                  className="relative w-full transition-[box-shadow] duration-300 ease-out"
                   style={{
-                    backgroundColor: selected ? "#C0FFD9" : "#EAFFF5",
+                    aspectRatio: "1",
+                    boxShadow: selected ? SELECTED_RING : "0 0 0 3px transparent, 0 0 0 5px transparent",
                   }}
-                  aria-hidden
                 >
-                  <span>{opt.emoji}</span>
+                  <img
+                    src={opt.image}
+                    alt=""
+                    className="h-full w-full object-contain"
+                    draggable={false}
+                  />
                 </div>
                 <span
-                  className="text-[15px] font-medium tracking-tight"
+                  className={cn(
+                    "text-[15px] tracking-tight transition-[opacity,font-weight] duration-200",
+                    selected ? "font-semibold opacity-100" : "font-medium opacity-70",
+                  )}
                   style={{ color: PALETTE.text }}
                 >
                   {opt.label}
                 </span>
-                <motion.span
-                  initial={false}
-                  animate={{
-                    scale: selected ? 1 : 0.6,
-                    opacity: selected ? 1 : 0,
-                  }}
-                  transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
-                  className="flex h-6 w-6 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: PALETTE.primary,
-                    boxShadow: "0 4px 10px -3px rgba(36,255,143,0.6)",
-                  }}
-                  aria-hidden
-                >
-                  <Check className="size-3.5 text-white" strokeWidth={3} />
-                </motion.span>
-              </motion.button>
+              </button>
             );
           })}
         </div>
 
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ opacity: { delay: 0.22, duration: 0.35 }, y: { delay: 0.22, duration: 0.35 } }}
-          whileTap={{ scale: userData.gender === "non-binary" ? 1 : 0.99 }}
-          onClick={() => setUserData({ ...userData, gender: "non-binary" })}
-          aria-pressed={userData.gender === "non-binary"}
-          className="mx-auto flex w-full max-w-[320px] items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 text-left transition-all duration-200"
-          style={{
-            backgroundColor: userData.gender === "non-binary" ? PALETTE.selectedBg : "#FFFFFF",
-            borderColor:
-              userData.gender === "non-binary" ? PALETTE.border : PALETTE.cardBorderIdle,
-            borderWidth: 1.5,
-            boxShadow:
-              userData.gender === "non-binary"
-                ? "0 8px 24px -10px rgba(36,255,143,0.45), 0 2px 6px rgba(15,40,30,0.04)"
-                : "0 1px 2px rgba(15,40,30,0.03)",
-          }}
-        >
-          <p className="min-w-0 flex-1 text-[15px] font-medium tracking-tight" style={{ color: PALETTE.text }}>
-            {nonBinaryLabel}
-          </p>
-          <div
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 transition-colors"
-            style={{
-              borderColor: userData.gender === "non-binary" ? PALETTE.border : PALETTE.cardBorderIdle,
-              backgroundColor: userData.gender === "non-binary" ? "#D4FFEA" : "#FFFFFF",
-            }}
-            aria-hidden
+        <div>
+          <button
+            type="button"
+            onClick={toggleNonBinary}
+            aria-pressed={nonBinarySelected}
+            className="flex items-center gap-3 border-0 bg-transparent p-0 outline-none transition-transform active:scale-[0.98]"
           >
-            {userData.gender === "non-binary" ? (
-              <Check className="size-5 text-neutral-900" strokeWidth={2.8} />
-            ) : null}
-          </div>
-        </motion.button>
+            <span
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border-2 transition-all duration-200",
+                nonBinarySelected ? "scale-105 border-[#75FBB2] bg-[#75FBB2]" : "scale-100 bg-white",
+              )}
+              style={{ borderColor: nonBinarySelected ? PALETTE.border : PALETTE.cardBorderIdle }}
+              aria-hidden
+            >
+              <Check
+                className={cn(
+                  "size-3.5 text-white transition-all duration-200",
+                  nonBinarySelected ? "scale-100 opacity-100" : "scale-75 opacity-0",
+                )}
+                strokeWidth={3}
+              />
+            </span>
+            <span
+              className={cn(
+                "text-[15px] font-medium tracking-tight transition-opacity duration-200",
+                nonBinarySelected ? "opacity-100" : "opacity-80",
+              )}
+              style={{ color: PALETTE.text }}
+            >
+              {nonBinaryLabel}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* Continue */}
       <div
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
-        <motion.button
+        <OnboardingDataNotice variant="mint" className="mb-3" />
+        <button
           type="button"
-          whileTap={{ scale: canProceed ? 0.98 : 1 }}
           onClick={onNext}
           disabled={!canProceed}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
+          className={cn(
+            "flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-transform",
+            canProceed && "active:scale-[0.98]",
+          )}
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
-              : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
+              : "linear-gradient(135deg, #FBFFFD 0%, #DCFEEF 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,
@@ -221,7 +209,7 @@ export function GenderSelectStep({
         >
           {t.next}
           <ChevronRight className="size-5" strokeWidth={2.5} />
-        </motion.button>
+        </button>
       </div>
     </div>
   );

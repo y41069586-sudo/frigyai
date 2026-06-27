@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Flame } from 'lucide-react';
 import { useEffect } from 'react';
-import confetti from 'canvas-confetti';
+import { confettiBurst } from '@/lib/mobileEffects';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ScanSuccessOverlayProps {
   isVisible: boolean;
@@ -22,10 +23,34 @@ export const ScanSuccessOverlay = ({
   fat,
   onComplete,
 }: ScanSuccessOverlayProps) => {
+  const { language } = useLanguage();
+  const copy = language === 'fr'
+    ? {
+        success: 'Reconnu avec succes !',
+        protein: 'Proteines',
+        carbs: 'Glucides',
+        fat: 'Lipides',
+        tapToClose: 'Touchez pour fermer',
+      }
+    : language === 'en'
+      ? {
+          success: 'Recognized successfully!',
+          protein: 'Protein',
+          carbs: 'Carbs',
+          fat: 'Fat',
+          tapToClose: 'Tap to close',
+        }
+      : {
+          success: 'Erfolgreich erkannt!',
+          protein: 'Protein',
+          carbs: 'Carbs',
+          fat: 'Fett',
+          tapToClose: 'Tippen zum Schließen',
+        };
   useEffect(() => {
     if (isVisible) {
       // Trigger confetti
-      confetti({
+      confettiBurst({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
@@ -48,7 +73,7 @@ export const ScanSuccessOverlay = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={onComplete}
         >
           <motion.div
@@ -101,7 +126,7 @@ export const ScanSuccessOverlay = ({
               className="text-sm text-primary text-center mb-4"
               style={{ textShadow: '0 0 10px rgba(34, 197, 94, 0.5)' }}
             >
-              Erfolgreich erkannt!
+              {copy.success}
             </motion.p>
 
             {/* Calories */}
@@ -125,15 +150,15 @@ export const ScanSuccessOverlay = ({
             >
               <div className="text-center p-3 bg-background/50 rounded-xl">
                 <p className="text-lg font-bold text-red-400">{protein}g</p>
-                <p className="text-xs text-muted-foreground">Protein</p>
+                <p className="text-xs text-muted-foreground">{copy.protein}</p>
               </div>
               <div className="text-center p-3 bg-background/50 rounded-xl">
                 <p className="text-lg font-bold text-amber-400">{carbs}g</p>
-                <p className="text-xs text-muted-foreground">Carbs</p>
+                <p className="text-xs text-muted-foreground">{copy.carbs}</p>
               </div>
               <div className="text-center p-3 bg-background/50 rounded-xl">
                 <p className="text-lg font-bold text-blue-400">{fat}g</p>
-                <p className="text-xs text-muted-foreground">Fett</p>
+                <p className="text-xs text-muted-foreground">{copy.fat}</p>
               </div>
             </motion.div>
 
@@ -144,7 +169,7 @@ export const ScanSuccessOverlay = ({
               transition={{ delay: 1.5, duration: 1.5, repeat: Infinity }}
               className="text-xs text-muted-foreground text-center mt-4"
             >
-              Tippen zum Schließen
+              {copy.tapToClose}
             </motion.p>
           </motion.div>
         </motion.div>

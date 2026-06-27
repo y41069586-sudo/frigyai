@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Frigy Play Store Screenshots (9:16)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --primary: #75fbb2;
+      --primary-dark: #39d47f;
+      --primary-light: #f2fff8;
+      --text: #1f2937;
+      --muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 28px 20px 56px;
+    }
+
+    .head { max-width: 1080px; margin: 0 auto 24px; }
+    .head h1 { font-size: 1.35rem; font-weight: 800; margin-bottom: 6px; }
+    .head p { color: #94a3b8; line-height: 1.5; font-size: 14px; }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+    }
+
+    .item { width: 270px; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .toolbar span { font-size: 12px; font-weight: 600; color: #cbd5e1; }
+
+    .download-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: 600 11px/1 Inter, sans-serif;
+      color: #082013;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    }
+
+    /* Preview scale 1:4 — export at full 1080×1920 */
+    .preview-wrap {
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+
+    .screen {
+      width: 1080px;
+      height: 1920px;
+      transform: scale(0.25);
+      transform-origin: top left;
+      background: var(--primary-light);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-wrap {
+      width: 270px;
+      height: 480px;
+    }
+
+    .status {
+      height: 62px;
+      padding: 18px 36px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: #64748b;
+      background: rgba(255,255,255,0.75);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 32px 24px;
+      background: rgba(242,255,248,0.98);
+      border-bottom: 1px solid rgba(188,253,220,0.85);
+    }
+
+    .header img { width: 56px; height: 56px; border-radius: 16px; }
+    .header h2 {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .body { padding: 28px 32px 120px; }
+
+    .widget {
+      background: rgba(255,255,255,0.94);
+      border: 2px solid rgba(226,232,240,0.9);
+      border-radius: 48px;
+      padding: 36px;
+      box-shadow: 0 24px 50px -30px rgba(74,232,150,0.25);
+    }
+
+    .label {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(57,212,127,0.9);
+      margin-bottom: 12px;
+    }
+
+    .kcal {
+      font-size: 88px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .sub { font-size: 28px; color: var(--muted); margin-top: 10px; font-weight: 500; }
+
+    .bar {
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(117,251,178,0.15);
+      margin: 28px 0 16px;
+      overflow: hidden;
+    }
+
+    .bar > i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+    }
+
+    .macros {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .macro {
+      border-radius: 24px;
+      padding: 20px 12px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .macro.p { background: #fff1f2; color: #e11d48; }
+    .macro.c { background: #fffbeb; color: #d97706; }
+    .macro.f { background: #f0f9ff; color: #0284c7; }
+
+    .week {
+      margin-top: 28px;
+      border-radius: 40px;
+      border: 2px solid rgba(226,232,240,0.9);
+      background: linear-gradient(135deg, #fff, rgba(117,251,178,0.07));
+      padding: 32px;
+    }
+
+    .week h3 { font-size: 36px; font-weight: 800; letter-spacing: -0.03em; }
+    .week .dayline { font-size: 26px; color: rgba(57,212,127,0.9); font-weight: 600; margin-top: 6px; }
+
+    .days {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .days span {
+      flex: 1;
+      text-align: center;
+      padding: 16px 0;
+      border-radius: 18px;
+      font-size: 24px;
+      font-weight: 700;
+      background: rgba(117,251,178,0.12);
+      color: #64748b;
+    }
+
+    .days span.on {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #082013;
+    }
+
+    .slots {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .slot {
+      background: #fff;
+      border: 2px solid #e2e8f0;
+      border-radius: 28px;
+      padding: 28px 8px;
+      text-align: center;
+      font-size: 44px;
+    }
+
+    .slot.on {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-color: transparent;
+    }
+
+    .day-card {
+      border-radius: 36px;
+      border: 2px solid rgba(188,253,220,0.85);
+      background: rgba(255,255,255,0.92);
+      padding: 28px;
+      margin-bottom: 22px;
+    }
+
+    .day-card h4 {
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 18px;
+    }
+
+    .meals {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .meal {
+      background: rgba(248,250,252,0.95);
+      border-radius: 22px;
+      padding: 18px;
+      border: 2px solid rgba(226,232,240,0.9);
+    }
+
+    .meal .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 22px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .meal .name { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1.25; }
+    .meal .tags { font-size: 22px; margin-top: 10px; }
+    .tag-p { color: #f87171; margin-right: 12px; }
+    .tag-c { color: #fbbf24; margin-right: 12px; }
+    .tag-f { color: #60a5fa; }
+
+    .btn {
+      margin-top: 14px;
+      width: 100%;
+      border-radius: 16px;
+      border: 2px solid rgba(117,251,178,0.5);
+      background: rgba(117,251,178,0.14);
+      padding: 12px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #166534;
+      text-align: center;
+    }
+
+    .scan-box {
+      border-radius: 36px;
+      overflow: hidden;
+      border: 2px solid rgba(188,253,220,0.85);
+      background: #fff;
+    }
+
+    .scan-img {
+      height: 520px;
+      background:
+        radial-gradient(circle at 30% 40%, #fde68a, transparent 35%),
+        radial-gradient(circle at 70% 55%, #86efac, transparent 40%),
+        radial-gradient(circle at 50% 70%, #fca5a5, transparent 35%),
+        #fef3c7;
+    }
+
+    .scan-info { padding: 32px; }
+    .scan-info strong { font-size: 36px; display: block; margin-bottom: 10px; }
+    .scan-info span { font-size: 28px; color: var(--muted); font-weight: 600; }
+
+    .cta {
+      margin-top: 24px;
+      border-radius: 28px;
+      padding: 28px;
+      text-align: center;
+      font-size: 30px;
+      font-weight: 800;
+      color: #082013;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    }
+
+    .shop-item {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 22px 24px;
+      border-radius: 24px;
+      background: #fff;
+      border: 2px solid #e2e8f0;
+      margin-bottom: 14px;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .shop-item i {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 3px solid var(--primary-dark);
+      background: rgba(117,251,178,0.2);
+    }
+
+    .nav {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 110px;
+      background: rgba(255,255,255,0.96);
+      border-top: 2px solid rgba(188,253,220,0.85);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: 16px;
+    }
+
+    .nav i {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: rgba(117,251,178,0.16);
+    }
+
+    .nav i.on {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      box-shadow: 0 8px 20px rgba(57,212,127,0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <h1>Frigy — Phone screenshots (9:16)</h1>
+    <p>
+      Export 1080 × 1920 PNG — Google Play (9:16, 320–3840 px). Kein Marketing-Text, keine verbundenen Screens — nur App-UI.
+    </p>
+  </div>
+
+  <div class="grid">
+    <!-- 1 Home / Tracker -->
+    <div class="item">
+      <div class="toolbar"><span>1 · Home</span><button class="download-btn" data-target="ss-1">PNG</button></div>
+      <div class="preview-wrap"><div class="screen" id="ss-1">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="header"><img src="./assets/mascot.png" alt="" /><h2>Frigy</h2></div>
+        <div class="body">
+          <div class="widget">
+            <div class="label">Today</div>
+            <div class="kcal">842 kcal</div>
+            <div class="sub">remaining of 1,850 kcal</div>
+            <div class="bar"><i style="width:54%"></i></div>
+            <div class="macros">
+              <div class="macro p">42/120g P</div>
+              <div class="macro c">98/210g C</div>
+              <div class="macro f">28/62g F</div>
+            </div>
+          </div>
+          <div class="week">
+            <h3>Weekly plan</h3>
+            <div class="dayline">Friday · Next: Lunch</div>
+            <div class="days">
+              <span>M</span><span>T</span><span>W</span><span>T</span><span class="on">F</span><span>S</span><span>S</span>
+            </div>
+          </div>
+          <div class="slots">
+            <div class="slot">🍳</div><div class="slot on">🥗</div><div class="slot">🍝</div><div class="slot">🍎</div>
+          </div>
+        </div>
+        <div class="nav"><i class="on"></i><i></i><i></i><i></i></div>
+      </div></div>
+    </div>
+
+    <!-- 2 Weekly plan -->
+    <div class="item">
+      <div class="toolbar"><span>2 · Meal plan</span><button class="download-btn" data-target="ss-2">PNG</button></div>
+      <div class="preview-wrap"><div class="screen" id="ss-2">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="header"><img src="./assets/mascot.png" alt="" /><h2>Meal plan</h2></div>
+        <div class="body">
+          <div class="day-card">
+            <h4>Friday</h4>
+            <div class="meals">
+              <div class="meal">
+                <div class="row"><span>Breakfast</span><span>420</span></div>
+                <div class="name">Greek yogurt bowl</div>
+                <div class="tags"><span class="tag-p">28P</span><span class="tag-c">45K</span><span class="tag-f">12F</span></div>
+                <div class="btn">✓ Eaten</div>
+              </div>
+              <div class="meal">
+                <div class="row"><span>Lunch</span><span>510</span></div>
+                <div class="name">Chicken rice bowl</div>
+                <div class="tags"><span class="tag-p">42P</span><span class="tag-c">48K</span><span class="tag-f">14F</span></div>
+                <div class="btn">✓ Eaten</div>
+              </div>
+              <div class="meal">
+                <div class="row"><span>Snack</span><span>180</span></div>
+                <div class="name">Protein bar</div>
+                <div class="tags"><span class="tag-p">15P</span><span class="tag-c">18K</span><span class="tag-f">6F</span></div>
+                <div class="btn">✓ Eaten</div>
+              </div>
+              <div class="meal">
+                <div class="row"><span>Dinner</span><span>580</span></div>
+                <div class="name">Salmon & veggies</div>
+                <div class="tags"><span class="tag-p">38P</span><span class="tag-c">32K</span><span class="tag-f">22F</span></div>
+                <div class="btn">✓ Eaten</div>
+              </div>
+            </div>
+          </div>
+          <div class="day-card">
+            <h4>Saturday</h4>
+            <div class="meals">
+              <div class="meal">
+                <div class="row"><span>Breakfast</span><span>390</span></div>
+                <div class="name">Oats & berries</div>
+                <div class="tags"><span class="tag-p">18P</span><span class="tag-c">58K</span><span class="tag-f">9F</span></div>
+                <div class="btn">✓ Eaten</div>
+              </div>
+              <div class="meal">
+                <div class="row"><span>Lunch</span><span>520</span></div>
+                <div class="name">Turkey wrap</div>
+                <div class="tags"><span class="tag-p">36P</span><span class="tag-c">44K</span><span class="tag-f">16F</span></div>
+                <div class="btn">✓ Eaten</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="nav"><i></i><i class="on"></i><i></i><i></i></div>
+      </div></div>
+    </div>
+
+    <!-- 3 Scan -->
+    <div class="item">
+      <div class="toolbar"><span>3 · Food scan</span><button class="download-btn" data-target="ss-3">PNG</button></div>
+      <div class="preview-wrap"><div class="screen" id="ss-3">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="header"><img src="./assets/mascot.png" alt="" /><h2>Scan</h2></div>
+        <div class="body">
+          <div class="scan-box">
+            <div class="scan-img"></div>
+            <div class="scan-info">
+              <strong>Grilled chicken plate</strong>
+              <span>520 kcal · 42P · 38C · 16F</span>
+            </div>
+          </div>
+          <div class="cta">Add to tracker</div>
+        </div>
+        <div class="nav"><i></i><i></i><i class="on"></i><i></i></div>
+      </div></div>
+    </div>
+
+    <!-- 4 Shopping -->
+    <div class="item">
+      <div class="toolbar"><span>4 · Shopping</span><button class="download-btn" data-target="ss-4">PNG</button></div>
+      <div class="preview-wrap"><div class="screen" id="ss-4">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="header"><img src="./assets/mascot.png" alt="" /><h2>Shopping</h2></div>
+        <div class="body">
+          <div class="shop-item"><i></i>Chicken breast</div>
+          <div class="shop-item"><i></i>Greek yogurt</div>
+          <div class="shop-item"><i></i>Brown rice</div>
+          <div class="shop-item"><i></i>Salmon fillet</div>
+          <div class="shop-item"><i></i>Mixed salad</div>
+          <div class="shop-item"><i></i>Bananas</div>
+          <div class="shop-item"><i></i>Eggs</div>
+          <div class="shop-item"><i></i>Olive oil</div>
+        </div>
+        <div class="nav"><i></i><i class="on"></i><i></i><i></i></div>
+      </div></div>
+    </div>
+
+    <!-- 5 Water + macros -->
+    <div class="item">
+      <div class="toolbar"><span>5 · Progress</span><button class="download-btn" data-target="ss-5">PNG</button></div>
+      <div class="preview-wrap"><div class="screen" id="ss-5">
+        <div class="status"><span>9:41</span><span>●●●</span></div>
+        <div class="header"><img src="./assets/mascot.png" alt="" /><h2>Frigy</h2></div>
+        <div class="body">
+          <div class="widget">
+            <div class="label">Today</div>
+            <div class="kcal">1,008 kcal</div>
+            <div class="sub">remaining of 1,850 kcal</div>
+            <div class="bar"><i style="width:45%"></i></div>
+          </div>
+          <div class="week" style="margin-top:28px;">
+            <h3>Water</h3>
+            <div class="dayline">6 / 10 glasses</div>
+            <div class="bar"><i style="width:60%"></i></div>
+          </div>
+          <div class="week" style="margin-top:22px;">
+            <h3>Weight</h3>
+            <div class="dayline">72.4 kg · −0.3 this week</div>
+          </div>
+        </div>
+        <div class="nav"><i class="on"></i><i></i><i></i><i></i></div>
+      </div></div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll(".download-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const node = document.getElementById(btn.getAttribute("data-target"));
+        if (!node || !window.html2canvas) return;
+        btn.disabled = true;
+        btn.textContent = "…";
+        try {
+          const canvas = await html2canvas(node, {
+            scale: 1,
+            width: 1080,
+            height: 1920,
+            useCORS: true,
+            backgroundColor: "#f2fff8",
+          });
+          const link = document.createElement("a");
+          link.download = `${node.id}-1080x1920.png`;
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "PNG";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,11 @@
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { ReactNode } from "react";
+import {
+  mintStepChildInitial,
+  mintStepChildTransition,
+  shouldSkipMintStepEntrance,
+} from "@/components/onboarding/layout";
 
 interface SelectionCardProps {
   selected: boolean;
@@ -18,12 +23,11 @@ export const SelectionCard = ({
   delay = 0
 }: SelectionCardProps) => (
   <motion.button
-    initial={{ opacity: 0, y: 12 }}
+    initial={mintStepChildInitial(12)}
     animate={{ opacity: 1, y: 0 }}
     transition={{
-      delay,
-      duration: 0.4,
-      ease: [0.4, 0, 0.2, 1]
+      ...mintStepChildTransition(),
+      ...(shouldSkipMintStepEntrance() ? {} : { delay }),
     }}
     whileTap={{ scale: 0.96 }}
     onClick={onClick}

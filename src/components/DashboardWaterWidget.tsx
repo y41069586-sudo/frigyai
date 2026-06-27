@@ -4,6 +4,8 @@ import { Minus, Plus, Check, Droplets } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { getLocalDateISO } from "@/lib/localDate";
+import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
 
 interface DashboardWaterWidgetProps {
   waterGlasses: number;
@@ -16,7 +18,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressInterval = useRef<NodeJS.Timeout | null>(null);
   
-  const ML_PER_STEP = 200;
+  const ML_PER_STEP = ML_PER_WATER_GLASS;
   const targetMl = 2000;
   const currentMl = waterGlasses * ML_PER_STEP;
   const currentLiters = (currentMl / 1000).toFixed(1);
@@ -43,7 +45,7 @@ export const DashboardWaterWidget = ({ waterGlasses, onWaterUpdate }: DashboardW
     }
     
     // Background save
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     try {
       const { data: existing } = await supabase
         .from('water_intake')

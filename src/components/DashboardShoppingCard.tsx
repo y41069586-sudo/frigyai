@@ -1,22 +1,32 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight, Check, Crown } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ShoppingItem {
   name: string;
   purchased: boolean;
 }
 
+interface PlanIngredient {
+  name?: string;
+}
+
+interface PlanMeal {
+  ingredients?: PlanIngredient[];
+}
+
+interface PlanDay {
+  meals?: PlanMeal[];
+}
+
 export const DashboardShoppingCard = () => {
   const navigate = useNavigate();
-  const { isFreeMode, isPremium } = useAuth();
+  const isMobile = useIsMobile();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [purchasedItems, setPurchasedItems] = useState(0);
-  const [showPremiumOverlay, setShowPremiumOverlay] = useState(false);
 
   const loadShoppingData = useCallback(() => {
     const savedPlan = localStorage.getItem('weeklyMealPlan');
@@ -37,13 +47,14 @@ export const DashboardShoppingCard = () => {
     // Calculate from meal plan if no saved items
     if (savedPlan) {
       try {
-        const plan = JSON.parse(savedPlan);
+        const plan = JSON.parse(savedPlan) as PlanDay[];
         const ingredientSet = new Set<string>();
         
-        plan.forEach((day: any) => {
-          day.meals?.forEach((meal: any) => {
-            meal.ingredients?.forEach((ing: any) => {
-              ingredientSet.add(ing.name.toLowerCase());
+        plan.forEach((day) => {
+          day.meals?.forEach((meal) => {
+            meal.ingredients?.forEach((ing) => {
+              const ingredientName = ing?.name?.toLowerCase();
+              if (ingredientName) ingredientSet.add(ingredientName);
             });
           });
         });
@@ -78,11 +89,7 @@ export const DashboardShoppingCard = () => {
   }, [loadShoppingData]);
 
   const handleClick = () => {
-    if (!isPremium) {
-      setShowPremiumOverlay(true);
-    } else {
-      navigate('/meal-plans?tab=shopping');
-    }
+    navigate('/meal-plans?tab=shopping');
   };
 
   const progressPercent = totalItems > 0 ? (purchasedItems / totalItems) * 100 : 0;
@@ -92,7 +99,7 @@ export const DashboardShoppingCard = () => {
     <motion.div
       onClick={handleClick}
       className="relative overflow-hidden p-4 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent rounded-2xl border border-emerald-500/20 cursor-pointer group"
-      whileHover={{ scale: 1.02, y: -2 }}
+      whileHover={isMobile ? undefined : { scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
     >
@@ -120,9 +127,10 @@ export const DashboardShoppingCard = () => {
             <div className="h-1.5 bg-emerald-500/15 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: progressPercent / 100 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
+                style={{ transformOrigin: "left" }}
               />
             </div>
           </>
@@ -134,46 +142,6 @@ export const DashboardShoppingCard = () => {
         )}
       </div>
 
-      {/* Premium Overlay */}
-      {showPremiumOverlay && !isPremium && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 rounded-2xl bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-6"
-        >
-          <div className="flex flex-col items-center justify-center gap-4">
-            <Crown className="h-12 w-12 text-amber-400" />
-            <div className="text-center">
-              <h3 className="font-bold text-white text-lg mb-1">Einkaufsliste freischalten</h3>
-              <p className="text-sm text-white/70">
-                Um die Einkaufsliste freizuschalten, kaufe Premium
-              </p>
-            </div>
-            <div className="w-full flex flex-col gap-2">
-              <Button
-                className="w-full gradient-neon text-black font-semibold"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/premium');
-                }}
-              >
-                Zu Premium
-              </Button>
-              <Button
-                variant="ghost"
-                className="text-white hover:text-white/80"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPremiumOverlay(false);
-                }}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </motion.div>
   );
 };

@@ -53,7 +53,7 @@ Antwort NUR als JSON-Objekt, kein Markdown:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 350,
         temperature: 0.2,

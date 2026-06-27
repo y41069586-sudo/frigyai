@@ -1,0 +1,12 @@
+/**
+ * Re-exports NativeLikeWheelPicker (smooth snap, a11y, virtualization).
+ */
+export {
+  NativeLikeWheelPicker as WebWheelPicker,
+  type NativeLikeWheelPickerProps as WebWheelPickerProps,
+  type IOSPerfectWheelPickerProps,
+  type IOSUltraSmoothWheelPickerProps,
+  type IOSStyleWheelPickerProps,
+} from "@/components/NativeLikeWheelPicker";
+
+export { default } from "@/components/NativeLikeWheelPicker";

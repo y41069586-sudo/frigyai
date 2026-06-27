@@ -4,7 +4,9 @@ import { Crown, Check, Sparkles, Calendar, ShoppingCart, Droplets, Activity, Ref
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
-import confetti from "canvas-confetti";
+import { useAuth } from "@/contexts/AuthContext";
+import { confettiBurst } from "@/lib/mobileEffects";
+import { SUBSCRIPTION_PRICING } from "@/lib/subscriptionPricing";
 
 interface PremiumSuccessDialogProps {
   open: boolean;
@@ -14,13 +16,43 @@ interface PremiumSuccessDialogProps {
 }
 
 export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuccessDialogProps) => {
-  const { t } = useLanguage();
+  const { language } = useLanguage();
+  const { subscriptionStatus } = useAuth();
   const [showFeatures, setShowFeatures] = useState(false);
+
+  const copy = {
+    de: {
+      title: "Willkommen bei Premium!",
+      trialStarted: `Dein ${SUBSCRIPTION_PRICING.trialDays}-Tage kostenloser Test hat begonnen`,
+      active: "Premium ist jetzt aktiv",
+      cta: "Los geht's!",
+      cancelHint: "Jederzeit kündbar",
+    },
+    en: {
+      title: "Welcome to Premium!",
+      trialStarted: `Your ${SUBSCRIPTION_PRICING.trialDays}-day free trial has started`,
+      active: "Premium is now active",
+      cta: "Let's go!",
+      cancelHint: "Cancel anytime",
+    },
+    fr: {
+      title: "Bienvenue sur Premium !",
+      trialStarted: `Ton essai gratuit de ${SUBSCRIPTION_PRICING.trialDays} jours a commencé`,
+      active: "Premium est maintenant actif",
+      cta: "C'est parti !",
+      cancelHint: "Résiliable à tout moment",
+    },
+  } as const;
+  const lng = (["de", "en", "fr"] as const).includes(language as never)
+    ? (language as "de" | "en" | "fr")
+    : "de";
+  const L = copy[lng];
+  const subtitle = subscriptionStatus?.is_trial ? L.trialStarted : L.active;
 
   useEffect(() => {
     if (open) {
       // Trigger confetti
-      confetti({
+      confettiBurst({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
@@ -78,11 +110,11 @@ export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuc
             >
               <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                Willkommen bei Premium!
+                {L.title}
                 <Sparkles className="h-5 w-5 text-primary" />
               </h2>
               <p className="text-muted-foreground">
-                Dein 7-Tage kostenloser Test hat begonnen
+                {subtitle}
               </p>
             </motion.div>
 
@@ -147,10 +179,10 @@ export const PremiumSuccessDialog = ({ open, onClose, onScanFridge }: PremiumSuc
               className="mt-6"
             >
               <Button onClick={onClose} className="w-full glow-button h-12 text-lg">
-                Los geht's!
+                {L.cta}
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
-                Nach 7 Tagen: €4,99/Monat • Jederzeit kündbar
+                {L.cancelHint}
               </p>
             </motion.div>
           </div>

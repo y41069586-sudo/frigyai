@@ -1,21 +1,12 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
-
-const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  highlight: "#D4FFEA",
-  text: "#1F2937",
-  textMuted: "#6B7280",
-  cardBorderIdle: "#D1D5DB",
-  badLine: "#C8232C",
-  badLineDeep: "#A0181F",
-};
+import { ONBOARDING_PALETTE as PALETTE } from "../palette";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
 type Props = {
   userData: UserData;
@@ -27,6 +18,56 @@ type Props = {
 function formatKg(kg: number): string {
   const rounded = Math.round(kg * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1).replace(".", ",");
+}
+
+type ChartPt = { x: number; y: number };
+type CubicSeg = [ChartPt, ChartPt, ChartPt, ChartPt];
+
+function cubicSegToPath(seg: CubicSeg): string {
+  const [p0, p1, p2, p3] = seg;
+  return `M ${p0.x} ${p0.y} C ${p1.x} ${p1.y}, ${p2.x} ${p2.y}, ${p3.x} ${p3.y}`;
+}
+
+/** Ohne-Frigy: sanft schräg hoch, tiefere Spitze, ab Spitze gestrichelt — ein durchgehender Pfad */
+function buildWithoutFrigyPath(
+  x0: number,
+  x1: number,
+  yStart: number,
+  yTop: number,
+  yBot: number,
+  direction: "lose" | "maintain" | "gain",
+): { fullPath: string; solidRatio: number; endY: number } {
+  const angle = Math.tan((38 * Math.PI) / 180);
+  const peakY = Math.max(yTop + 16, yStart - 34);
+  const rise = yStart - peakY;
+  const peakX = Math.min(x0 + rise / angle, x0 + (x1 - x0) * 0.5);
+
+  const endY =
+    direction === "maintain"
+      ? Math.min(yBot - 6, yStart + 10)
+      : Math.min(yBot - 6, yStart + 14);
+
+  const peakRound = 28;
+  const runUp = peakX - x0;
+  const runDown = x1 - peakX;
+
+  const up: CubicSeg = [
+    { x: x0, y: yStart },
+    { x: x0 + runUp * 0.58, y: yStart - rise * 0.58 },
+    { x: peakX - peakRound, y: peakY },
+    { x: peakX, y: peakY },
+  ];
+  const down: CubicSeg = [
+    { x: peakX, y: peakY },
+    { x: peakX + peakRound, y: peakY },
+    { x: x1 - 44, y: endY + 6 },
+    { x: x1, y: endY },
+  ];
+
+  const fullPath = `${cubicSegToPath(up)} C ${down[1].x} ${down[1].y}, ${down[2].x} ${down[2].y}, ${down[3].x} ${down[3].y}`;
+  const solidRatio = runUp / Math.max(runUp + runDown, 1);
+
+  return { fullPath, solidRatio, endY };
 }
 
 export function GoalPreviewStep({
@@ -52,7 +93,7 @@ export function GoalPreviewStep({
     de: {
       maintain: "BEREIT, DEIN GEWICHT ZU HALTEN — EIN ERREICHBARES ZIEL!",
       subtitle:
-        "Die Veränderungen nach der Anwendung von Frigy sind deutlich und dauerhaft.",
+        "Illustrativer Vergleich aus deinen Angaben — nur motivierend, keine medizinische Prognose.",
       yourWeight: "Ihr Gewicht",
       withFrigy: "Mit Frigy",
       withoutFrigy: "Ohne Frigy",
@@ -70,7 +111,7 @@ export function GoalPreviewStep({
     fr: {
       maintain: "PRÊT À MAINTENIR TON POIDS — UN OBJECTIF ATTEIGNABLE !",
       subtitle:
-        "Les changements après l’utilisation de Frigy sont nets et durables.",
+        "Comparaison illustrative à partir de tes données — motivation uniquement, pas une prévision médicale.",
       yourWeight: "Ton poids",
       withFrigy: "Avec Frigy",
       withoutFrigy: "Sans Frigy",
@@ -119,17 +160,39 @@ export function GoalPreviewStep({
   const yEnd =
     direction === "maintain" ? (yTop + yBot) / 2 - 4 : yTop + 18;
 
-  // Bad ("Ohne Frigy") curve — gentle hump above start, then back down to near start
-  const peakY = Math.max(yTop + 12, yStart - 30);
-  const endBadY = Math.min(yBot - 4, yStart + 4);
-
   const mainPath = `M ${x0} ${yStart} C ${x0 + 90} ${yStart}, ${x1 - 90} ${yEnd}, ${x1} ${yEnd}`;
   const areaPath = `${mainPath} L ${x1} ${yBot} L ${x0} ${yBot} Z`;
-  const badPath = `M ${x0} ${yStart} C ${x0 + 70} ${peakY}, ${x1 - 70} ${peakY}, ${x1} ${endBadY}`;
 
-  const endXPct = (x1 / W) * 100;
-  const endMitYPct = (yEnd / H) * 100;
-  const endOhneYPct = (endBadY / H) * 100;
+  const { fullPath: badFullPath, solidRatio: badSolidRatio, endY: endBadY } = buildWithoutFrigyPath(
+    x0,
+    x1,
+    yStart,
+    yTop,
+    yBot,
+    direction,
+  );
+
+  const badMeasureRef = useRef<SVGPathElement>(null);
+  const [badStroke, setBadStroke] = useState({ solid: 95, gap: 200 });
+
+  useLayoutEffect(() => {
+    const el = badMeasureRef.current;
+    if (!el) return;
+    const total = el.getTotalLength();
+    const solid = total * badSolidRatio;
+    setBadStroke({ solid, gap: Math.max(total - solid, 1) });
+  }, [badFullPath, badSolidRatio]);
+
+  const CHART_ANIM_EASE: [number, number, number, number] = [0.4, 0, 0.2, 1];
+  const CHART_LINE_DURATION = 1.5;
+  const BAD_LINE_ANIM = { delay: 0.5, duration: CHART_LINE_DURATION, ease: CHART_ANIM_EASE };
+
+  const gridLineYs = [
+    yStart,
+    yStart + (yBot - yStart) * 0.38,
+    yStart + (yBot - yStart) * 0.72,
+    yBot - 2,
+  ];
 
   return (
     <div
@@ -137,7 +200,7 @@ export function GoalPreviewStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -146,7 +209,7 @@ export function GoalPreviewStep({
             aria-label="Zurück"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -158,23 +221,17 @@ export function GoalPreviewStep({
         )}
       </div>
 
-      {/* Headline + subtext */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 overflow-visible px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion className="pb-1">
         {headlineParts.kind === "maintain" ? (
           <h1
-            className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-tight"
+            className="text-[17px] font-extrabold uppercase leading-[1.15] tracking-tight"
             style={{ color: PALETTE.text }}
           >
             {headlineParts.full}
           </h1>
         ) : (
           <h1
-            className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-tight"
+            className="text-[17px] font-extrabold uppercase leading-[1.15] tracking-tight"
             style={{ color: PALETTE.text }}
           >
             {headlineParts.pre}{" "}
@@ -189,16 +246,16 @@ export function GoalPreviewStep({
             {headlineParts.post}
           </h1>
         )}
-        <motion.p
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-          className="mt-2 max-w-prose text-[15px] font-medium leading-snug"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {L.subtitle}
-        </motion.p>
-      </motion.div>
+      </OnboardingMascotQuestion>
+      <motion.p
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+        className="mx-auto mt-1 max-w-prose px-6 text-[15px] font-medium leading-snug"
+        style={{ color: PALETTE.textMuted }}
+      >
+        {L.subtitle}
+      </motion.p>
 
       {/* Chart card */}
       <div className="flex flex-1 min-h-0 items-center justify-center px-5">
@@ -220,7 +277,7 @@ export function GoalPreviewStep({
           <div className="relative w-full" style={{ aspectRatio: `${W} / ${H}` }}>
             <svg
               viewBox={`0 0 ${W} ${H}`}
-              preserveAspectRatio="none"
+              preserveAspectRatio="xMidYMid meet"
               className="absolute inset-0 h-full w-full overflow-visible"
             >
               <defs>
@@ -235,6 +292,22 @@ export function GoalPreviewStep({
                 </linearGradient>
               </defs>
 
+              {/* Dezente Diagramm-Linien (Baseline + Raster) */}
+              {gridLineYs.map((gy, i) => (
+                <line
+                  key={`grid-${i}`}
+                  x1={x0}
+                  y1={gy}
+                  x2={x1}
+                  y2={gy}
+                  stroke="#D1D5DB"
+                  strokeWidth={i === 0 ? 0.85 : 0.55}
+                  strokeDasharray={i === 0 ? "4 6" : "2 7"}
+                  strokeOpacity={i === 0 ? 0.55 : 0.32}
+                  strokeLinecap="round"
+                />
+              ))}
+
               {/* Gradient fill under success curve */}
               <motion.path
                 d={areaPath}
@@ -244,20 +317,32 @@ export function GoalPreviewStep({
                 transition={{ delay: 1.0, duration: 0.6 }}
               />
 
-              {/* Without-Frigy: light red, up-then-down */}
-              {direction !== "maintain" && (
-                <motion.path
-                  d={badPath}
-                  fill="none"
-                  stroke={PALETTE.badLine}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeDasharray="6 7"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-                />
-              )}
+              {/* Ohne Frigy: eine durchlaufende Animation (gestrichelt + solid-Overlay) */}
+              <motion.path
+                ref={badMeasureRef}
+                d={badFullPath}
+                fill="none"
+                stroke={PALETTE.badLine}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="6 7"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={BAD_LINE_ANIM}
+              />
+              <motion.path
+                d={badFullPath}
+                fill="none"
+                stroke={PALETTE.badLine}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={`${badStroke.solid} ${badStroke.gap}`}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={BAD_LINE_ANIM}
+              />
 
               {/* Main success curve */}
               <motion.path
@@ -268,7 +353,22 @@ export function GoalPreviewStep({
                 strokeLinecap="round"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ delay: 0.3, duration: 1.5, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ delay: 0.3, duration: CHART_LINE_DURATION, ease: CHART_ANIM_EASE }}
+              />
+              <motion.path
+                d={mainPath}
+                fill="none"
+                stroke={PALETTE.primary}
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeDasharray="18 260"
+                initial={{ opacity: 0, pathLength: 0, strokeDashoffset: 0 }}
+                animate={{ opacity: [0, 0.45, 0], pathLength: 1, strokeDashoffset: [80, -180] }}
+                transition={{
+                  opacity: { delay: 1.2, duration: 1.3, repeat: Infinity, repeatDelay: 1.5 },
+                  pathLength: { delay: 1.2, duration: 1.3, repeat: Infinity, repeatDelay: 1.5 },
+                  strokeDashoffset: { delay: 1.2, duration: 1.3, repeat: Infinity, repeatDelay: 1.5 },
+                }}
               />
 
               {/* Start dot */}
@@ -289,6 +389,16 @@ export function GoalPreviewStep({
               <motion.circle
                 cx={x1}
                 cy={yEnd}
+                r="11"
+                fill={PALETTE.primary}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: [0.7, 1.55, 0.7], opacity: [0.35, 0, 0.35] }}
+                transition={{ delay: 1.55, duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                style={{ transformOrigin: `${x1}px ${yEnd}px` }}
+              />
+              <motion.circle
+                cx={x1}
+                cy={yEnd}
                 r="6"
                 fill={PALETTE.primary}
                 stroke="white"
@@ -299,72 +409,62 @@ export function GoalPreviewStep({
                 style={{ transformOrigin: `${x1}px ${yEnd}px` }}
               />
 
-              {/* End dot bad */}
-              {direction !== "maintain" && (
-                <motion.circle
-                  cx={x1}
-                  cy={endBadY}
-                  r="5"
-                  fill={PALETTE.badLine}
-                  stroke="white"
-                  strokeWidth="2.5"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 1.6, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                  style={{ transformOrigin: `${x1}px ${endBadY}px` }}
-                />
-              )}
-            </svg>
+              {/* End dot Ohne Frigy */}
+              <motion.circle
+                cx={x1}
+                cy={endBadY}
+                r="5"
+                fill={PALETTE.badLine}
+                stroke="white"
+                strokeWidth="2.5"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 1.6, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                style={{ transformOrigin: `${x1}px ${endBadY}px` }}
+              />
 
-            {/* "Ihr Gewicht" — static, top-left, subtle grey */}
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-              className="pointer-events-none absolute left-0 top-0 text-[11px] font-medium"
-              style={{
-                color: PALETTE.textMuted,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {L.yourWeight}
-            </motion.div>
+              {/* Chart labels — same coordinate system as dots */}
+              <motion.text
+                x={padL}
+                y={padT - 10}
+                fill={PALETTE.textMuted}
+                fontSize="11"
+                fontWeight="500"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                {L.yourWeight}
+              </motion.text>
 
-            {/* "Mit Frigy" — directly ABOVE the green endpoint dot */}
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.7, duration: 0.4 }}
-              className="pointer-events-none absolute text-[11.5px] font-semibold"
-              style={{
-                left: `${endXPct}%`,
-                top: `${endMitYPct}%`,
-                transform: "translate(-50%, calc(-100% - 14px))",
-                color: PALETTE.primaryDeep,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {L.withFrigy}
-            </motion.div>
+              <motion.text
+                x={x1}
+                y={yEnd - 16}
+                textAnchor="middle"
+                fill={PALETTE.primaryDeep}
+                fontSize="12"
+                fontWeight="800"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.7, duration: 0.4 }}
+              >
+                {L.withFrigy}
+              </motion.text>
 
-            {/* "Ohne Frigy" — directly BELOW the red endpoint dot */}
-            {direction !== "maintain" && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
+              <motion.text
+                x={x1}
+                y={endBadY + 22}
+                textAnchor="middle"
+                fill={PALETTE.badLineDeep}
+                fontSize="12"
+                fontWeight="800"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ delay: 1.8, duration: 0.4 }}
-                className="pointer-events-none absolute text-[11.5px] font-semibold"
-                style={{
-                  left: `${endXPct}%`,
-                  top: `${endOhneYPct}%`,
-                  transform: "translate(-50%, calc(100% + 12px))",
-                  color: PALETTE.badLineDeep,
-                  whiteSpace: "nowrap",
-                }}
               >
                 {L.withoutFrigy}
-              </motion.div>
-            )}
+              </motion.text>
+            </svg>
           </div>
         </motion.div>
       </div>
@@ -374,6 +474,7 @@ export function GoalPreviewStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -382,7 +483,7 @@ export function GoalPreviewStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {L.next}

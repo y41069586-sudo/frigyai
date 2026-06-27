@@ -1,0 +1,356 @@
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, ImagePlus, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { useLanguage, formatTranslation } from "@/contexts/LanguageContext";
+import { FrigyScanAnalyzingStage, FrigyScanFailureStage } from "./FrigyScanStates";
+import { FrigyLiveCameraCapture } from "./FrigyLiveCameraCapture";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
+
+export type PendingPhoto = {
+  id: string;
+  file: File;
+  previewUrl: string;
+};
+
+type Phase = "capture" | "analyzing" | "results" | "error";
+
+type FrigyIngredientScanFlowProps = {
+  ingredients: string[];
+  missingIngredients: { name: string; amount: string }[];
+  analyzing: boolean;
+  analysisErrorMessage?: string | null;
+  scanProgress: number;
+  scanPhotoIndex?: number;
+  scanPhotoTotal?: number;
+  analyzingPreviewUrl?: string | null;
+  captureMode: boolean;
+  onQueueChange?: (files: File[]) => void;
+  onConfirmAnalyze: (files: File[]) => void;
+  onClose: () => void;
+  onCreateShoppingList: () => void;
+  onAddMorePhotos: () => void;
+  onRetryAfterError?: () => void;
+  labels?: {
+    analyzingTitle?: string;
+    analyzingSubtitle?: string;
+    present?: string;
+    missing?: string;
+    createList?: string;
+    addPhoto?: string;
+    finishScan?: string;
+    tapShutter?: string;
+    errorTitle?: string;
+    errorAction?: string;
+  };
+};
+
+export function FrigyIngredientScanFlow({
+  ingredients,
+  missingIngredients,
+  analyzing,
+  analysisErrorMessage,
+  scanProgress,
+  scanPhotoIndex,
+  scanPhotoTotal,
+  analyzingPreviewUrl: externalAnalyzingPreviewUrl,
+  captureMode,
+  onQueueChange,
+  onConfirmAnalyze,
+  onClose,
+  onCreateShoppingList,
+  onAddMorePhotos,
+  onRetryAfterError,
+  labels = {},
+}: FrigyIngredientScanFlowProps) {
+  const { t } = useLanguage();
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
+  const [analysisPreviewUrl, setAnalysisPreviewUrl] = useState<string | null>(null);
+
+  const hasResults = ingredients.length > 0 || missingIngredients.length > 0;
+  const phase: Phase = analysisErrorMessage
+    ? "error"
+    : analyzing
+      ? "analyzing"
+    : captureMode || !hasResults
+      ? "capture"
+      : "results";
+
+  const L = {
+    analyzingTitle: labels.analyzingTitle ?? t.ingredientScanAnalyzingTitle,
+    analyzingSubtitle: labels.analyzingSubtitle ?? t.aiAnalyzingIngredients,
+    present: labels.present ?? t.ingredientsPresentLabel,
+    missing: labels.missing ?? t.ingredientsMissingLabel,
+    createList: labels.createList ?? t.createShoppingListBtn,
+    addPhoto: labels.addPhoto ?? t.addPhotoBtn,
+    finishScan: labels.finishScan ?? t.finishScanAnalyzeBtn,
+    tapShutter: labels.tapShutter ?? t.ingredientScanTapShutter,
+    errorTitle: labels.errorTitle ?? t.frigySays,
+    errorAction: labels.errorAction ?? t.ingredientScanRetryAction,
+  };
+  const ui = {
+    close: t.close,
+    allPresent: t.scanAllIngredientsPresent,
+    captureSr: t.scanCaptureSr,
+  };
+
+  useEffect(() => {
+    return () => {
+      if (analysisPreviewUrl && analysisPreviewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(analysisPreviewUrl);
+      }
+    };
+  }, [analysisPreviewUrl]);
+
+  useEffect(() => {
+    if (analyzing) return;
+    if (phase === "capture") return;
+    if (pendingPhotos.length === 0) return;
+
+    setPendingPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      return [];
+    });
+    syncQueue([]);
+  }, [analyzing, pendingPhotos.length, phase]);
+
+  const syncQueue = (photos: PendingPhoto[]) => {
+    onQueueChange?.(photos.map((p) => p.file));
+  };
+
+  const toPendingPhotos = (files: File[]): PendingPhoto[] =>
+    files.map((file) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+
+  const addFiles = (files: File[]) => {
+    if (files.length === 0) return;
+    const next = toPendingPhotos(files);
+    setPendingPhotos((prev) => {
+      const merged = [...prev, ...next];
+      syncQueue(merged);
+      return merged;
+    });
+  };
+
+  const beginAnalyze = (photos: PendingPhoto[]) => {
+    if (photos.length === 0 || analyzing) return;
+    const first = photos[0];
+    setAnalysisPreviewUrl(first.previewUrl);
+    const files = photos.map((p) => p.file);
+    syncQueue(files);
+    onConfirmAnalyze(files);
+  };
+
+  const removePhoto = (id: string) => {
+    setPendingPhotos((prev) => {
+      const item = prev.find((p) => p.id === id);
+      if (item) URL.revokeObjectURL(item.previewUrl);
+      const next = prev.filter((p) => p.id !== id);
+      syncQueue(next);
+      return next;
+    });
+  };
+
+  const clearPendingPhotos = () => {
+    setPendingPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      return [];
+    });
+    syncQueue([]);
+  };
+
+  const handleConfirm = () => {
+    if (pendingPhotos.length === 0) return;
+    beginAnalyze(pendingPhotos);
+  };
+
+  if (phase === "analyzing") {
+    return (
+      <FrigyScanAnalyzingStage
+        previewUrl={externalAnalyzingPreviewUrl ?? analysisPreviewUrl}
+        title={L.analyzingTitle}
+        subtitle={t.foodScanAiPowered}
+        message={L.analyzingSubtitle}
+        progress={scanProgress}
+        photoIndex={scanPhotoIndex}
+        photoTotal={scanPhotoTotal}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (phase === "error" && analysisErrorMessage) {
+    return (
+      <FrigyScanFailureStage
+        title={L.errorTitle}
+        message={analysisErrorMessage}
+        actionLabel={L.errorAction}
+        onAction={() => {
+          setAnalysisPreviewUrl(null);
+          clearPendingPhotos();
+          onRetryAfterError?.();
+        }}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (phase === "results") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background safe-area-inset">
+        <header className="flex shrink-0 items-center px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/80"
+            aria-label={ui.close}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-32 space-y-4">
+          <Card className="p-4 border-[#75FBB2]/25 bg-[#75FBB2]/5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold">{L.present}</h2>
+              <span className="rounded-full bg-[#75FBB2]/20 px-2.5 py-0.5 text-xs font-semibold text-[#2d8a5c]">
+                {ingredients.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ingredients.map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-1 rounded-full bg-[#75FBB2]/15 px-3 py-1.5 text-sm font-medium text-[#1a5c3a]"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-4 border-amber-500/25 bg-amber-500/5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-bold">{L.missing}</h2>
+              <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                {missingIngredients.length}
+              </span>
+            </div>
+            {missingIngredients.length > 0 ? (
+              <div className="space-y-2">
+                {missingIngredients.map((item) => (
+                  <div
+                    key={`${item.name}-${item.amount}`}
+                    className="flex justify-between gap-3 rounded-xl bg-amber-500/8 px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium">{item.name}</span>
+                    <span className="text-muted-foreground text-xs">{item.amount}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{ui.allPresent}</p>
+            )}
+          </Card>
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 border-t border-border/60 bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+          <AiDisclaimer className="mx-auto mb-3 max-w-lg text-center" compact />
+          <div className="mx-auto grid max-w-lg grid-cols-2 gap-2.5">
+            <Button
+              variant="outline"
+              className="h-12 min-w-0 rounded-2xl border-primary/20 bg-white px-2 text-[12px] font-semibold leading-tight sm:px-4 sm:text-sm"
+              onClick={onAddMorePhotos}
+            >
+              <ImagePlus className="mr-1.5 h-4 w-4 shrink-0 sm:mr-2" />
+              {L.addPhoto}
+            </Button>
+            <Button
+              className="h-12 min-w-0 rounded-2xl bg-[linear-gradient(135deg,#75FBB2_0%,#39D47F_100%)] px-2 text-[12px] font-semibold leading-tight text-[#0a1f14] sm:px-4 sm:text-sm"
+              onClick={onCreateShoppingList}
+            >
+              {L.createList}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <FrigyLiveCameraCapture
+      active={phase === "capture"}
+      onClose={onClose}
+      onPhotoFile={(file) => addFiles([file])}
+      onPhotoFiles={addFiles}
+      galleryMultiple
+      shutterDisabled={analyzing}
+      shutterAriaLabel={ui.captureSr}
+      headerEnd={
+        pendingPhotos.length > 0 ? (
+          <span className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-[#75FBB2] backdrop-blur-sm">
+            {formatTranslation(t.scanPhotosQueued, { count: pendingPhotos.length })}
+          </span>
+        ) : (
+          <span className="w-10" />
+        )
+      }
+      overlayTop={
+        pendingPhotos.length > 0 ? (
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="pointer-events-auto absolute left-0 right-0 top-[max(3.5rem,env(safe-area-inset-top)+2.25rem)] z-10 px-4 pt-2"
+            >
+              <div className="flex gap-3 overflow-x-auto overflow-y-visible pb-2 pl-0.5 pt-1.5 [-webkit-overflow-scrolling:touch]">
+                {pendingPhotos.map((photo) => (
+                  <div key={photo.id} className="relative size-16 shrink-0">
+                    <img
+                      src={photo.previewUrl}
+                      alt=""
+                      className="size-full rounded-xl object-cover ring-2 ring-[#75FBB2]/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(photo.id)}
+                      className="absolute -right-1.5 -top-1.5 z-10 flex size-6 shrink-0 items-center justify-center rounded-full bg-black/90 text-white shadow-md ring-2 ring-white/20"
+                      aria-label={ui.close}
+                    >
+                      <X className="size-3.5" strokeWidth={2.5} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        ) : null
+      }
+      beforeShutter={
+        pendingPhotos.length > 0 ? (
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            disabled={analyzing}
+            onClick={handleConfirm}
+            className={cn(
+              "mb-4 w-full rounded-2xl py-3.5 text-center text-sm font-semibold ring-1",
+              analyzing
+                ? "cursor-not-allowed bg-white/8 text-white/40 ring-white/10"
+                : "bg-white/16 text-[#75FBB2] ring-[#75FBB2]/40 active:scale-[0.99]",
+            )}
+          >
+            {L.finishScan} ({pendingPhotos.length})
+          </motion.button>
+        ) : null
+      }
+    />
+  );
+}

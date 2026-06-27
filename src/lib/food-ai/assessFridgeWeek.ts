@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { assessFridgeWeekHeuristic } from "./mock";
 
 export interface FridgeWeekAssessment {
   sufficient: boolean;
@@ -8,9 +7,12 @@ export interface FridgeWeekAssessment {
   fromApi: boolean;
 }
 
+const PROD_UNAVAILABLE_REASON =
+  "Die Kühlschrank-Analyse ist gerade nicht verfügbar. Bitte versuche es erneut.";
+
 /**
  * Prüft per OpenAI (Edge Function), ob Kühlschrank-Zutaten für eine volle Woche reichen.
- * Fällt bei Fehler auf eine konservative Heuristik zurück.
+ * In Production keine irreführende Heuristik — nur echte API-Antwort oder Fehler.
  */
 export async function assessFridgeForWeek(ingredients: string[]): Promise<FridgeWeekAssessment> {
   const normalized = [...new Set(ingredients.map((i) => i.trim()).filter(Boolean))];
@@ -29,6 +31,10 @@ export async function assessFridgeForWeek(ingredients: string[]): Promise<Fridge
 
     if (error) {
       console.warn("[assessFridgeForWeek] invoke error", error);
+      if (import.meta.env.PROD) {
+        return { sufficient: false, reason: PROD_UNAVAILABLE_REASON, fromApi: false };
+      }
+      const { assessFridgeWeekHeuristic } = await import("./mock");
       const h = assessFridgeWeekHeuristic(normalized);
       return { ...h, fromApi: false };
     }
@@ -44,6 +50,11 @@ export async function assessFridgeForWeek(ingredients: string[]): Promise<Fridge
     console.warn("[assessFridgeForWeek]", e);
   }
 
+  if (import.meta.env.PROD) {
+    return { sufficient: false, reason: PROD_UNAVAILABLE_REASON, fromApi: false };
+  }
+
+  const { assessFridgeWeekHeuristic } = await import("./mock");
   const h = assessFridgeWeekHeuristic(normalized);
   return { ...h, fromApi: false };
 }

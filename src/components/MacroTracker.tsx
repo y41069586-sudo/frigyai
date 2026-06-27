@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -8,27 +8,77 @@ import { Slider } from '@/components/ui/slider';
 import {
   User, Scale, Target, Flame, Camera, Plus, Trash2,
   ChevronRight, Sparkles, TrendingDown, Pencil, Barcode,
-  Armchair, Footprints, PersonStanding, Dumbbell, Crown
+  Armchair, Footprints, PersonStanding, Dumbbell
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremiumGate } from '@/contexts/PremiumGateContext';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { useFoodEntries, FoodEntry as DBFoodEntry } from '@/hooks/useFoodEntries';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { ScanSuccessOverlay } from './ScanSuccessOverlay';
+import { FrigyFoodScanFlow, type FoodScanPhase } from '@/components/scan/FrigyFoodScanFlow';
 import { BarcodeScanner } from './BarcodeScanner';
 import { EditMacroGoalsDialog, FocusMacro } from './EditMacroGoalsDialog';
+import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
+import { isZeroCalorieFoodName } from '@/lib/zeroCalorieFood';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getAppLocale } from '@/lib/mealPlanLanguage';
 import { WheelPicker } from './WheelPicker';
 import { WeightPicker } from './WeightPicker';
-import { FreeModePaywallOverlay } from './FreeModePaywallOverlay';
-import { TrackerWidget } from '@/components/food-ai/dashboard/TrackerWidget';
-import { MEAL_FOCUS_PROMPTS_DE, parseMealFocus, type MealFocusKey } from '@/lib/mealFocus';
+import {
+  parseMealFocus,
+  normalizeMealTypeForSave,
+  type MealFocusKey,
+} from '@/lib/mealFocus';
+import {
+  TrackerAddMealPanel,
+  type TrackerRecipeExample,
+} from '@/components/tracker/TrackerAddMealPanel';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { FRIGY_OPEN_LOG_MEAL, FRIGY_EDIT_TRACKER_GOALS, notifyOverlayOpen } from '@/lib/overlayEvents';
+import { getMinCaloriesForAge } from '@/components/onboarding/utils';
+import { getLocalDateISO, getLocalDateString } from '@/lib/localDate';
+import { dataUrlToBase64Payload, fileToCompressedBase64 } from '@/lib/compressImage';
+import { checkImageQuality } from '@/utils/imageQualityCheck';
+
+const ANALYZE_FOOD_TIMEOUT_MS = 45_000;
+
+async function invokeAnalyzeFood(body: { food?: string; imageBase64?: string }) {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    window.setTimeout(() => {
+      reject(new Error('analyze_food_timeout'));
+    }, ANALYZE_FOOD_TIMEOUT_MS);
+  });
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const headers = session?.access_token
+    ? { Authorization: `Bearer ${session.access_token}` }
+    : undefined;
+
+  return Promise.race([
+    supabase.functions.invoke('analyze-food', { body, headers }),
+    timeoutPromise,
+  ]) as Promise<{
+    data: {
+      error?: string;
+      message?: string;
+      not_found?: boolean;
+      name?: string;
+      calories?: number;
+      protein?: number;
+      carbs?: number;
+      fat?: number;
+      image_url?: string;
+    } | null;
+    error: unknown;
+  }>;
+}
 
 // Import animated animal components
 import { AnimatedSloth, AnimatedCheetah } from './AnimatedAnimals';
@@ -43,6 +93,7 @@ export interface FoodEntry {
   fat: number;
   time: string;
   image_url?: string;
+  meal_type?: MealFocusKey;
 }
 
 interface UserProfile {
@@ -64,15 +115,16 @@ interface MacroTrackerProps {
 export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { t } = useLanguage();
-  const { user, subscriptionStatus, isPremium } = useAuth();
+  const { t, language } = useLanguage();
+  const timeLocale = getAppLocale(language);
+  const { user } = useAuth();
+  const { ensurePremium } = usePremiumGate();
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { playSuccess, playClick, playScanStart } = useSoundEffects();
   const { settings: trackerSettings, saveSettings: saveTrackerSettings, resetSettings: resetTrackerSettings, isConfigured, loading: settingsLoading } = useTrackerSettings();
-  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
-  const { canAccessFeature } = useFeatureAccess();
+  const { entries: dbEntries, addEntry: addDbEntry, deleteEntry: deleteDbEntry, refreshEntries, todayTotals, loading: foodEntriesLoading } = useFoodEntries();
   
-  const [step, setStep] = useState<'onboarding' | 'tracker'>('onboarding');
+  const [step, setStep] = useState<'onboarding' | 'tracker'>('tracker');
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [age, setAge] = useState(25);
   const [weight, setWeight] = useState(80);
@@ -107,8 +159,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         setWeeklyLossRate(trackerSettings.weeklyGoal);
         setMealsPerDay(trackerSettings.mealsPerDay);
       } else {
-        setStep('onboarding');
         setProfile(null);
+        setStep('tracker');
       }
     }
   }, [trackerSettings, isConfigured, settingsLoading]);
@@ -117,7 +169,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     const saved = localStorage.getItem('todayFood');
     if (saved) {
       const data = JSON.parse(saved);
-      if (data.date === new Date().toDateString()) {
+      if (data.date === getLocalDateString()) {
         return data.entries;
       }
     }
@@ -125,14 +177,26 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   });
   const [foodInput, setFoodInput] = useState('');
   const [mealPromptKey, setMealPromptKey] = useState<MealFocusKey | null>(null);
+  const [logMealPanelOpen, setLogMealPanelOpen] = useState(false);
   const foodTextInputRef = useRef<HTMLInputElement>(null);
   const addFoodSectionRef = useRef<HTMLDivElement>(null);
+  const pendingDeletesRef = useRef<Set<string>>(new Set());
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzingImage, setAnalyzingImage] = useState<string | null>(null);
+  const [foodScanError, setFoodScanError] = useState<string | null>(null);
+  const [foodScanSuccess, setFoodScanSuccess] = useState<{
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  } | null>(null);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [showFoodCamera, setShowFoodCamera] = useState(false);
+  const [foodScanPhase, setFoodScanPhase] = useState<FoodScanPhase>('capture');
+  const [foodScanProgress, setFoodScanProgress] = useState(0);
   const [showEditGoalsDialog, setShowEditGoalsDialog] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
   const [focusMacro, setFocusMacro] = useState<FocusMacro>(null);
   const [lastAnalyzedFood, setLastAnalyzedFood] = useState<{
     name: string;
@@ -142,34 +206,94 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     fat: number;
   } | null>(null);
   const [scannedProductData, setScannedProductData] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Deep link vom Dashboard: ?mealFocus=breakfast → Frage + Scroll zur Textzeile
-  useEffect(() => {
-    if (step !== "tracker") return;
-    const raw = searchParams.get("mealFocus");
-    if (!raw) return;
-    const key = parseMealFocus(raw);
-    if (!key) return;
-    setMealPromptKey(key);
+  const openLogMealPanel = useCallback((focus: MealFocusKey | null = null) => {
+    setMealPromptKey(focus);
+    setLogMealPanelOpen(true);
+  }, []);
+
+  const closeLogMealPanel = useCallback(() => {
+    setLogMealPanelOpen(false);
+    setMealPromptKey(null);
     setSearchParams(
       (prev) => {
         const p = new URLSearchParams(prev);
+        p.delete("logMeal");
         p.delete("mealFocus");
         return p;
       },
       { replace: true },
     );
-  }, [step, searchParams, setSearchParams]);
+  }, [setSearchParams]);
+
+  const openEditGoalsDialog = useCallback((focus: FocusMacro = "calories") => {
+    setFocusMacro(focus);
+    setShowEditGoalsDialog(true);
+  }, []);
 
   useEffect(() => {
-    if (step !== "tracker" || !mealPromptKey) return;
-    const timer = window.setTimeout(() => {
-      addFoodSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => foodTextInputRef.current?.focus({ preventScroll: true }), 450);
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [mealPromptKey, step]);
+    const onEditGoals = (event: Event) => {
+      const focus = (event as CustomEvent<{ focus?: FocusMacro }>).detail?.focus ?? "calories";
+      openEditGoalsDialog(focus);
+    };
+    window.addEventListener(FRIGY_EDIT_TRACKER_GOALS, onEditGoals);
+    return () => window.removeEventListener(FRIGY_EDIT_TRACKER_GOALS, onEditGoals);
+  }, [openEditGoalsDialog]);
+
+  const logMealParam = searchParams.get("logMeal");
+  const mealFocusParam = searchParams.get("mealFocus");
+  const editMacrosParam = searchParams.get("editMacros");
+  // Deep link: ?logMeal=1, ?mealFocus=…, ?editMacros=1
+  useEffect(() => {
+    const logMeal = logMealParam === "1";
+    const rawFocus = mealFocusParam;
+    const editMacros = editMacrosParam === "1";
+
+    if (step !== "tracker") return;
+
+    if (editMacros) {
+      openEditGoalsDialog("calories");
+      setSearchParams(
+        (prev) => {
+          const p = new URLSearchParams(prev);
+          p.delete("editMacros");
+          return p;
+        },
+        { replace: true },
+      );
+      return;
+    }
+
+    if (!logMeal && !rawFocus) {
+      return;
+    }
+
+    const focus = rawFocus ? parseMealFocus(rawFocus) : null;
+    openLogMealPanel(focus);
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.delete("mealFocus");
+        p.delete("logMeal");
+        return p;
+      },
+      { replace: true },
+    );
+  }, [step, logMealParam, mealFocusParam, editMacrosParam, setSearchParams, openLogMealPanel, openEditGoalsDialog]);
+
+  useEffect(() => {
+    const onOpenLogMeal = (event: Event) => {
+      if (step !== "tracker") return;
+      const focus =
+        (event as CustomEvent<{ focus?: MealFocusKey | null }>).detail?.focus ?? null;
+      openLogMealPanel(focus);
+    };
+    window.addEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
+    return () => {
+      window.removeEventListener(FRIGY_OPEN_LOG_MEAL, onOpenLogMeal);
+      notifyOverlayOpen(false);
+    };
+  }, [step, openLogMealPanel]);
 
   // Animated analyzing messages - use translations
   const analyzingMessages = [
@@ -200,19 +324,27 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
       protein: entry.protein,
       carbs: entry.carbs,
       fat: entry.fat,
-      time: new Date(entry.created_at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(entry.created_at).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
       image_url: entry.image_url,
+      meal_type: parseMealFocus(entry.meal_type ?? null) ?? undefined,
     }));
   }, []);
 
   useEffect(() => {
     if (!user || foodEntriesLoading) return;
 
-    const freshEntries = mapDbEntriesToTrackerEntries(dbEntries);
+    const dbIds = new Set(dbEntries.map((e) => e.id));
+    for (const pendingId of pendingDeletesRef.current) {
+      if (!dbIds.has(pendingId)) pendingDeletesRef.current.delete(pendingId);
+    }
+
+    const freshEntries = mapDbEntriesToTrackerEntries(dbEntries).filter(
+      (e) => !pendingDeletesRef.current.has(e.id),
+    );
     setFoodEntries(freshEntries);
 
     localStorage.setItem('todayFood', JSON.stringify({
-      date: new Date().toDateString(),
+      date: getLocalDateString(),
       entries: freshEntries,
     }));
     notifyFrigyStorageUpdated();
@@ -225,8 +357,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     notifyFrigyStorageUpdated();
     setProfile(null);
     setFoodEntries([]);
-    setStep('onboarding');
-    setOnboardingStep(0);
+    setLogMealPanelOpen(false);
     onResetTracker?.();
   };
 
@@ -256,7 +387,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   const calculatedCalories = goalMode === 'lose' 
     ? Math.round(tdee - dailyAdjustment)
     : Math.round(tdee + dailyAdjustment);
-  const minCalories = age < 25 ? 1200 : age < 40 ? 1100 : 1000;
+  const minCalories = getMinCaloriesForAge(age);
   const maxCalories = tdee + 1500; // Max surplus for gaining
   const targetCalories = goalMode === 'lose' 
     ? Math.max(minCalories, calculatedCalories)
@@ -291,12 +422,12 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
             <Sparkles className="h-4 w-4" />
           </div>
-          <span>Wochenplan neu generieren</span>
+          <span>{t.regenerateWeeklyPlan}</span>
         </div>
       ),
-      description: 'Deine Makroziele wurden angepasst. Damit dein Wochenplan wieder perfekt passt, solltest du ihn neu erstellen.',
+      description: t.macroGoalsChangedToast,
       action: (
-        <ToastAction altText="Wochenplan generieren" onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}>
+        <ToastAction altText={t.ariaGenerateWeeklyPlan} onClick={() => navigate('/meal-plans?tab=meals&regenerate=1')}>
           Wochenplan generieren
         </ToastAction>
       ),
@@ -359,7 +490,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     const totalCarb = entries.reduce((sum, e) => sum + e.carbs, 0);
     const totalFats = entries.reduce((sum, e) => sum + e.fat, 0);
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     
     try {
       const { error } = await supabase
@@ -391,7 +522,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   const saveFoodEntries = useCallback((entries: FoodEntry[]) => {
     localStorage.setItem('todayFood', JSON.stringify({
-      date: new Date().toDateString(),
+      date: getLocalDateString(),
       entries,
     }));
     notifyFrigyStorageUpdated();
@@ -401,50 +532,88 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     syncMacrosToDatabase(entries);
   }, [syncMacrosToDatabase]);
 
-  const analyzeFood = async (food: string, imageBase64?: string) => {
+  const analyzeFood = async (
+    food: string,
+    imageBase64?: string,
+    mealType: MealFocusKey | null = mealPromptKey,
+  ): Promise<boolean> => {
+    if (!(await ensurePremium())) return false;
+
+    const resolvedMealType = normalizeMealTypeForSave(mealType);
+
     setIsAnalyzing(true);
+    setFoodScanError(null);
+    let scanFlowSettled = false;
+    let progressInterval: number | null = null;
     if (imageBase64) {
+      setFoodScanPhase('analyzing');
       setAnalyzingImage(`data:image/jpeg;base64,${imageBase64}`);
+      setFoodScanProgress(10);
+      progressInterval = window.setInterval(() => {
+        setFoodScanProgress((prev) => (prev < 88 ? prev + Math.random() * 6 + 2 : prev + 0.4));
+      }, 280);
       playScanStart();
     }
+    let succeeded = false;
     try {
       const body: { food?: string; imageBase64?: string } = {};
       if (food && food.trim()) body.food = food.trim();
       if (imageBase64) body.imageBase64 = imageBase64;
 
-      let data;
-      try {
-        const response = await supabase.functions.invoke('analyze-food', {
-          body,
-        });
+      const { data, error: invokeError } = await invokeAnalyzeFood(body);
 
-        if (response.error) {
-          const errorMsg = response.error?.message || String(response.error);
-          console.error('[ANALYZE-FOOD] Function error:', errorMsg);
-          throw new Error(errorMsg || 'Analyse fehlgeschlagen');
-        }
-
-        data = response.data;
-      } catch (invokeError: any) {
-        const errorMsg = invokeError?.message || String(invokeError);
-        console.error('[ANALYZE-FOOD] Invoke error:', errorMsg, invokeError);
-        throw new Error(`Verbindungsfehler: ${errorMsg}`);
+      if (invokeError) {
+        const errorMsg = await getEdgeFunctionErrorMessage(
+          invokeError,
+          data as { error?: string; message?: string; not_found?: boolean } | null,
+        );
+        console.error('[ANALYZE-FOOD] Function error:', errorMsg);
+        throw new Error(errorMsg || t.couldNotAnalyzeFood);
       }
 
       if (!data) {
-        throw new Error('Keine Daten von der Analyse erhalten');
+        throw new Error(t.noAnalysisData);
       }
 
-      // Check if the response contains an error field (from the function)
+      if (data?.not_found) {
+        throw new Error(t.foodNotFound);
+      }
+
       if (data?.error) {
-        throw new Error(data.error);
+        throw new Error(
+          typeof data.message === 'string' && data.message
+            ? data.message
+            : data.not_found
+              ? t.foodNotFound
+              : String(data.error),
+        );
       }
 
-      if (!data.name || !data.calories) {
-        throw new Error(`Unvollständige Daten erhalten: ${JSON.stringify(data)}`);
+      const calories = typeof data.calories === "number" ? data.calories : -1;
+      const allowZeroCal = calories === 0 && isZeroCalorieFoodName(data.name);
+      if (!data.name || calories < 0 || (calories <= 0 && !allowZeroCal)) {
+        throw new Error(t.foodNotFound);
       }
 
-      // Save to database with image_url
+      const scanResult = {
+        name: data.name,
+        calories: data.calories,
+        protein: data.protein,
+        carbs: data.carbs,
+        fat: data.fat,
+      };
+
+      if (imageBase64) {
+        setLastAnalyzedFood(scanResult);
+        setFoodScanError(null);
+        setFoodScanSuccess(scanResult);
+        setFoodScanPhase('success');
+        setFoodScanProgress(100);
+        scanFlowSettled = true;
+        playSuccess();
+      }
+
+      // Save to database with image_url (after UI update so scan flow never hangs)
       let savedEntry;
       try {
         savedEntry = await addDbEntry({
@@ -453,15 +622,14 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           protein: Math.round(data.protein || 0),
           carbs: Math.round(data.carbs || 0),
           fat: Math.round(data.fat || 0),
+          meal_type: resolvedMealType,
           image_url: data.image_url,
         });
-      } catch (dbError: any) {
+      } catch (dbError: unknown) {
         console.error('Database save error:', dbError);
-        // If database save fails, still continue with local state
         savedEntry = null;
       }
 
-      // Also update local state for immediate UI feedback
       const newEntry: FoodEntry = {
         id: savedEntry?.id || Date.now().toString(),
         name: data.name,
@@ -469,69 +637,134 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein: data.protein,
         carbs: data.carbs,
         fat: data.fat,
-        time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
         image_url: data.image_url,
+        meal_type: resolvedMealType,
       };
 
       saveFoodEntries([...foodEntries, newEntry]);
       setFoodInput('');
 
-      if (imageBase64) {
-        setLastAnalyzedFood({
-          name: data.name,
-          calories: data.calories,
-          protein: data.protein,
-          carbs: data.carbs,
-          fat: data.fat,
-        });
-        setShowSuccessOverlay(true);
-        playSuccess();
-      } else {
+      if (!imageBase64) {
+        closeLogMealPanel();
         toast({ title: t.foodAdded, description: `${data.name} - ${data.calories} kcal` });
         playClick();
       }
 
       recordActivity();
       checkAndAwardBadge('meal_logged');
+      if (imageBase64) {
+        void checkAndAwardBadge('first_scan');
+      }
+      succeeded = true;
     } catch (error: any) {
-      const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood || 'Analyse fehlgeschlagen';
+      const errorMsg = error?.message || error?.toString?.() || t.couldNotAnalyzeFood;
       console.error('Error analyzing food:', errorMsg, error);
-      toast({
-        title: t.error,
-        description: errorMsg,
-        variant: 'destructive'
-      });
+      if (imageBase64) {
+        const timeoutMsg =
+          errorMsg === "analyze_food_timeout" ? t.foodAnalyzeTimeout : null;
+        const looksLikeNotFood =
+          /essen nicht|not.?found|kein essen|no food|pas de nourriture|nicht erkannt/i.test(errorMsg);
+        setFoodScanError(
+          timeoutMsg ?? (looksLikeNotFood ? t.foodNotFoodHint : errorMsg),
+        );
+        setFoodScanPhase('error');
+        scanFlowSettled = true;
+      } else {
+        toast({
+          title: t.foodNotFound || t.error,
+          description: errorMsg,
+          variant: 'destructive',
+        });
+      }
     } finally {
+      if (progressInterval != null) {
+        window.clearInterval(progressInterval);
+      }
       setIsAnalyzing(false);
-      setAnalyzingImage(null);
     }
+
+    if (!imageBase64) {
+      setAnalyzingImage(null);
+      setShowFoodCamera(false);
+      setFoodScanPhase('capture');
+      notifyOverlayOpen(false);
+    } else if (!scanFlowSettled && !succeeded) {
+      setFoodScanError((prev) => prev ?? t.couldNotAnalyzeFood);
+      setFoodScanPhase('error');
+    }
+
+    return succeeded;
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        analyzeFood('', base64);
-      };
-      reader.readAsDataURL(file);
-    }
+  const resetFoodScanToCapture = () => {
+    setFoodScanError(null);
+    setFoodScanSuccess(null);
+    setAnalyzingImage(null);
+    setFoodScanProgress(0);
+    setFoodScanPhase('capture');
+  };
+
+  const dismissFoodScanFlow = () => {
+    resetFoodScanToCapture();
+    setShowFoodCamera(false);
+    notifyOverlayOpen(false);
+  };
+
+  const openFoodCamera = () => {
+    void (async () => {
+      if (!(await ensurePremium())) return;
+      setLogMealPanelOpen(false);
+      resetFoodScanToCapture();
+      setShowFoodCamera(true);
+      notifyOverlayOpen(true);
+    })();
+  };
+
+  const scanAnotherFoodFromCamera = () => {
+    setIsAnalyzing(false);
+    setFoodScanError(null);
+    setFoodScanSuccess(null);
+    setAnalyzingImage(null);
+    setFoodScanProgress(0);
+    setFoodScanPhase('capture');
+    setShowFoodCamera(true);
+    notifyOverlayOpen(true);
+  };
+
+  const closeFoodCamera = () => {
+    setIsAnalyzing(false);
+    dismissFoodScanFlow();
   };
 
   const removeEntry = async (id: string) => {
-    // Remove from local state first
-    saveFoodEntries(foodEntries.filter(e => e.id !== id));
+    if (pendingDeletesRef.current.has(id)) return;
+    pendingDeletesRef.current.add(id);
 
-    // Try to delete from database if user is logged in
-    // UUID format check: if it looks like a database ID (contains hyphens or is long), delete from DB
-    if (user && id.length > 15) {
-      try {
-        await deleteDbEntry(id);
-      } catch (error) {
-        // Silently fail if it doesn't exist in database
-        console.log('Entry not found in database or already deleted:', id);
+    setFoodEntries((prev) => {
+      const nextEntries = prev.filter((e) => e.id !== id);
+      localStorage.setItem('todayFood', JSON.stringify({
+        date: getLocalDateString(),
+        entries: nextEntries,
+      }));
+      notifyFrigyStorageUpdated();
+      void syncMacrosToDatabase(nextEntries);
+      return nextEntries;
+    });
+
+    try {
+      if (user && id.length > 15) {
+        const ok = await deleteDbEntry(id);
+        if (!ok) {
+          pendingDeletesRef.current.delete(id);
+          void refreshEntries();
+        }
+      } else {
+        pendingDeletesRef.current.delete(id);
       }
+    } catch {
+      pendingDeletesRef.current.delete(id);
+      void refreshEntries();
     }
   };
 
@@ -539,43 +772,128 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     navigate(`/food-entry/${entry.id}`);
   };
 
-  const handleCameraClick = () => {
-    const access = canAccessFeature('scan');
-    if (!access.canAccess) {
-      setShowPaywall(true);
-      return;
-    }
-    fileInputRef.current?.click();
+  const processCameraFile = (file: File) => {
+    void (async () => {
+      if (!(await ensurePremium())) return;
+
+      setLogMealPanelOpen(false);
+      setShowFoodCamera(true);
+      notifyOverlayOpen(true);
+      setFoodScanPhase('analyzing');
+      setIsAnalyzing(true);
+      setFoodScanError(null);
+      setFoodScanSuccess(null);
+      setAnalyzingImage(URL.createObjectURL(file));
+
+      const dataUrl = await fileToCompressedBase64(file);
+      if (!dataUrl) {
+        setIsAnalyzing(false);
+        setFoodScanError(t.foodPhotoReadError);
+        setFoodScanPhase('error');
+        return;
+      }
+
+      const qualityCheck = await checkImageQuality(dataUrl);
+      if (!qualityCheck.isGoodQuality) {
+        setIsAnalyzing(false);
+        setFoodScanError(qualityCheck.suggestion || qualityCheck.message);
+        setFoodScanPhase('error');
+        return;
+      }
+
+      const base64 = dataUrlToBase64Payload(dataUrl);
+      setAnalyzingImage(dataUrl.startsWith('data:') ? dataUrl : `data:image/jpeg;base64,${base64}`);
+      await analyzeFood('', base64, mealPromptKey);
+    })();
   };
 
   const handleBarcodeClick = () => {
-    const access = canAccessFeature('scan');
-    if (!access.canAccess) {
-      setShowPaywall(true);
-      return;
-    }
-    setShowBarcodeScanner(true);
+    void (async () => {
+      if (!(await ensurePremium())) return;
+      setLogMealPanelOpen(false);
+      setShowBarcodeScanner(true);
+      notifyOverlayOpen(true);
+    })();
   };
 
-  const handleBarcodeScanned = (food: any) => {
+  const addRecipeToTracker = async (recipe: TrackerRecipeExample) => {
+    try {
+      let savedEntry;
+      try {
+        savedEntry = await addDbEntry({
+          name: recipe.title,
+          calories: recipe.calories,
+          protein: recipe.protein,
+          carbs: recipe.carbs,
+          fat: recipe.fat,
+          meal_type: normalizeMealTypeForSave(mealPromptKey),
+        });
+      } catch {
+        savedEntry = null;
+      }
+
+      const newEntry: FoodEntry = {
+        id: savedEntry?.id || Date.now().toString(),
+        name: recipe.title,
+        calories: recipe.calories,
+        protein: recipe.protein,
+        carbs: recipe.carbs,
+        fat: recipe.fat,
+        time: new Date().toLocaleTimeString(timeLocale, { hour: "2-digit", minute: "2-digit" }),
+        meal_type: normalizeMealTypeForSave(mealPromptKey),
+      };
+      saveFoodEntries([...foodEntries, newEntry]);
+      closeLogMealPanel();
+      toast({
+        title: t.foodAdded,
+        description: `${recipe.title} · ${recipe.calories} kcal`,
+      });
+      playClick();
+      recordActivity();
+      checkAndAwardBadge("meal_logged");
+    } catch (error) {
+      console.error("Error adding recipe:", error);
+      toast({ title: t.error, description: t.toastRecipeAddFailed, variant: "destructive" });
+    }
+  };
+
+  const handleBarcodeScanned = async (food: any) => {
     setScannedProductData(food);
     setShowSuccessOverlay(true);
     setShowBarcodeScanner(false);
+    notifyOverlayOpen(false);
+
+    let savedEntry;
+    try {
+      savedEntry = await addDbEntry({
+        name: food.name,
+        calories: Math.round(food.calories || 0),
+        protein: Math.round(food.protein || 0),
+        carbs: Math.round(food.carbs || 0),
+        fat: Math.round(food.fat || 0),
+        meal_type: normalizeMealTypeForSave(mealPromptKey),
+        image_url: food.image,
+      });
+    } catch {
+      savedEntry = null;
+    }
 
     // Automatically add to entries
     const newEntry: FoodEntry = {
-      id: Date.now().toString(),
+      id: savedEntry?.id || Date.now().toString(),
       name: food.name,
       calories: food.calories,
       protein: food.protein,
       carbs: food.carbs,
       fat: food.fat,
-      time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' }),
       image_url: food.image,
+      meal_type: normalizeMealTypeForSave(mealPromptKey),
     };
     saveFoodEntries([...foodEntries, newEntry]);
     recordActivity();
     checkAndAwardBadge('meal_logged');
+    void checkAndAwardBadge('first_scan');
     playSuccess();
     setLastAnalyzedFood(food);
   };
@@ -587,12 +905,31 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
 
   // Get speed label and emoji based on weeklyLossRate
   const getSpeedInfo = () => {
-    if (weeklyLossRate <= 0.5) return { emoji: '🐢', label: 'Langsam & Nachhaltig', color: 'text-green-400' };
-    if (weeklyLossRate <= 0.75) return { emoji: '🐇', label: 'Moderat', color: 'text-amber-400' };
-    if (weeklyLossRate <= 1.0) return { emoji: '🐇', label: 'Schnell', color: 'text-orange-400' };
-    return { emoji: '🐆', label: 'Sehr Schnell', color: 'text-red-400' };
+    if (weeklyLossRate <= 0.5) return { emoji: '🐢', label: t.trackerPaceSlow, color: 'text-green-400' };
+    if (weeklyLossRate <= 0.75) return { emoji: '🐇', label: t.trackerPaceModerate, color: 'text-amber-400' };
+    if (weeklyLossRate <= 1) return { emoji: '🐆', label: t.trackerPaceFast, color: 'text-orange-400' };
+    return { emoji: '🚀', label: t.trackerPaceVeryFast, color: 'text-red-400' };
   };
   const speedInfo = getSpeedInfo();
+
+  const editGoalsCurrent = useMemo(
+    () => ({
+      dailyCalories: profile?.dailyCalories ?? trackerSettings?.dailyCalories ?? 2000,
+      dailyProtein: profile?.dailyProtein ?? trackerSettings?.dailyProtein ?? 150,
+      dailyCarbs: profile?.dailyCarbs ?? trackerSettings?.dailyCarbs ?? 200,
+      dailyFat: profile?.dailyFat ?? trackerSettings?.dailyFat ?? 70,
+    }),
+    [
+      profile?.dailyCalories,
+      profile?.dailyProtein,
+      profile?.dailyCarbs,
+      profile?.dailyFat,
+      trackerSettings?.dailyCalories,
+      trackerSettings?.dailyProtein,
+      trackerSettings?.dailyCarbs,
+      trackerSettings?.dailyFat,
+    ],
+  );
 
   const onboardingSteps = [
     {
@@ -943,7 +1280,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     {
       icon: Sparkles,
       title: t.yourPersonalPlan,
-      subtitle: "Dein persönlicher Makro-Plan",
+      subtitle: t.trackerPersonalMacroPlan,
       content: (
         <div className="space-y-4 text-center w-full">
           <div className="p-6 bg-primary/10 rounded-2xl">
@@ -977,8 +1314,8 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
     },
     {
       icon: Plus,
-      title: "Mahlzeiten pro Tag",
-      subtitle: "Wie viele Mahlzeiten möchtest du täglich haben?",
+      title: t.trackerMealsPerDayTitle,
+      subtitle: t.trackerMealsPerDaySubtitle,
       content: (
         <div className="w-full space-y-6">
           <div className="grid grid-cols-3 gap-3">
@@ -998,35 +1335,25 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
                   <Flame className="w-6 h-6 text-orange-500" />
                 </div>
                 <span className="text-2xl font-bold block">{option}</span>
-                <span className="text-xs text-muted-foreground/60">Mahlzeiten</span>
+                <span className="text-xs text-muted-foreground/60">{t.trackerMealsUnit}</span>
               </motion.button>
             ))}
           </div>
 
           <div className="text-sm text-muted-foreground bg-background/30 rounded-lg p-3">
-            <p>Du kannst dich später jederzeit noch umstellen.</p>
+            <p>{t.trackerSetupLaterHint}</p>
           </div>
         </div>
       ),
     },
   ];
 
-  // Show loading state while fetching settings from database
-  if (settingsLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground">{t.loading || 'Wird geladen...'}</p>
-      </div>
-    );
-  }
-
   if (step === 'onboarding') {
     const currentStepData = onboardingSteps[onboardingStep];
     const Icon = currentStepData.icon;
 
     return (
-      <div className="space-y-4">
+      <div className="fixed inset-0 z-[70] flex flex-col overflow-y-auto bg-background px-4 py-6 safe-top safe-bottom">
         {/* Progress dots */}
         <div className="flex justify-center gap-2 mb-2">
           {onboardingSteps.map((_, idx) => (
@@ -1066,7 +1393,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
               </div>
               
               {/* Content */}
-              <div className="min-h-[200px] flex flex-col justify-center">
+              <div className="min-h-[200px] max-h-[min(52vh,420px)] overflow-y-auto overscroll-contain flex flex-col justify-center">
                 {currentStepData.content}
               </div>
 
@@ -1106,47 +1433,7 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
   }
 
   return (
-    <div className="space-y-4">
-      {/* Gleiches Tracker-Widget wie im Dashboard */}
-      <div className="space-y-3">
-        <TrackerWidget
-          delay={0}
-          caloriesEaten={totalCalories}
-          targetCalories={profile?.dailyCalories || 0}
-          proteinEaten={totalProtein}
-          targetProtein={profile?.dailyProtein || 0}
-          carbsEaten={totalCarbs}
-          targetCarbs={profile?.dailyCarbs || 0}
-          fatEaten={totalFat}
-          targetFat={profile?.dailyFat || 0}
-        />
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 min-w-[8rem] text-xs text-muted-foreground hover:text-primary"
-            onClick={() => {
-              setFocusMacro("calories");
-              setShowEditGoalsDialog(true);
-            }}
-          >
-            Makros anpassen
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 min-w-[8rem] text-xs text-muted-foreground hover:text-primary"
-            onClick={() => {
-              setStep("onboarding");
-              setOnboardingStep(0);
-            }}
-          >
-            <Pencil className="h-3 w-3 mr-1.5" />
-            {t.changeGoal}
-          </Button>
-        </div>
-      </div>
-
+    <>
       {/* Edit Macro Goals Dialog */}
       <EditMacroGoalsDialog
         open={showEditGoalsDialog}
@@ -1154,286 +1441,110 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
           setShowEditGoalsDialog(open);
           if (!open) setFocusMacro(null);
         }}
-        currentGoals={{
-          dailyCalories: profile?.dailyCalories || 2000,
-          dailyProtein: profile?.dailyProtein || 150,
-          dailyCarbs: profile?.dailyCarbs || 200,
-          dailyFat: profile?.dailyFat || 70,
-        }}
+        currentGoals={editGoalsCurrent}
         focusMacro={focusMacro}
+        weightKg={trackerSettings?.weight ?? weight}
         onSave={async (goals) => {
-          // Update profile state
+          const previous = profile ?? {
+            age: trackerSettings?.age ?? age,
+            weight: trackerSettings?.weight ?? weight,
+            targetWeight: trackerSettings?.targetWeight ?? targetWeight,
+            dailyCalories: trackerSettings?.dailyCalories ?? goals.dailyCalories,
+            dailyProtein: trackerSettings?.dailyProtein ?? goals.dailyProtein,
+            dailyCarbs: trackerSettings?.dailyCarbs ?? goals.dailyCarbs,
+            dailyFat: trackerSettings?.dailyFat ?? goals.dailyFat,
+            mealsPerDay: trackerSettings?.mealsPerDay ?? mealsPerDay,
+          };
+
+          const mealPlanNeedsRefresh =
+            previous.dailyCalories !== goals.dailyCalories ||
+            previous.dailyProtein !== goals.dailyProtein ||
+            previous.dailyCarbs !== goals.dailyCarbs ||
+            previous.dailyFat !== goals.dailyFat;
+
           const newProfile = {
-            ...profile!,
+            ...previous,
             dailyCalories: goals.dailyCalories,
             dailyProtein: goals.dailyProtein,
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
           };
-          const mealPlanNeedsRefresh =
-            profile && (
-              profile.dailyCalories !== goals.dailyCalories ||
-              profile.dailyProtein !== goals.dailyProtein ||
-              profile.dailyCarbs !== goals.dailyCarbs ||
-              profile.dailyFat !== goals.dailyFat
-            );
 
           setProfile(newProfile);
 
-          // Save to database
           await saveTrackerSettings({
-            age: age,
-            weight: weight,
-            targetWeight: targetWeight,
-            goalMode: goalMode,
-            weeklyGoal: weeklyLossRate,
+            age: trackerSettings?.age ?? age,
+            weight: trackerSettings?.weight ?? weight,
+            targetWeight: trackerSettings?.targetWeight ?? targetWeight,
+            goalMode: trackerSettings?.goalMode ?? goalMode,
+            weeklyGoal: trackerSettings?.weeklyGoal ?? weeklyLossRate,
             dailyCalories: goals.dailyCalories,
             dailyProtein: goals.dailyProtein,
             dailyCarbs: goals.dailyCarbs,
             dailyFat: goals.dailyFat,
-            mealsPerDay: mealsPerDay,
+            mealsPerDay: trackerSettings?.mealsPerDay ?? mealsPerDay,
+            dietaryPreferences: trackerSettings?.dietaryPreferences,
+            healthGoals: trackerSettings?.healthGoals,
+            allergies: trackerSettings?.allergies,
+            allergiesOther: trackerSettings?.allergiesOther,
           });
 
           if (mealPlanNeedsRefresh) {
             showMealPlanRefreshToast();
           }
+
+          onSetupComplete?.();
         }}
       />
 
-      {/* Add Food - Improved UX */}
-      <Card ref={addFoodSectionRef} className="p-4 bg-card border-border/30 scroll-mt-24">
-        <motion.p
-          className="font-semibold text-sm mb-3 leading-snug"
-          key={mealPromptKey ?? "default"}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {mealPromptKey ? MEAL_FOCUS_PROMPTS_DE[mealPromptKey] : t.addFood}
-        </motion.p>
-
-        {/* Quick Actions */}
-        <div className="flex gap-2 mb-3">
-          <motion.button
-            onClick={handleCameraClick}
-            disabled={isAnalyzing}
-            className="flex-1 flex items-center justify-center gap-2 h-12 bg-primary/10 hover:bg-primary/20 rounded-xl transition-colors relative overflow-hidden"
-            whileTap={{ scale: 0.97 }}
-          >
-            {!isPremium && (
-              <div className="absolute top-1 right-1">
-                <Crown className="w-2.5 h-2.5 text-primary fill-primary -rotate-12" />
-              </div>
-            )}
-            <Camera className="h-5 w-5 text-primary" />
-            <span className="text-sm font-medium text-primary">Foto</span>
-          </motion.button>
-          <motion.button
-            onClick={handleBarcodeClick}
-            disabled={isAnalyzing}
-            className="flex-1 flex items-center justify-center gap-2 h-12 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl transition-colors relative overflow-hidden"
-            whileTap={{ scale: 0.97 }}
-          >
-            {!isPremium && (
-              <div className="absolute top-1 right-1">
-                <Crown className="w-2.5 h-2.5 text-amber-600 fill-amber-600 -rotate-12" />
-              </div>
-            )}
-            <Barcode className="h-5 w-5 text-amber-600" />
-            <span className="text-sm font-medium text-amber-600">Barcode</span>
-          </motion.button>
-        </div>
-        
-        {/* Text Input */}
-        <div className="flex gap-2">
-          <Input
-            ref={foodTextInputRef}
-            placeholder={t.egTwoEggsWithToast}
-            value={foodInput}
-            onChange={(e) => setFoodInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && foodInput && analyzeFood(foodInput)}
-            disabled={isAnalyzing}
-            className="h-11"
+      <AnimatePresence mode="wait">
+        {logMealPanelOpen && (
+          <TrackerAddMealPanel
+            key="tracker-add-meal-panel"
+            mealFocus={mealPromptKey}
+            onClose={closeLogMealPanel}
+            onSearchSubmit={(text) => analyzeFood(text, undefined, mealPromptKey)}
+            onOpenLiveCamera={openFoodCamera}
+            onCameraFile={processCameraFile}
+            onBarcode={handleBarcodeClick}
+            onAddRecipe={addRecipeToTracker}
+            onDeleteMeal={removeEntry}
+            onEditMeal={(id) => {
+              const entry = foodEntries.find((e) => e.id === id);
+              if (entry) editEntry(entry);
+            }}
+            loggedMeals={foodEntries.map((e) => ({
+              id: e.id,
+              name: e.name,
+              calories: e.calories,
+              time: e.time,
+              mealType: e.meal_type,
+            }))}
+            isAnalyzing={isAnalyzing}
           />
-          <Button
-            onClick={() => foodInput && analyzeFood(foodInput)}
-            disabled={isAnalyzing || !foodInput}
-            className="shrink-0 h-11 px-4"
-          >
-            {isAnalyzing ? <span className="animate-spin">⏳</span> : <Plus className="h-4 w-4" />}
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleImageUpload}
-            className="hidden"
-          />
-        </div>
-      </Card>
-
-
-      {/* Analyzing State with Image Preview */}
-      <AnimatePresence>
-        {isAnalyzing && analyzingImage && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative rounded-2xl overflow-hidden"
-          >
-            {/* Background Image with Dark Overlay */}
-            <div className="relative aspect-video w-full">
-              <img
-                src={analyzingImage}
-                alt="Analyzing food"
-                className="w-full h-full object-cover"
-              />
-              {/* Dark Overlay */}
-              <div className="absolute inset-0 bg-black/60" />
-              
-              {/* Neon Glow Border */}
-              <div 
-                className="absolute inset-0 rounded-2xl"
-                style={{
-                  boxShadow: 'inset 0 0 30px rgba(34, 197, 94, 0.4), 0 0 40px rgba(34, 197, 94, 0.3)',
-                  border: '2px solid rgba(34, 197, 94, 0.5)'
-                }}
-              />
-              
-              {/* Scanning Line Animation */}
-              <motion.div
-                className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent"
-                initial={{ top: 0 }}
-                animate={{ top: '100%' }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              />
-              
-              {/* Content Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                {/* Pulsing Icon */}
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="mb-4"
-                >
-                  <div 
-                    className="p-4 rounded-full bg-primary/20 backdrop-blur-sm"
-                    style={{ boxShadow: '0 0 30px rgba(34, 197, 94, 0.5)' }}
-                  >
-                    <Sparkles className="h-8 w-8 text-primary" />
-                  </div>
-                </motion.div>
-                
-                {/* Animated Messages */}
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={currentMessageIndex}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.5 }}
-                    className="text-lg font-medium text-white text-center"
-                    style={{ textShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}
-                  >
-                    {analyzingMessages[currentMessageIndex]}
-                  </motion.p>
-                </AnimatePresence>
-                
-                {/* Loading Dots */}
-                <div className="flex gap-2 mt-4">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-primary"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                      style={{ boxShadow: '0 0 10px rgba(34, 197, 94, 0.8)' }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Food Entries - Improved Design */}
-      <div className="space-y-2">
-        {foodEntries.length > 0 && (
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold text-foreground">Heute gegessen</p>
-            <p className="text-xs text-muted-foreground">{foodEntries.length} Einträge</p>
-          </div>
+      <AnimatePresence>
+        {showFoodCamera && (
+          <FrigyFoodScanFlow
+            key="food-scan-flow"
+            open={showFoodCamera}
+            phase={foodScanPhase}
+            analyzing={isAnalyzing}
+            analyzingLabel={analyzingMessages[currentMessageIndex]}
+            analyzingProgress={foodScanProgress}
+            previewImage={analyzingImage}
+            analysisErrorMessage={foodScanError}
+            successResult={foodScanSuccess}
+            onClose={closeFoodCamera}
+            onCapture={processCameraFile}
+            onSuccessDismiss={dismissFoodScanFlow}
+            onScanAnotherAfterSuccess={scanAnotherFoodFromCamera}
+            onRetryAfterError={resetFoodScanToCapture}
+          />
         )}
-        
-        {foodEntries.map((entry, idx) => (
-          <motion.div
-            key={entry.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.03 }}
-          >
-            <Card 
-              className="p-3 bg-card border-border/20 cursor-pointer hover:border-primary/30 transition-all active:scale-[0.99]"
-              onClick={() => editEntry(entry)}
-            >
-              <div className="flex items-center gap-3">
-                {/* Food Icon */}
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg flex-shrink-0">
-                  🍽️
-                </div>
-                
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">{entry.name}</span>
-                    <Pencil className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-muted-foreground">{entry.time}</span>
-                    <span className="text-[10px] text-muted-foreground">•</span>
-                    <span className="text-[10px] text-red-500/70">{entry.protein}g P</span>
-                    <span className="text-[10px] text-amber-500/70">{entry.carbs}g K</span>
-                    <span className="text-[10px] text-blue-500/70">{entry.fat}g F</span>
-                  </div>
-                </div>
-                
-                {/* Calories */}
-                <div className="text-right flex-shrink-0">
-                  <span className="font-bold text-sm text-foreground">{entry.calories}</span>
-                  <span className="text-[10px] text-muted-foreground ml-0.5">kcal</span>
-                </div>
-                
-                {/* Delete */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeEntry(entry.id);
-                  }}
-                  className="h-8 w-8 text-muted-foreground/50 hover:text-destructive flex-shrink-0"
-                  disabled={isAnalyzing}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-
-        {foodEntries.length === 0 && (
-          <Card className="p-8 text-center bg-card/50 border-dashed border-border/50">
-            <div className="w-14 h-14 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3">
-              <Flame className="h-7 w-7 text-muted-foreground/50" />
-            </div>
-            <p className="text-sm text-muted-foreground">{t.nothingEatenToday}</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">{t.addFirstFood}</p>
-          </Card>
-        )}
-      </div>
+      </AnimatePresence>
 
       {/* Success Overlay after successful scan */}
       <ScanSuccessOverlay
@@ -1443,33 +1554,22 @@ export const MacroTracker = ({ onSetupComplete, onResetTracker }: MacroTrackerPr
         protein={lastAnalyzedFood?.protein || 0}
         carbs={lastAnalyzedFood?.carbs || 0}
         fat={lastAnalyzedFood?.fat || 0}
-        onComplete={() => setShowSuccessOverlay(false)}
+        onComplete={() => {
+          setShowSuccessOverlay(false);
+          setAnalyzingImage(null);
+        }}
       />
 
       {/* Barcode Scanner */}
       <BarcodeScanner
         isOpen={showBarcodeScanner}
-        onClose={() => setShowBarcodeScanner(false)}
+        onClose={() => {
+          setShowBarcodeScanner(false);
+          notifyOverlayOpen(false);
+        }}
         onFoodScanned={handleBarcodeScanned}
       />
 
-      {/* Paywall Overlay for Premium Features */}
-      {showPaywall && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => setShowPaywall(false)}
-          className="fixed inset-0 z-50"
-        >
-          <div onClick={(e) => e.stopPropagation()}>
-            <FreeModePaywallOverlay
-              title="Premium freischalten"
-              description="Nutze Foto für schnellere Erfassung"
-              className="relative"
-            />
-          </div>
-        </motion.div>
-      )}
-    </div>
+    </>
   );
 };

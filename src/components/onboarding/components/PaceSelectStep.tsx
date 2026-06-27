@@ -1,24 +1,29 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
 import type { UserData } from "../types";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  trackActive: "#24FF8F",
-  trackInactive: "#D4FFEA",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  primaryDeep: "#2EB56D",
+  bg: "#FBFFFD",
+  trackActive: "#75FBB2",
+  trackInactive: "#DCFEEF",
   text: "#1F2937",
   textMuted: "#6B7280",
   textSubtle: "#9CA3AF",
 };
 
 const KG_PER_LB = 0.45359237;
+const MIN_PACE_KG = 0.1;
+const MAX_PACE_KG = 1.0;
+const CENTER_PACE_KG = 0.5;
 
 const haptic = (ms = 8) => {
   try {
@@ -46,6 +51,7 @@ function MintSlider({
   ticks,
   formatTick,
   onActiveChange,
+  centerValue,
 }: {
   min: number;
   max: number;
@@ -55,12 +61,47 @@ function MintSlider({
   ticks: number[];
   formatTick: (v: number) => string;
   onActiveChange?: (active: boolean) => void;
+  centerValue?: number;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const lastMarkerRef = useRef<number | null>(null);
 
-  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+  const valueToRatio = useCallback(
+    (nextValue: number) => {
+      const clampedValue = Math.max(min, Math.min(max, nextValue));
+
+      if (!centerValue || centerValue <= min || centerValue >= max) {
+        return (clampedValue - min) / (max - min);
+      }
+
+      if (clampedValue <= centerValue) {
+        return ((clampedValue - min) / (centerValue - min)) * 0.5;
+      }
+
+      return 0.5 + ((clampedValue - centerValue) / (max - centerValue)) * 0.5;
+    },
+    [centerValue, max, min],
+  );
+
+  const ratioToValue = useCallback(
+    (ratio: number) => {
+      const clampedRatio = Math.max(0, Math.min(1, ratio));
+
+      if (!centerValue || centerValue <= min || centerValue >= max) {
+        return min + clampedRatio * (max - min);
+      }
+
+      if (clampedRatio <= 0.5) {
+        return min + (clampedRatio / 0.5) * (centerValue - min);
+      }
+
+      return centerValue + ((clampedRatio - 0.5) / 0.5) * (max - centerValue);
+    },
+    [centerValue, max, min],
+  );
+
+  const pct = Math.max(0, Math.min(100, valueToRatio(value) * 100));
 
   const updateFromClientX = useCallback(
     (clientX: number) => {
@@ -69,7 +110,7 @@ function MintSlider({
       const rect = el.getBoundingClientRect();
       const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
       const ratio = rect.width > 0 ? x / rect.width : 0;
-      const raw = min + ratio * (max - min);
+      const raw = ratioToValue(ratio);
       const snapped = Math.round(raw / step) * step;
       const clamped = Math.max(min, Math.min(max, parseFloat(snapped.toFixed(2))));
       onChange(clamped);
@@ -79,7 +120,7 @@ function MintSlider({
         haptic(8);
       }
     },
-    [min, max, step, onChange],
+    [max, min, onChange, ratioToValue, step],
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -142,51 +183,33 @@ function MintSlider({
               height: 7,
               width: `${pct}%`,
               background: `linear-gradient(90deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
-              boxShadow: "0 2px 6px rgba(18,217,120,0.35)",
+              boxShadow: "0 2px 6px rgba(74, 232, 150,0.35)",
+              transition: draggingRef.current ? "none" : "width 120ms ease-out",
             }}
           />
-          {/* Major-marker dots on the track */}
-          {ticks.map((t) => {
-            const tp = ((t - min) / (max - min)) * 100;
-            const isActive = t <= value + 1e-6;
-            return (
-              <div
-                key={`dot-${t}`}
-                className="absolute rounded-full"
-                style={{
-                  left: `${tp}%`,
-                  top: "50%",
-                  transform: "translate(-50%, -50%)",
-                  width: 3,
-                  height: 3,
-                  backgroundColor: isActive ? "rgba(255,255,255,0.85)" : "rgba(18,217,120,0.45)",
-                }}
-              />
-            );
-          })}
           {/* Thumb */}
-          <motion.div
+          <div
             className="absolute"
-            animate={{ left: `${pct}%` }}
-            transition={{ type: "spring", stiffness: 520, damping: 38, mass: 0.6 }}
             style={{
+              left: `${pct}%`,
               top: "50%",
               transform: "translate(-50%, -50%)",
               width: 22,
               height: 22,
               borderRadius: 9999,
-              background: "linear-gradient(180deg, #FFFFFF 0%, #F0FFF7 100%)",
+              background: "linear-gradient(180deg, #FFFFFF 0%, #FEFFFE 100%)",
               border: `3px solid ${PALETTE.primary}`,
               boxShadow:
-                "0 6px 16px -5px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+                "0 6px 16px -5px rgba(74, 232, 150,0.55), 0 2px 4px rgba(15,40,30,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+              transition: draggingRef.current ? "none" : "left 120ms ease-out",
             }}
           />
         </div>
       </div>
-      {/* Tick labels */}
-      <div className="relative mt-0.5 h-4 px-[1px]">
+      {/* Tick labels — positions match slider scale so 0.5 sits at 50% */}
+      <div className="relative mt-0.5 h-4">
         {ticks.map((t) => {
-          const tp = ((t - min) / (max - min)) * 100;
+          const tp = valueToRatio(t) * 100;
           const isActive = Math.abs(t - value) < step * 0.55;
           return (
             <div
@@ -209,37 +232,61 @@ function MintSlider({
   );
 }
 
+function isMaintainWeightGoal(userData: UserData): boolean {
+  return userData.goalMode === "maintain" || userData.goal === "maintain";
+}
+
 export function PaceSelectStep({
   userData,
   setUserData,
   onBack,
   onNext,
 }: Props) {
-  const { language } = useLanguage();
+  const { language, t: tr } = useLanguage();
+  const skippedMaintainRef = useRef(false);
+
+  useEffect(() => {
+    if (!isMaintainWeightGoal(userData) || skippedMaintainRef.current) return;
+    skippedMaintainRef.current = true;
+    onNext?.();
+  }, [userData.goalMode, userData.goal, onNext]);
+
+  if (isMaintainWeightGoal(userData)) {
+    return null;
+  }
 
   const isMetric = userData.weightUnit === "metric";
   const isGain = userData.goalMode === "gain";
 
-  // weeklyGoal is always stored in kg/week. Default 0.5 kg.
-  const kgPerWeek = Math.max(0.1, userData.weeklyGoal || 0.5);
+  // weeklyGoal stored in kg/week — range 0.1–1.0 kg
+  const kgPerWeek = Math.min(MAX_PACE_KG, Math.max(MIN_PACE_KG, userData.weeklyGoal ?? 0.5));
   const lbsPerWeek = kgPerWeek / KG_PER_LB;
 
   const displayValue = isMetric
     ? Math.round(kgPerWeek * 10) / 10
     : Math.round(lbsPerWeek * 10) / 10;
 
-  const min = isMetric ? 0.5 : 1.0;
-  const max = isMetric ? 2.0 : 4.0;
+  const min = isMetric ? MIN_PACE_KG : Math.round((MIN_PACE_KG / KG_PER_LB) * 10) / 10;
+  const max = isMetric ? MAX_PACE_KG : Math.round((MAX_PACE_KG / KG_PER_LB) * 10) / 10;
   const step = 0.1;
-  const ticks = isMetric ? [0.5, 1.0, 1.5, 2.0] : [1.0, 2.0, 3.0, 4.0];
+  const ticks = isMetric
+    ? [MIN_PACE_KG, 0.5, MAX_PACE_KG]
+    : [min, Math.round((0.5 / KG_PER_LB) * 10) / 10, max];
 
   const clampedDisplay = Math.max(min, Math.min(max, displayValue));
+
+  useEffect(() => {
+    if ((userData.weeklyGoal ?? 0.5) < MIN_PACE_KG) {
+      setUserData((prev) => ({ ...prev, weeklyGoal: MIN_PACE_KG }));
+    }
+  }, [setUserData, userData.weeklyGoal]);
 
   const [sliderActive, setSliderActive] = useState(false);
 
   const commit = (next: number) => {
-    const kg = isMetric ? next : next * KG_PER_LB;
-    const rounded = Math.round(kg * 100) / 100;
+    const clamped = Math.max(min, Math.min(max, next));
+    const kg = isMetric ? clamped : clamped * KG_PER_LB;
+    const rounded = Math.round(Math.max(MIN_PACE_KG, Math.min(MAX_PACE_KG, kg)) * 100) / 100;
     setUserData((prev) => ({ ...prev, weeklyGoal: rounded }));
   };
 
@@ -252,8 +299,8 @@ export function PaceSelectStep({
   const L = {
     de: {
       title: "Wie schnell möchtest du dein Ziel erreichen?",
-      labelLose: "Geschwindigkeit der Gewichtsabnahme",
-      labelGain: "Geschwindigkeit der Gewichtszunahme",
+      labelLose: "Geschwindigkeit der Gewichtsabnahme pro Woche",
+      labelGain: "Geschwindigkeit der Gewichtszunahme pro Woche",
       labelMaintain: "Wöchentliche Veränderung",
       next: "Weiter",
       back: "Zurück",
@@ -262,8 +309,8 @@ export function PaceSelectStep({
     },
     en: {
       title: "How fast do you want to reach your goal?",
-      labelLose: "Weight loss pace",
-      labelGain: "Weight gain pace",
+      labelLose: "Weight loss pace per week",
+      labelGain: "Weight gain pace per week",
       labelMaintain: "Weekly change",
       next: "Next",
       back: "Back",
@@ -272,8 +319,8 @@ export function PaceSelectStep({
     },
     fr: {
       title: "À quelle vitesse veux-tu atteindre ton objectif ?",
-      labelLose: "Vitesse de perte de poids",
-      labelGain: "Vitesse de prise de poids",
+      labelLose: "Vitesse de perte de poids par semaine",
+      labelGain: "Vitesse de prise de poids par semaine",
       labelMaintain: "Variation hebdomadaire",
       next: "Suivant",
       back: "Retour",
@@ -295,7 +342,7 @@ export function PaceSelectStep({
 
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
     { id: "metric", label: t.metric },
-    { id: "imperial", label: "Imperial" },
+    { id: "imperial", label: tr.onboardingUnitImperial },
   ];
 
   return (
@@ -304,7 +351,7 @@ export function PaceSelectStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar: back + progress */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -313,7 +360,7 @@ export function PaceSelectStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -325,28 +372,22 @@ export function PaceSelectStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {t.title}
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
       {/* Slider area */}
-      <div className="mt-6 flex flex-1 min-h-0 flex-col justify-center px-6 pt-1">
+      <div className="mt-6 flex flex-1 min-h-0 flex-col justify-center px-4 pt-1">
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="text-center text-[14px] font-medium"
+          className="whitespace-nowrap text-center text-[11.5px] font-medium leading-tight tracking-tight"
           style={{ color: PALETTE.textMuted }}
         >
           {directionLabel}
@@ -388,10 +429,11 @@ export function PaceSelectStep({
           ticks={ticks}
           formatTick={(v) => v.toFixed(1)}
           onActiveChange={setSliderActive}
+          centerValue={isMetric ? CENTER_PACE_KG : Math.round((CENTER_PACE_KG / KG_PER_LB) * 10) / 10}
         />
 
         {/* Unit toggle */}
-        <div className="mt-7 flex justify-center">
+        <div className="mt-10 flex justify-center">
           <MintSegmentedControl
             options={unitOptions}
             value={userData.weightUnit}
@@ -406,6 +448,7 @@ export function PaceSelectStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -414,7 +457,7 @@ export function PaceSelectStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.frigyapp.app",
+        "paths": [
+          "/signup*",
+          "/invite*",
+          "/referral*",
+          "/*"
+        ]
+      }
+    ]
+  }
+}

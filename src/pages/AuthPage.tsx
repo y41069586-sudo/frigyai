@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import type { Session } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,106 +9,199 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft } from 'lucide-react';
 import frigLogo from '@/assets/frigy-mascot.png';
+import { resolveAuthErrorMessage, waitForAuthSession, waitForOAuthSession } from '@/lib/authErrors';
+import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
+import { isOAuthCallbackUrl, POST_AUTH_PAYWALL_ROUTE } from '@/lib/authOAuth';
+import { clearOAuthPending, clearStaleOAuthPendingIfIdle, getOAuthPending, setOAuthPendingFromAuthQuery } from '@/lib/oauthPending';
+import { isAuthCompletionPending, isAuthFlowOverlayVisible } from '@/lib/authCompletion';
+import { redirectAfterSignIn, wasPostAuthRedirectRecentlyHandled } from '@/lib/postAuthRedirect';
+import { persistOnboardingSignupFromStorage } from '@/components/onboarding/utils';
+import { isAppleSignInAvailable, waitForAppleSignInSession } from '@/lib/appleSignIn';
+import { AppleSignInIcon } from '@/components/icons/AppleSignInIcon';
+import { GoogleSignInIcon } from '@/components/icons/GoogleSignInIcon';
 
 const AuthPage = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signIn, signUp, signInWithGoogle, user, loading } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [authStuck, setAuthStuck] = useState(false);
+  const { signIn, signUp, signInWithGoogle, signInWithApple, signOut, user, loading, checkSubscription } = useAuth();
+  const showAppleSignIn = isAppleSignInAvailable() || Capacitor.getPlatform() === "web";
   const navigate = useNavigate();
+  const redirectStartedRef = useRef(false);
 
-  // Check where user is coming from
   const searchParams = new URLSearchParams(window.location.search);
   const fromParam = searchParams.get('from');
+  const isLoginOnly = searchParams.get('mode') === 'login';
   const isFromOnboarding = fromParam === 'onboarding';
   const isFromPremiumPricing = fromParam === 'premium-pricing';
+  const hasOAuthCallback = isOAuthCallbackUrl(window.location.href);
+  const oauthFromQuery = isFromOnboarding
+    ? { from: "onboarding" as const }
+    : isLoginOnly || isLogin
+      ? { from: "login" as const }
+      : { from: "signup" as const };
 
-  // Redirect if already logged in (nur mit bestätigter E-Mail – sonst zur Bestätigungsseite)
   useEffect(() => {
-    if (!user || loading) return;
+    if (isLoginOnly) {
+      setIsLogin(true);
+    }
+  }, [isLoginOnly]);
 
-    if (!user.email_confirmed_at) {
-      const q = new URLSearchParams();
-      if (user.email) q.set('email', user.email);
-      q.set('next', '/premium-pricing');
-      q.set('from', 'signup');
-      navigate(`/email-confirmation?${q.toString()}`, { replace: true });
+  const finishAuthRedirect = useCallback(async (
+    signedInSession?: Session | null,
+    options?: { emailPasswordLogin?: boolean },
+  ) => {
+    if (redirectStartedRef.current || wasPostAuthRedirectRecentlyHandled()) {
+      return;
+    }
+    redirectStartedRef.current = true;
+    setIsRedirecting(true);
+
+    try {
+      const sessionUserId =
+        signedInSession?.user?.id ??
+        (await supabase.auth.getSession()).data.session?.user?.id ??
+        user?.id;
+
+      const nextParam = searchParams.get('next');
+      const redirectPath = localStorage.getItem('redirectAfterAuth');
+      if (redirectPath) {
+        localStorage.removeItem('redirectAfterAuth');
+      }
+
+      await redirectAfterSignIn({
+        userId: sessionUserId,
+        checkSubscription,
+        navigate,
+        fromOnboarding: isFromOnboarding,
+        authIntent: isLoginOnly || isLogin ? "login" : "signup",
+        emailPasswordLogin: options?.emailPasswordLogin ?? false,
+        explicitPath:
+          nextParam && nextParam.startsWith('/')
+            ? nextParam
+            : redirectPath && redirectPath.startsWith('/')
+              ? redirectPath
+              : isFromPremiumPricing
+                ? POST_AUTH_PAYWALL_ROUTE
+                : null,
+      });
+    } catch (redirectError) {
+      console.error('[Auth] redirectAfterSignIn failed:', redirectError);
+      redirectStartedRef.current = false;
+      setError(t.authLoginFailed);
+      navigate('/', { replace: true });
+    } finally {
+      setIsRedirecting(false);
+    }
+  }, [checkSubscription, isFromOnboarding, isFromPremiumPricing, isLogin, isLoginOnly, navigate, searchParams, t.authLoginFailed, user?.id]);
+
+  const handleBack = () => {
+    if (isLoginOnly) {
+      navigate('/', { replace: true });
       return;
     }
 
-    if (isFromOnboarding || isFromPremiumPricing) {
-      navigate('/premium-pricing', { replace: true });
+    if (isFromOnboarding) {
+      navigate('/?onboardingStep=save-progress', { replace: true });
       return;
     }
 
-    const redirectPath = localStorage.getItem('redirectAfterAuth');
-    if (redirectPath) {
-      localStorage.removeItem('redirectAfterAuth');
-      navigate(redirectPath);
+    if (window.history.length > 1) {
+      navigate(-1);
     } else {
       navigate('/');
     }
-  }, [user, loading, navigate, isFromOnboarding, isFromPremiumPricing]);
+  };
+
+  useEffect(() => {
+    if (!isFromOnboarding) return;
+
+    const handleBrowserBack = () => {
+      navigate('/?onboardingStep=save-progress', { replace: true });
+    };
+
+    window.addEventListener('popstate', handleBrowserBack);
+    return () => window.removeEventListener('popstate', handleBrowserBack);
+  }, [isFromOnboarding, navigate]);
+
+  // Already signed in → paywall or dashboard (never show login form again).
+  useEffect(() => {
+    if (loading || !user) return;
+    // OAuth ?code= is completed by AuthOAuthCallbackBootstrap — do not race or strip the URL here.
+    if (hasOAuthCallback) return;
+    if (getOAuthPending()) return;
+    if (wasPostAuthRedirectRecentlyHandled()) return;
+    if (redirectStartedRef.current) return;
+    void finishAuthRedirect();
+  }, [user, loading, finishAuthRedirect, hasOAuthCallback]);
+
+  useEffect(() => {
+    if (!user || loading || isRedirecting) {
+      setAuthStuck(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setAuthStuck(true), 6000);
+    return () => window.clearTimeout(timer);
+  }, [user, loading, isRedirecting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    redirectStartedRef.current = false;
     setIsSubmitting(true);
     setError(null);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
+      if (isLogin || isLoginOnly) {
+        const { error, session } = await signIn(email, password);
         if (error) {
-          // Better error messages for login
-          if (error.message?.includes('Invalid login credentials')) {
-            setError('Email oder Passwort ist falsch');
-          } else if (error.message?.includes('Email not confirmed')) {
-            setError('E-Mail bestätigung ausstehend. Bitte überprüfen Sie Ihren Posteingang');
-          } else {
-            setError(error.message || 'Login fehlgeschlagen');
-          }
+          const resolved = resolveAuthErrorMessage(error, language, 'login');
+          setError(resolved?.message ?? error.message ?? t.authLoginFailed);
+          if (resolved?.switchToLogin) setIsLogin(true);
         } else {
-          // Coming from onboarding or premium-pricing: go to paywall
-          if (isFromOnboarding || isFromPremiumPricing) {
-            navigate('/premium-pricing', { replace: true });
+          const activeSession = session ?? (await supabase.auth.getSession()).data.session;
+          if (!activeSession && !(await waitForAuthSession(3500))) {
+            setError(t.authSignInIncomplete);
             return;
           }
 
-          const redirectPath = localStorage.getItem('redirectAfterAuth');
-          if (redirectPath) {
-            localStorage.removeItem('redirectAfterAuth');
-            navigate(redirectPath);
-          } else {
-            navigate('/');
-          }
+          await finishAuthRedirect(activeSession, { emailPasswordLogin: true });
         }
-      } else {
+      } else if (!isLoginOnly) {
         const shouldGoToPricing = isFromOnboarding || isFromPremiumPricing;
-        // Nach Klick in der Bestätigungs-Mail: immer zurück in die App zur Paywall
-        const redirectTo = `${window.location.origin}/email-confirmation?confirmed=true&next=/premium-pricing&from=${shouldGoToPricing ? 'premium' : 'signup'}`;
 
-        const { error } = await signUp(email, password, { emailRedirectTo: redirectTo });
+        const { error } = await signUp(email, password, { silent: true });
         if (error) {
-          // Better error messages for signup
-          if (error.message?.includes('already registered')) {
-            setError('Dieses Konto existiert bereits. Bitte melden Sie sich an');
+          const resolved = resolveAuthErrorMessage(error, language, 'signup');
+          if (resolved) {
+            setError(resolved.message);
+            if (resolved.switchToLogin) {
+              setIsLogin(true);
+              return;
+            }
           } else if (error.message?.includes('Password should be at least')) {
-            setError('Passwort muss mindestens 6 Zeichen lang sein');
+            setError(t.authPasswordMinLength);
           } else if (error.message?.includes('Invalid email')) {
-            setError('Bitte geben Sie eine gültige E-Mail-Adresse ein');
+            setError(t.authInvalidEmail);
           } else {
-            setError(error.message || 'Registrierung fehlgeschlagen');
+            setError(error.message || t.authSignupFailed);
           }
+        } else if (!(await waitForAuthSession(3000))) {
+          setError(t.authSignInIncomplete);
         } else {
-          const params = new URLSearchParams();
-          params.set('email', email);
-          params.set('next', '/premium-pricing');
-          params.set('from', shouldGoToPricing ? 'premium' : 'signup');
-          navigate(`/email-confirmation?${params.toString()}`, { replace: true });
+          const activeSession = (await supabase.auth.getSession()).data.session;
+          if (shouldGoToPricing && isFromOnboarding) {
+            persistOnboardingSignupFromStorage();
+          }
+          redirectStartedRef.current = false;
+          await finishAuthRedirect(activeSession);
         }
       }
     } finally {
@@ -115,10 +209,29 @@ const AuthPage = () => {
     }
   };
 
-  // Show loading while checking auth state
-  if (loading) {
+  useEffect(() => {
+    if (searchParams.get('oauth_error') !== '1') return;
+    setError(t.authLoginFailed);
+    clearOAuthPending();
+    window.history.replaceState({}, '', '/auth');
+  }, [searchParams, t.authLoginFailed]);
+
+  useEffect(() => {
+    clearStaleOAuthPendingIfIdle();
+  }, []);
+
+  const oauthInFlight =
+    hasOAuthCallback ||
+    isAuthCompletionPending() ||
+    isAuthFlowOverlayVisible() ||
+    getOAuthPending() ||
+    isGoogleLoading ||
+    isAppleLoading;
+
+  // OAuth return / post-auth: only loader — never flash the login form.
+  if (oauthInFlight || isRedirecting) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-primary">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary px-6">
         <div className="text-center">
           <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
           <p className="text-muted-foreground">{t.loading}</p>
@@ -127,37 +240,94 @@ const AuthPage = () => {
     );
   }
 
+  const showAuthLoader = loading && !user;
+
+  if (showAuthLoader) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary px-6">
+        <div className="text-center">
+          <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl animate-pulse" />
+          <p className="text-muted-foreground">{t.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (user && authStuck) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-primary px-6">
+        <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-center shadow-lg">
+          <img src={frigLogo} alt="Frigy" className="h-12 w-12 mx-auto mb-4 rounded-xl" />
+          <p className="text-sm text-muted-foreground mb-4">
+            {t.authStuckMessage}
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                redirectStartedRef.current = false;
+                setAuthStuck(false);
+                void finishAuthRedirect();
+              }}
+            >
+              {t.authStuckContinue}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                redirectStartedRef.current = false;
+                setAuthStuck(false);
+                clearOAuthPending();
+                await signOut();
+                setAuthStuck(false);
+                window.location.replace('/auth');
+              }}
+            >
+              {t.authStuckSignOutRestart}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-primary safe-area-inset">
+    <div className="flex min-h-dvh flex-col bg-gradient-primary safe-area-inset">
       {/* Back Button Header */}
-      <div className="sticky top-0 z-50 backdrop-blur-lg bg-background/80 safe-top">
-        <div className="container mx-auto px-3 py-3">
+      <div className="shrink-0 safe-top">
+        <div className="container mx-auto px-4 py-2">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}
-            className="touch-target h-10 w-10"
+            onClick={handleBack}
+            className="touch-target h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex flex-1 items-start justify-center px-4 pb-6 pt-3 sm:items-center sm:pt-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-6 sm:p-8 border border-primary/20">
-            <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="bg-card/80 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-neon p-5 sm:p-8 border border-primary/20">
+            <div className="flex items-center justify-center mb-5 sm:mb-8">
               <img src={frigLogo} alt="Frigy" className="h-12 w-12 rounded-xl" />
               <h1 className="text-2xl sm:text-3xl font-bold ml-3 neon-text">Frigy</h1>
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">
-              {isLogin ? t.signIn : t.signUp}
+            <h2 className="text-xl sm:text-2xl font-bold text-center mb-3 sm:mb-4">
+              {t.signIn}
             </h2>
+            {isLoginOnly && (
+              <p className="mb-4 text-center text-sm text-muted-foreground">
+                {t.authSignInOnlyHint}
+              </p>
+            )}
 
             {error && (
               <motion.div
@@ -169,7 +339,7 @@ const AuthPage = () => {
               </motion.div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:mt-8 sm:space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">{t.email}</Label>
                 <Input
@@ -201,7 +371,7 @@ const AuthPage = () => {
                 size="lg"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? t.loading : (isLogin ? t.signIn : t.signUp)}
+                {isSubmitting ? t.loading : t.signIn}
               </Button>
             </form>
 
@@ -214,46 +384,79 @@ const AuthPage = () => {
               </div>
             </div>
 
+            {showAppleSignIn && (
+              <Button
+                type="button"
+                className="w-full h-12 sm:h-14 text-base touch-target flex items-center justify-center gap-3 bg-black text-white hover:bg-black/90"
+                onClick={async () => {
+                  setIsAppleLoading(true);
+                  setError(null);
+                  setOAuthPendingFromAuthQuery(oauthFromQuery);
+                  const { error: appleError, flow, session } = await signInWithApple({
+                    authQuery: oauthFromQuery,
+                  });
+                  if (appleError) {
+                    const msg =
+                      appleError instanceof Error ? appleError.message : "Apple-Anmeldung fehlgeschlagen";
+                    setError(msg);
+                  } else if (flow === "cancelled") {
+                    /* user dismissed Apple sheet */
+                  } else {
+                    const activeSession = await waitForAppleSignInSession(flow, session ?? null);
+                    if (activeSession) {
+                      await finishAuthRedirect(activeSession);
+                    } else {
+                      setError(t.authLoginFailed);
+                    }
+                  }
+                  setIsAppleLoading(false);
+                }}
+                disabled={isAppleLoading || isGoogleLoading}
+              >
+                <AppleSignInIcon size={20} />
+                {isAppleLoading ? t.loading : t.signInWithApple}
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="outline"
               className="w-full h-12 sm:h-14 text-base touch-target flex items-center justify-center gap-3 bg-background/50 hover:bg-background/80"
               onClick={async () => {
                 setIsGoogleLoading(true);
-                await signInWithGoogle();
+                setError(null);
+                redirectStartedRef.current = false;
+                setOAuthPendingFromAuthQuery(oauthFromQuery);
+                const { error: googleError } = await signInWithGoogle({
+                  authQuery: oauthFromQuery,
+                });
+                if (googleError) {
+                  setError(t.authLoginFailed);
+                } else if (await waitForOAuthSession(20_000)) {
+                  if (!wasPostAuthRedirectRecentlyHandled()) {
+                    await finishAuthRedirect();
+                  }
+                } else if (!wasPostAuthRedirectRecentlyHandled()) {
+                  setError(t.authLoginFailed);
+                }
                 setIsGoogleLoading(false);
               }}
-              disabled={isGoogleLoading}
+              disabled={isGoogleLoading || isAppleLoading}
             >
-              <svg className="h-5 w-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
+              <GoogleSignInIcon size={20} />
               {isGoogleLoading ? t.loading : t.signInWithGoogle}
             </Button>
 
             <div className="mt-6 text-center space-y-2">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2 block w-full"
-              >
-                {isLogin ? t.noAccount : t.alreadyHaveAccount}
-              </button>
-              {isLogin && (
+              {!isLoginOnly && (
+                <button
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors touch-target py-2 block w-full"
+                >
+                  {isLogin ? t.noAccount : t.alreadyHaveAccount}
+                </button>
+              )}
+              {(isLogin || isLoginOnly) && (
                 <button
                   onClick={() => navigate("/reset-password")}
                   className="text-sm text-primary hover:underline transition-colors"

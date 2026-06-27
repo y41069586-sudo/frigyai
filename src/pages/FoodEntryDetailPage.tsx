@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { notifyFrigyStorageUpdated } from '@/lib/frigyStorageSync';
+import { patchTodayFoodCacheEntry } from '@/hooks/useFoodEntries';
 interface LocalFoodEntry {
   id: string;
   name: string;
@@ -181,7 +182,7 @@ const FoodEntryDetailPage = () => {
           }));
           notifyFrigyStorageUpdated();
           toast({ title: t.saved });
-          navigate('/meal-plans?tab=tracker');
+          navigate('/');
         }
       } catch (error) {
         console.error('Error saving to localStorage:', error);
@@ -198,8 +199,14 @@ const FoodEntryDetailPage = () => {
 
         if (error) throw error;
 
+        patchTodayFoodCacheEntry(id, { name, calories, protein, carbs, fat });
+        window.dispatchEvent(
+          new CustomEvent('foodEntryAdded', {
+            detail: { timestamp: Date.now(), userId: user.id },
+          }),
+        );
         toast({ title: t.saved });
-        navigate('/meal-plans?tab=tracker');
+        navigate('/');
       } catch (error) {
         console.error('Error saving to DB:', error);
         toast({ title: t.errorSaving, variant: 'destructive' });
@@ -225,7 +232,7 @@ const FoodEntryDetailPage = () => {
           }));
           notifyFrigyStorageUpdated();
           toast({ title: t.deleted });
-          navigate('/meal-plans?tab=tracker');
+          navigate('/');
         }
       } catch (error) {
         console.error('Error deleting from localStorage:', error);
@@ -243,7 +250,7 @@ const FoodEntryDetailPage = () => {
         if (error) throw error;
 
         toast({ title: t.deleted });
-        navigate('/meal-plans?tab=tracker');
+        navigate('/');
       } catch (error) {
         console.error('Error deleting from DB:', error);
         toast({ title: t.errorDeleting, variant: 'destructive' });
@@ -274,7 +281,7 @@ const FoodEntryDetailPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-muted-foreground text-center">{t.entryNotFound}</p>
-        <Button onClick={() => navigate('/meal-plans?tab=tracker')}>
+        <Button onClick={() => navigate('/')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           {t.back}
         </Button>
@@ -312,7 +319,7 @@ const FoodEntryDetailPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/meal-plans?tab=tracker')}
+            onClick={() => navigate('/')}
             className="bg-background/60 backdrop-blur-md hover:bg-background/80 border border-border/50"
           >
             <ArrowLeft className="h-5 w-5" />

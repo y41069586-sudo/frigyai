@@ -1,7 +1,20 @@
 /**
  * Einkaufsliste = Lücke: alle Rezeptzutaten minus Kühlschrank (Input).
- * Namen werden normalisiert und per Teilstring gematcht (DE/EN grob).
+ * Mengen werden über die Woche summiert (200g + 150g → 350g).
  */
+
+import { canonicalizeIngredientLabel } from "@/lib/ingredientLabels";
+import { aggregateAmountStrings, isGenericPortionAmount } from "@/lib/ingredientAmounts";
+import {
+  defaultAmountForIngredient,
+  estimateIngredientPrice,
+  resolveIngredientPrice,
+} from "@/lib/ingredientPricing";
+import {
+  formatShoppingListAmount,
+  isInvalidShoppingItemName,
+  parseCombinedIngredientLine,
+} from "@/lib/shoppingListNormalize";
 
 export function normalizeIngredientKey(name: string): string {
   return name
@@ -25,16 +38,32 @@ function tokenize(name: string): string[] {
     .filter((t) => t.length >= 3);
 }
 
+export function ingredientMatchKey(name: string): string {
+  return normalizeIngredientKey(canonicalizeIngredientLabel(name));
+}
+
+export function readFridgeIngredientsFromStorage(): string[] {
+  try {
+    const raw = localStorage.getItem("lastFridgeIngredientList");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
 /** Prüft ob eine Rezeptzutat durch den Kühlschrank abgedeckt ist */
 export function fridgeCoversIngredient(ingredientName: string, fridgeIngredients: string[]): boolean {
-  const n = normalizeIngredientKey(ingredientName);
+  const n = ingredientMatchKey(ingredientName);
   if (!n) return false;
 
   for (const raw of fridgeIngredients) {
-    const f = normalizeIngredientKey(raw);
+    const f = ingredientMatchKey(raw);
     if (!f) continue;
     if (n === f) return true;
-    if (n.includes(f) || f.includes(n)) return true;
+    if (n.length >= 3 && f.length >= 3 && (n.includes(f) || f.includes(n))) return true;
 
     const ftoks = tokenize(raw);
     const itoks = tokenize(ingredientName);
@@ -43,6 +72,31 @@ export function fridgeCoversIngredient(ingredientName: string, fridgeIngredients
     }
   }
   return false;
+}
+
+/** Plan-Zutaten in „vorhanden“ (im Kühlschrank) vs. „fehlend“ — jeweils exclusiv. */
+export function splitIngredientsByFridgeCoverage(
+  mealPlan: DayPlanLike[],
+  fridgeIngredients: string[],
+): { present: string[]; missing: GapListItem[] } {
+  const all = buildGapShoppingList(mealPlan, []);
+  const missing = buildGapShoppingList(mealPlan, fridgeIngredients);
+  const missingKeys = new Set(missing.map((m) => ingredientMatchKey(m.name)));
+
+  const present: string[] = [];
+  const seenPresent = new Set<string>();
+
+  for (const item of all) {
+    const key = ingredientMatchKey(item.name);
+    if (missingKeys.has(key)) continue;
+    const label = canonicalizeIngredientLabel(item.name);
+    const labelKey = ingredientMatchKey(label);
+    if (seenPresent.has(labelKey)) continue;
+    seenPresent.add(labelKey);
+    present.push(label);
+  }
+
+  return { present, missing };
 }
 
 export interface GapListItem {
@@ -59,6 +113,57 @@ export interface DayPlanLike {
   meals?: MealLike[];
 }
 
+function coercePlanIngredient(raw: unknown): { name: string; amount: string; price: number } | null {
+  if (typeof raw === "string") {
+    const parsed = parseCombinedIngredientLine(raw);
+    if (isInvalidShoppingItemName(parsed.name)) return null;
+    const amount = isGenericPortionAmount(parsed.amount)
+      ? defaultAmountForIngredient(parsed.name)
+      : parsed.amount;
+    return {
+      name: parsed.name,
+      amount,
+      price: resolveIngredientPrice(parsed.name, amount, null),
+    };
+  }
+
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  let name = String(obj.name ?? "").trim();
+  let amount = String(obj.amount ?? "").trim();
+  const rawPrice = obj.price;
+
+  if (!name && amount) {
+    name = amount;
+    amount = "";
+  }
+
+  const combined = parseCombinedIngredientLine(name);
+  if (combined.name !== name) {
+    name = combined.name;
+    if (!amount || isGenericPortionAmount(amount)) amount = combined.amount;
+  }
+
+  if (isInvalidShoppingItemName(name) && !isInvalidShoppingItemName(amount)) {
+    name = amount;
+    amount = "";
+  }
+
+  if (isInvalidShoppingItemName(name)) return null;
+
+  if (isGenericPortionAmount(amount) || !amount) {
+    amount = defaultAmountForIngredient(name);
+  } else if (/^[\d.,]+$/.test(amount.trim())) {
+    amount = formatShoppingListAmount(name, amount);
+  }
+
+  return {
+    name,
+    amount,
+    price: resolveIngredientPrice(name, amount, rawPrice),
+  };
+}
+
 /** Sammelt alle Zutaten aus dem Plan, zieht Kühlschrank ab, aggregiert Duplikate */
 export function buildGapShoppingList(
   mealPlan: DayPlanLike[],
@@ -68,25 +173,23 @@ export function buildGapShoppingList(
 
   for (const day of mealPlan) {
     for (const meal of day.meals || []) {
-      for (const ing of meal.ingredients || []) {
-        if (!ing?.name) continue;
+      for (const raw of meal.ingredients || []) {
+        const ing = coercePlanIngredient(raw);
+        if (!ing) continue;
         if (fridgeCoversIngredient(ing.name, fridgeIngredients)) continue;
 
         const key = normalizeIngredientKey(ing.name);
         if (!key) continue;
 
-        const price = typeof ing.price === "number" ? ing.price : Number(ing.price) || 0;
-        const amount = String(ing.amount || "").trim() || "—";
-
         if (map.has(key)) {
           const ex = map.get(key)!;
-          ex.amounts.push(amount);
-          ex.price += price;
+          ex.amounts.push(ing.amount);
+          ex.price += ing.price;
         } else {
           map.set(key, {
             name: ing.name.trim(),
-            amounts: [amount],
-            price,
+            amounts: [ing.amount],
+            price: ing.price,
           });
         }
       }
@@ -95,52 +198,12 @@ export function buildGapShoppingList(
 
   return Array.from(map.values()).map((v) => ({
     name: v.name,
-    amount: [...new Set(v.amounts)].join(" · "),
+    amount: formatShoppingListAmount(v.name, aggregateAmountStrings(v.amounts)),
     price: Math.round(v.price * 100) / 100,
   }));
 }
 
-/** Skaliert jeden Tag so, dass Summen Kalorien & Makros exakt den Zielen entsprechen */
-export function reconcileMealPlanMacros<
-  T extends { meals?: Array<{ calories?: number; protein?: number; carbs?: number; fat?: number }> },
->(
-  mealPlan: T[],
-  targets: {
-    dailyCalories: number;
-    dailyProtein: number;
-    dailyCarbs: number;
-    dailyFat: number;
-  },
-): T[] {
-  return mealPlan.map((day) => {
-    const meals = day.meals || [];
-    let sumC = 0;
-    let sumP = 0;
-    let sumCb = 0;
-    let sumF = 0;
-    for (const m of meals) {
-      sumC += m.calories || 0;
-      sumP += m.protein || 0;
-      sumCb += m.carbs || 0;
-      sumF += m.fat || 0;
-    }
-    if (meals.length === 0) return day;
-    const fc = targets.dailyCalories / (sumC || 1);
-    const fp = targets.dailyProtein / (sumP || 1);
-    const fcb = targets.dailyCarbs / (sumCb || 1);
-    const ff = targets.dailyFat / (sumF || 1);
-    return {
-      ...day,
-      meals: meals.map((m) => ({
-        ...m,
-        calories: Math.round((m.calories || 0) * fc),
-        protein: Math.round((m.protein || 0) * fp),
-        carbs: Math.round((m.carbs || 0) * fcb),
-        fat: Math.round((m.fat || 0) * ff),
-      })),
-    } as T;
-  });
-}
+export { reconcileMealPlanMacros, syncMealPlanToTargets } from "@/lib/mealPlanMacros";
 
 export function computeFridgeScanStats(
   mealPlan: DayPlanLike[],
@@ -173,8 +236,10 @@ export function computeFridgeScanStats(
       for (const ing of meal.ingredients || []) {
         if (!ing?.name) continue;
         if (!fridgeCoversIngredient(ing.name, fridgeIngredients)) continue;
-        const p = typeof ing.price === "number" ? ing.price : Number(ing.price) || 0;
-        saved += p;
+        const amount = isGenericPortionAmount(String(ing.amount ?? ""))
+          ? defaultAmountForIngredient(ing.name)
+          : String(ing.amount ?? defaultAmountForIngredient(ing.name));
+        saved += resolveIngredientPrice(ing.name, amount, ing.price);
       }
     }
   }
@@ -185,3 +250,5 @@ export function computeFridgeScanStats(
 
   return { percentHave, eurosSaved };
 }
+
+export { estimateIngredientPrice };

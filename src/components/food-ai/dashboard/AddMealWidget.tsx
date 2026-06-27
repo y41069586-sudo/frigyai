@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Camera, PenLine, Sparkles, UtensilsCrossed } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type AddMealWidgetProps = {
   delay?: number;
@@ -11,6 +12,8 @@ type AddMealWidgetProps = {
 };
 
 export function AddMealWidget({ delay = 0, onScan, onManual, onGenerateRecipe }: AddMealWidgetProps) {
+  const { t } = useLanguage();
+
   return (
     <WidgetCard delay={delay} variant="gradient" interactive={false} className="rounded-[2.25rem] rounded-tl-md">
       <div className="flex items-center gap-3">
@@ -18,8 +21,8 @@ export function AddMealWidget({ delay = 0, onScan, onManual, onGenerateRecipe }:
           <UtensilsCrossed className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Essen</p>
-          <h3 className="text-xl font-bold tracking-tight">Was isst du?</h3>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t.dashboardAddMealLabel}</p>
+          <h3 className="text-xl font-bold tracking-tight">{t.dashboardAddMealTitle}</h3>
         </div>
       </div>
 
@@ -40,8 +43,8 @@ export function AddMealWidget({ delay = 0, onScan, onManual, onGenerateRecipe }:
           <div className="flex items-center gap-4">
             <Camera className="h-8 w-8 shrink-0 text-primary-foreground" />
             <div>
-              <p className="text-base font-bold">Meal scannen</p>
-              <p className="text-sm font-medium text-primary-foreground/85">Kamera · schnell erfassen</p>
+              <p className="text-base font-bold">{t.dashboardScanMealTitle}</p>
+              <p className="text-sm font-medium text-primary-foreground/85">{t.dashboardScanMealSubtitle}</p>
             </div>
           </div>
         </motion.button>
@@ -62,8 +65,8 @@ export function AddMealWidget({ delay = 0, onScan, onManual, onGenerateRecipe }:
           >
             <PenLine className="h-6 w-6 text-primary" />
             <div>
-              <p className="text-sm font-bold text-foreground">Manuell hinzufügen</p>
-              <p className="text-[11px] font-medium text-muted-foreground">Tracker</p>
+              <p className="text-sm font-bold text-foreground">{t.dashboardManualMealTitle}</p>
+              <p className="text-[11px] font-medium text-muted-foreground">{t.dashboardManualMealSubtitle}</p>
             </div>
           </motion.button>
           <motion.button
@@ -81,8 +84,8 @@ export function AddMealWidget({ delay = 0, onScan, onManual, onGenerateRecipe }:
           >
             <Sparkles className="h-6 w-6 text-primary" />
             <div>
-              <p className="text-sm font-bold text-foreground">Rezept generieren</p>
-              <p className="text-[11px] font-medium text-muted-foreground">KI · aus Vorrat</p>
+              <p className="text-sm font-bold text-foreground">{t.dashboardGenerateRecipeTitle}</p>
+              <p className="text-[11px] font-medium text-muted-foreground">{t.dashboardGenerateRecipeSubtitle}</p>
             </div>
           </motion.button>
         </div>

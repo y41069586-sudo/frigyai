@@ -11,6 +11,7 @@ import { useTrackerSettings } from '@/hooks/useTrackerSettings';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGamification } from '@/hooks/useGamification';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getAppLocale } from '@/lib/mealPlanLanguage';
 
 interface WeightEntry {
   id: string;
@@ -20,7 +21,8 @@ interface WeightEntry {
 
 export const ProgressTracker = () => {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const dateLocale = getAppLocale(language);
   const { recordActivity, checkAndAwardBadge } = useGamification();
   const { settings: trackerSettings } = useTrackerSettings();
   const [entries, setEntries] = useState<WeightEntry[]>([]);
@@ -114,7 +116,7 @@ export const ProgressTracker = () => {
   };
 
   const chartData = entries.map(e => ({
-    date: new Date(e.recorded_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }),
+    date: new Date(e.recorded_at).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' }),
     weight: e.weight,
   }));
 
@@ -282,7 +284,7 @@ export const ProgressTracker = () => {
                 <div>
                   <span className="font-medium">{entry.weight} {t.kg}</span>
                   <span className="text-xs text-muted-foreground ml-2">
-                    {new Date(entry.recorded_at).toLocaleDateString('de-DE')}
+                    {new Date(entry.recorded_at).toLocaleDateString(dateLocale)}
                   </span>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => deleteEntry(entry.id)}>

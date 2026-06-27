@@ -8,14 +8,62 @@ const corsHeaders = {
   "Access-Control-Max-Age": "86400",
 };
 
-const FREE_SCAN_LIMIT = 0;
+const CANONICAL_RULES: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\b(freiland|bio|frische?)?\s*-?\s*(eier|ei\b|eggs?)\b/i, label: "Eier" },
+  { pattern: /\b(voll|magere?|hafer|soja|mandel|kokos|laktosefreie?)?\s*-?\s*milch\b/i, label: "Milch" },
+  { pattern: /\b(butter|margarine)\b/i, label: "Butter" },
+  { pattern: /\b(natur|griechischer?|frischkäse|quark|joghurt|skyr)\b/i, label: "Joghurt" },
+  { pattern: /\b(tomaten?|cherrytomaten)\b/i, label: "Tomaten" },
+  { pattern: /\b(gurke|gurken)\b/i, label: "Gurke" },
+  { pattern: /\b(zwiebeln?|zwiebel)\b/i, label: "Zwiebel" },
+  { pattern: /\b(kartoffeln?|kartoffel)\b/i, label: "Kartoffeln" },
+  { pattern: /\b(paprika|peperoni)\b/i, label: "Paprika" },
+  { pattern: /\b(käse|mozzarella|gouda|cheddar|parmesan|feta)\b/i, label: "Käse" },
+  { pattern: /\b(hähnchen|huhn|puten|hähnchenbrust)\b/i, label: "Hähnchen" },
+  { pattern: /\b(rind|rinderhack|hackfleisch|gehacktes)\b/i, label: "Hackfleisch" },
+  { pattern: /\b(brot|brötchen|toast|baguette)\b/i, label: "Brot" },
+  { pattern: /\b(reis|basmati|jasminreis)\b/i, label: "Reis" },
+  { pattern: /\b(nudeln?|pasta|spaghetti|penne)\b/i, label: "Nudeln" },
+  { pattern: /\b(äpfel?|apfel)\b/i, label: "Äpfel" },
+  { pattern: /\b(bananen?|banane)\b/i, label: "Bananen" },
+  { pattern: /\b(salat|kopfsalat|rucola)\b/i, label: "Salat" },
+  { pattern: /\b(möhren?|karotten?|mohren)\b/i, label: "Möhren" },
+  { pattern: /\b(pilze|champignons?)\b/i, label: "Champignons" },
+  { pattern: /\b(wasserflasche|trinkwasser|mineralwasser|stilles\s*wasser|wasser|water|sprudel)\b/i, label: "Wasser" },
+  { pattern: /\b(saft|orangensaft|apfelsaft)\b/i, label: "Saft" },
+  { pattern: /\b(cornflakes?|müsli|muesli|haferflocken)\b/i, label: "Müsli" },
+  { pattern: /\b(kakao|kakaopulver|cocoa)\b/i, label: "Kakaopulver" },
+  { pattern: /\b(tee|kräutertee|grüntee)\b/i, label: "Tee" },
+  { pattern: /\b(kaffee|espresso|instantkaffee)\b/i, label: "Kaffee" },
+  { pattern: /\b(honig|marmelade|nutella|erdnussbutter|peanut butter)\b/i, label: "Aufstrich" },
+  { pattern: /\b(öl|olivenöl|sonnenblumenöl|rapsöl)\b/i, label: "Öl" },
+  { pattern: /\b(mehl|weizenmehl|dinkelmehl)\b/i, label: "Mehl" },
+  { pattern: /\b(zucker|rohrzucker|puderzucker)\b/i, label: "Zucker" },
+];
 
-const getWeekStart = (): string => {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(now.setDate(diff)).toISOString().split('T')[0];
-};
+function canonicalizeIngredientLabel(raw: string): string {
+  const trimmed = raw.trim().replace(/\s+/g, " ");
+  if (!trimmed) return trimmed;
+  const lower = trimmed.toLowerCase();
+  for (const { pattern, label } of CANONICAL_RULES) {
+    if (pattern.test(lower) || pattern.test(trimmed)) return label;
+  }
+  if (trimmed.length <= 1) return trimmed;
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function dedupeIngredientLabels(items: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of items) {
+    const label = canonicalizeIngredientLabel(raw);
+    const key = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(label);
+  }
+  return out;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -32,7 +80,10 @@ serve(async (req) => {
     // Parse request first
     const body = await req.json();
     const image = body.image;
-    const isOnboarding = body.isOnboarding === true; // Flag for onboarding scan
+    const isOnboarding = body.isOnboarding === true;
+    const knownIngredients = Array.isArray(body.knownIngredients)
+      ? body.knownIngredients.map((i: unknown) => String(i).trim()).filter(Boolean)
+      : [];
     
     if (!image || typeof image !== 'string') {
       return new Response(JSON.stringify({ error: "Kein Bild" }), { 
@@ -78,44 +129,14 @@ serve(async (req) => {
 
         console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
 
-        // Limit check for logged-in free users (not during onboarding)
         if (!isPremium && !isOnboarding) {
-          const weekStart = getWeekStart();
-          const { data: usageData } = await supabase
-            .from('scan_usage')
-            .select('scan_count')
-            .eq('user_id', userId)
-            .eq('week_start', weekStart)
-            .maybeSingle();
-          
-          const currentCount = usageData?.scan_count || 0;
-
-          if (currentCount >= FREE_SCAN_LIMIT) {
-            return new Response(JSON.stringify({ 
-              error: "scan_limit_exceeded", 
-              message: "Wöchentlicher Scan erreicht. Premium für unbegrenzte Scans!",
-              scansUsed: currentCount,
-              scansLimit: FREE_SCAN_LIMIT 
-            }), { 
-              status: 429, 
-              headers: { ...corsHeaders, "Content-Type": "application/json" } 
-            });
-          }
-
-          // Increment usage
-          if (usageData) {
-            await supabase.from('scan_usage')
-              .update({ scan_count: currentCount + 1, updated_at: new Date().toISOString() })
-              .eq('user_id', userId)
-              .eq('week_start', weekStart);
-          } else {
-            await supabase.from('scan_usage').insert({ 
-              user_id: userId, 
-              scan_date: new Date().toISOString().split('T')[0], 
-              week_start: weekStart, 
-              scan_count: 1 
-            });
-          }
+          return new Response(JSON.stringify({
+            error: "premium_required",
+            message: "Premium erforderlich für Kühlschrank-Scans.",
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
       }
     }
@@ -128,26 +149,34 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[SCAN] Mode: ${isOnboarding ? 'ONBOARDING (FREE)' : userId ? 'USER' : 'GUEST'}`);
+    console.log(`[SCAN] Mode: ${isOnboarding ? 'ONBOARDING' : userId ? 'USER' : 'GUEST'}`);
 
 
     // OpenAI Vision - OPTIMIZED
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || Deno.env.get("OPEN_AI_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY fehlt");
 
-    console.log(`[SCAN] Calling OpenAI... | ${Date.now() - startTotal}ms`);
+    console.log(`[SCAN] Calling OpenAI... | known=${knownIngredients.length} | ${Date.now() - startTotal}ms`);
 
-    // OPTIMIZED PROMPT - Short & Direct
-    const prompt = `Scan dieses Kühlschrank/Essen-Foto. Liste ALLE sichtbaren Lebensmittel auf deutsch.
+    const knownHint = knownIngredients.length
+      ? `\nBereits auf anderen Fotos erkannt (nicht wiederholen, nur ergänzen): ${knownIngredients.join(", ")}`
+      : "";
+
+    const prompt = `Du analysierst Kühlschrank-, Vorrat- oder Essensfotos für eine Einkaufsliste.
 
 Antwort NUR als JSON:
-{"ingredients":["Zutat1","Zutat2","Zutat3"]}
+{"ingredients":["Eier","Milch","Cornflakes","Kakaopulver"]}
 
 Regeln:
-- Jedes einzelne Lebensmittel auflisten
-- Kurze Namen (Milch, Eier, Butter, Käse, Tomaten...)
-- Bei Unsicherheit trotzdem auflisten
-- KEIN Text außer dem JSON`;
+- Liste JEDES sichtbare Lebensmittel auf Deutsch (Grundform: "Eier", "Milch", "Tomaten", "Cornflakes", "Kakaopulver")
+- Auch einzelne Eier, Eierkartons, Packungen, Dosen, Kartons, Schachteln, Tüten, Tupperware, Obst in Schalen
+- WICHTIG: Lies Produktnamen von Verpackungen (Cornflakes, Müsli, Kakao, Nudeln, Reis, Mehl, Zucker, Kaffee, Tee, Öl, Gewürze) — auch wenn nur die Vorderseite/Karton sichtbar ist
+- Flaschen: Wasser, Mineralwasser, Sprudel, Saft, Milch, Öl, Saucen
+- Auch wenn teilweise verdeckt, unscharf oder im Hintergrund — trotzdem auflisten
+- Scanne das gesamte Bild systematisch: oben, mitte, unten, links, rechts
+- Lieber zu viel listen als etwas Wichtiges weglassen
+- Keine Mengenangaben im Namen (nicht "6 Eier", sondern "Eier")
+- Kein Text außer dem JSON${knownHint}`;
 
     let response: Response;
     try {
@@ -158,16 +187,17 @@ Regeln:
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [{
             role: "user",
             content: [
               { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: image, detail: "auto" } }
+              { type: "image_url", image_url: { url: image, detail: "high" } }
             ]
           }],
-          max_tokens: 500,
-          temperature: 0.1,
+          max_tokens: 1600,
+          temperature: 0.15,
+          response_format: { type: "json_object" },
         }),
       });
     } catch (e: any) {
@@ -231,29 +261,17 @@ Regeln:
       }
     }
 
-    // Clean up ingredients
-    ingredients = ingredients
-      .map((i: string) => i.trim())
-      .filter((i: string) => i.length > 1 && i.length < 50);
+    // Clean up + canonicalize ingredients
+    ingredients = dedupeIngredientLabels(
+      ingredients
+        .map((i: string) => i.trim())
+        .filter((i: string) => i.length > 1 && i.length < 50),
+    );
 
     console.log(`[SCAN] Found ${ingredients.length} ingredients | Total: ${Date.now() - startTotal}ms`);
 
-    // Get remaining scans for free users (only if logged in)
-    let scansRemaining = null;
-    if (!isPremium && userId) {
-      const weekStart = getWeekStart();
-      const { data: usageData } = await supabase
-        .from('scan_usage')
-        .select('scan_count')
-        .eq('user_id', userId)
-        .eq('week_start', weekStart)
-        .maybeSingle();
-      scansRemaining = FREE_SCAN_LIMIT - (usageData?.scan_count || 0);
-    }
-
     return new Response(JSON.stringify({ 
       ingredients,
-      scansRemaining,
       isPremium,
       responseTime: Date.now() - startTotal
     }), { 

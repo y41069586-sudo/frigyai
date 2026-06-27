@@ -3,6 +3,9 @@ import { Flame, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { getAppLocale } from "@/lib/mealPlanLanguage";
+import { getLocalDateISO } from "@/lib/localDate";
 
 interface DashboardMacroRingProps {
   caloriesEaten: number;
@@ -76,6 +79,8 @@ export const DashboardMacroRing = ({
   targetFat,
 }: DashboardMacroRingProps) => {
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const numberLocale = getAppLocale(language);
   const [weekData, setWeekData] = useState<DayData[]>([]);
   
   const remainingCalories = Math.max(0, targetCalories - caloriesEaten);
@@ -95,7 +100,7 @@ export const DashboardMacroRing = ({
       for (let i = -2; i <= 2; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateISO(date);
         const dayOfWeek = date.getDay();
         
         days.push({
@@ -201,7 +206,7 @@ export const DashboardMacroRing = ({
                 <Flame className="w-4 h-4 text-primary" />
               </div>
               <span className="text-3xl font-black text-foreground tracking-tight">
-                {caloriesEaten.toLocaleString('de-DE')}
+                {caloriesEaten.toLocaleString(numberLocale)}
               </span>
               <span className="block text-xs text-muted-foreground font-medium">kcal</span>
             </motion.div>
@@ -217,7 +222,7 @@ export const DashboardMacroRing = ({
           >
             <p className="text-sm text-muted-foreground mb-1">Tagesziel</p>
             <p className="text-2xl font-bold text-foreground">
-              {targetCalories.toLocaleString('de-DE')}
+              {targetCalories.toLocaleString(numberLocale)}
               <span className="text-sm font-normal text-muted-foreground ml-1">kcal</span>
             </p>
           </motion.div>

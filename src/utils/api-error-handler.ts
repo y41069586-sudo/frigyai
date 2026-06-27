@@ -7,17 +7,27 @@ const isApiErrorObject = (error: unknown): error is Record<string, unknown> & { 
   return error !== null && typeof error === 'object' && 'code' in error;
 };
 
+const getObjectProp = (obj: unknown, key: string): unknown =>
+  obj !== null && typeof obj === 'object' ? (obj as Record<string, unknown>)[key] : undefined;
+
 /**
  * Parse error response from Supabase function
  */
 export const parseApiError = (error: unknown): ApiError => {
   // If it's already an ApiError object
-  if (error && typeof error === 'object' && 'code' in error) {
+  if (isApiErrorObject(error)) {
+    const code = String(error.code);
     return {
-      code: error.code,
-      message: error.message || ERROR_MESSAGES[error.code as ErrorCode] || ERROR_MESSAGES[ERROR_CODES.UNKNOWN_ERROR],
-      details: error.details,
-      status: error.status,
+      code,
+      message:
+        typeof error.message === 'string'
+          ? error.message
+          : ERROR_MESSAGES[code as ErrorCode] || ERROR_MESSAGES[ERROR_CODES.UNKNOWN_ERROR],
+      details:
+        getObjectProp(error, 'details') && typeof getObjectProp(error, 'details') === 'object'
+          ? (getObjectProp(error, 'details') as Record<string, unknown>)
+          : undefined,
+      status: typeof error.status === 'number' ? error.status : undefined,
     };
   }
 
@@ -39,15 +49,21 @@ export const parseApiError = (error: unknown): ApiError => {
 
   // Check for Supabase function error format
   if (error && typeof error === 'object') {
-    const code = (error as any).code || (error as any).errorCode;
-    const message = (error as any).message || (error as any).msg;
+    const code = getObjectProp(error, 'code') ?? getObjectProp(error, 'errorCode');
+    const message = getObjectProp(error, 'message') ?? getObjectProp(error, 'msg');
     
     if (code) {
       return {
-        code,
-        message: message || ERROR_MESSAGES[code as ErrorCode] || ERROR_MESSAGES[ERROR_CODES.UNKNOWN_ERROR],
-        details: (error as any).details,
-        status: (error as any).status,
+        code: String(code),
+        message:
+          typeof message === 'string'
+            ? message
+            : ERROR_MESSAGES[String(code) as ErrorCode] || ERROR_MESSAGES[ERROR_CODES.UNKNOWN_ERROR],
+        details:
+          getObjectProp(error, 'details') && typeof getObjectProp(error, 'details') === 'object'
+            ? (getObjectProp(error, 'details') as Record<string, unknown>)
+            : undefined,
+        status: typeof getObjectProp(error, 'status') === 'number' ? (getObjectProp(error, 'status') as number) : undefined,
       };
     }
   }
@@ -104,7 +120,7 @@ export const handleFunctionError = (
 ): ApiError => {
   // Supabase function error structure
   if (error && typeof error === 'object' && 'error' in error) {
-    const innerError = (error as any).error;
+    const innerError = getObjectProp(error, 'error');
     
     // If inner error is already an ApiError
     if (innerError && typeof innerError === 'object' && 'code' in innerError) {

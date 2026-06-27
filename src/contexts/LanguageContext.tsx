@@ -1,8 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { dispatchLanguageChanged } from "@/lib/mealPlanLanguage";
+import {
+  extendedTranslations,
+  type ExtendedTranslations,
+  formatTranslation,
+} from "./translationsExtended";
 
 export type Language = "de" | "en" | "fr";
+export { formatTranslation };
 
-interface Translations {
+export interface Translations extends ExtendedTranslations {
   // Navigation & Common
   login: string;
   logout: string;
@@ -271,7 +278,6 @@ interface Translations {
   homeTitle: string;
   homeSubtitle: string;
   scanFridge: string;
-  scansRemaining: string;
   unlimitedWithPremium: string;
   tip: string;
   tipText: string;
@@ -386,6 +392,9 @@ interface Translations {
   signIn: string;
   signUp: string;
   signInWithGoogle: string;
+  signInWithApple: string;
+  restorePurchases: string;
+  linkAppleAccount: string;
   noAccount: string;
   alreadyHaveAccount: string;
   forgotPassword: string;
@@ -419,10 +428,44 @@ interface Translations {
   foodAdded: string;
   entryUpdated: string;
   couldNotAnalyzeFood: string;
+  foodNotFound: string;
   patienceMessage: string;
   calculatingCalories: string;
   determiningNutrients: string;
   almostDone: string;
+  frigySays: string;
+  foodScanPlateTitle: string;
+  foodScanAiPowered: string;
+  foodScanTryAnotherDish: string;
+  foodScanRecognized: string;
+  foodScanScanAnother: string;
+  foodScanContinue: string;
+  foodNotFoodHint: string;
+  foodAnalyzeTimeout: string;
+  foodPhotoReadError: string;
+  foodPhotoProcessError: string;
+  noAnalysisData: string;
+  gallery: string;
+  cameraGalleryHint: string;
+  cameraOpenDevHint: string;
+  cameraLocalhostHint: string;
+  cameraBlockedHint: string;
+  cameraNoDeviceGallery: string;
+  cameraInUseHint: string;
+  cameraLiveUnavailableHint: string;
+  cameraUnsupportedHint: string;
+  cameraHttpsHint: string;
+  cameraStartSlowHint: string;
+  cameraPreviewHint: string;
+  ingredientsNotRecognizedHint: string;
+  ingredientScanAnalyzingTitle: string;
+  ingredientsPresentLabel: string;
+  ingredientsMissingLabel: string;
+  createShoppingListBtn: string;
+  addPhotoBtn: string;
+  finishScanAnalyzeBtn: string;
+  ingredientScanTapShutter: string;
+  ingredientScanRetryAction: string;
   
   // Meal Plans
   weeklyPlan: string;
@@ -481,7 +524,6 @@ interface Translations {
   toastError: string;
   toastSuccess: string;
   notLoggedIn: string;
-  loadingStripePortal: string;
   pleaseWait: string;
   
   // Bottom Navigation
@@ -510,7 +552,6 @@ interface Translations {
   unlimited: string;
   loginRequired: string;
   loginToUseScanner: string;
-  scanLimitReached: string;
   aiAnalyzingIngredients: string;
   /** Kühlschrank-Scan Overlay */
   analyzingFridge: string;
@@ -591,7 +632,6 @@ interface Translations {
   german: string;
   english: string;
   french: string;
-  redirectingToStripe: string;
   noCheckoutUrl: string;
   noPortalUrl: string;
   
@@ -622,6 +662,22 @@ interface Translations {
   mealPlanGenerating6: string;
   mealPlanGenerating7: string;
   mealPlanBackgroundHint: string;
+
+  // First weekly plan (post-registration)
+  firstWeeklyPlanTitle: string;
+  firstWeeklyPlanSubtitle: string;
+  firstWeeklyPlanCreateBtn: string;
+  firstWeeklyPlanSuccessTitle: string;
+  firstWeeklyPlanSuccessSubtitle: string;
+  firstWeeklyPlanContinueBtn: string;
+  firstWeeklyPlanPerfectBtn: string;
+  splashLoginAccountReady: string;
+  firstWeeklyPlanFeatureMeals: string;
+  firstWeeklyPlanFeatureMacros: string;
+  firstWeeklyPlanFeatureShopping: string;
+  firstWeeklyPlanStayOnTab: string;
+  firstWeeklyPlanPreviewTitle: string;
+  firstWeeklyPlanPreviewSubtitle: string;
   
   // Dashboard & Home
   goodMorning: string;
@@ -781,6 +837,7 @@ interface Translations {
   timeSavedLabel: string;
   goalSuccessLabel: string;
   saveYourProgress: string;
+  orContinueWith: string;
   createAccountToSave: string;
   signInToContinue: string;
   emailAddressPlaceholder: string;
@@ -860,7 +917,6 @@ const translations: Record<Language, Translations> = {
     homeTitle: "Leichter Abnehmen",
     homeSubtitle: "Kühlschrank scannen • Tracker einstellen • Abnehm-Rezepte genießen",
     scanFridge: "Kühlschrank scannen",
-    scansRemaining: "Scans heute übrig",
     unlimitedWithPremium: "Unlimited mit Premium",
     tip: "Tipp",
     tipText: "Scanne deinen Kühlschrank und erhalte sofort kalorienarme Rezepte mit nur 3-4 Zutaten.",
@@ -903,8 +959,8 @@ const translations: Record<Language, Translations> = {
     onboardingSlide6Title: "Leichter abnehmen",
     onboardingSlide6Subtitle: "Erreiche dein Wunschgewicht",
     // New onboarding slides 7-14
-    onboardingSlide7Title: "Health Sync",
-    onboardingSlide7Subtitle: "Verbinde deine Gesundheitsdaten",
+    onboardingSlide7Title: "Wöchentliche Meal Plans",
+    onboardingSlide7Subtitle: "KI-Pläne passend zu deinen Zielen",
     onboardingSlide8Title: "Community",
     onboardingSlide8Subtitle: "Teile Rezepte & verbinde dich",
     onboardingSlide9Title: "Über 10.000 zufriedene Nutzer",
@@ -914,10 +970,10 @@ const translations: Record<Language, Translations> = {
     onboardingSlide13Title: "Was ist deine größte Herausforderung?",
     onboardingSlide14Title: "Du bist bereit! 🎉",
     // Health Sync options
-    healthSyncTitle: "Health Sync aktivieren?",
-    healthSyncSubtitle: "Synchronisiere Gewicht & Aktivitäten automatisch",
-    connectAppleHealth: "Apple Health verbinden",
-    connectGoogleFit: "Google Fit verbinden",
+    healthSyncTitle: "Gewicht & Aktivität",
+    healthSyncSubtitle: "Trage Gewicht und Schritte in Frigy ein",
+    connectAppleHealth: "Gewicht manuell eintragen",
+    connectGoogleFit: "Aktivität manuell eintragen",
     skipForNow: "Später einstellen",
     communityTitle: "Community beitreten?",
     communitySubtitle: "Teile Rezepte und motiviere andere",
@@ -964,9 +1020,9 @@ const translations: Record<Language, Translations> = {
     premiumFeature5: "Makro- & Kalorientracker",
     premiumFeature6: "Wasser-Tracker mit Erinnerungen",
     premiumFeature7: "Gewichtsverlauf & Statistiken",
-    freeTrialInfo: "1 Woche kostenlos testen, dann €4,99/Monat",
+    freeTrialInfo: "3 Tage kostenlos testen",
     continueWithFree: "Kostenlos starten",
-    startFreeTrial: "1 Woche gratis testen",
+    startFreeTrial: "3 Tage gratis testen",
     
     // Auth
     email: "E-Mail",
@@ -975,6 +1031,9 @@ const translations: Record<Language, Translations> = {
     signIn: "Anmelden",
     signUp: "Registrieren",
     signInWithGoogle: "Mit Google anmelden",
+    signInWithApple: "Mit Apple anmelden",
+    restorePurchases: "Käufe wiederherstellen",
+    linkAppleAccount: "Apple-Konto verknüpfen",
     noAccount: "Noch kein Konto? Jetzt registrieren",
     alreadyHaveAccount: "Bereits registriert? Jetzt anmelden",
     forgotPassword: "Passwort vergessen?",
@@ -1015,10 +1074,44 @@ const translations: Record<Language, Translations> = {
     foodAdded: "Essen hinzugefügt",
     entryUpdated: "Eintrag aktualisiert",
     couldNotAnalyzeFood: "Konnte Essen nicht analysieren",
+    foodNotFound: "Essen nicht gefunden",
     patienceMessage: "Danke für die Geduld...",
     calculatingCalories: "Kalorien werden berechnet...",
     determiningNutrients: "Nährwerte ermitteln...",
     almostDone: "Fast fertig...",
+    frigySays: "Frigy sagt",
+    foodScanPlateTitle: "Teller wird gescannt.",
+    foodScanAiPowered: "KI-gestützt ✨",
+    foodScanTryAnotherDish: "Anderes Gericht versuchen",
+    foodScanRecognized: "Erfolgreich erkannt!",
+    foodScanScanAnother: "Weiteres Gericht",
+    foodScanContinue: "Weiter",
+    foodNotFoodHint: "Hmm, ich glaube nicht, dass das Essen ist. Versuchen wir es mal mit etwas Essbarem, okay?",
+    foodAnalyzeTimeout: "Die Analyse hat zu lange gedauert. Bitte nochmal versuchen.",
+    foodPhotoReadError: "Foto konnte nicht gelesen werden. Bitte nochmal aufnehmen.",
+    foodPhotoProcessError: "Foto konnte nicht verarbeitet werden. Bitte erneut versuchen.",
+    noAnalysisData: "Keine Daten von der Analyse erhalten",
+    gallery: "Galerie",
+    cameraGalleryHint: " — oder Galerie unten.",
+    cameraOpenDevHint: "Öffne die App mit ",
+    cameraLocalhostHint: " unter ",
+    cameraBlockedHint: "Kamera blockiert — erlaube den Zugriff in der Browser-Leiste oder nutze Galerie.",
+    cameraNoDeviceGallery: "Keine Kamera — nutze Galerie oder „Foto wählen“.",
+    cameraInUseHint: "Kamera ist belegt (andere App schließen).",
+    cameraLiveUnavailableHint: "Live-Kamera hier nicht möglich (z. B. Cursor-Vorschau). Nutze Galerie unten rechts.",
+    cameraUnsupportedHint: "Live-Kamera nicht unterstützt — Galerie oder Datei-Upload nutzen.",
+    cameraHttpsHint: "Kamera braucht localhost/HTTPS — starte mit npm run dev und öffne http://localhost:4137",
+    cameraStartSlowHint: "Kamera startet zu lange — nutze Galerie oder einen anderen Browser.",
+    cameraPreviewHint: "Vorschau nicht sichtbar — nutze Galerie oder einen anderen Browser.",
+    ingredientsNotRecognizedHint: "Hmm, ich konnte keine Zutaten erkennen. Versuchen wir es nochmal mit einem klareren Foto, okay?",
+    ingredientScanAnalyzingTitle: "Zutaten werden gescannt.",
+    ingredientsPresentLabel: "Vorhanden",
+    ingredientsMissingLabel: "Fehlend",
+    createShoppingListBtn: "Einkaufsliste erstellen",
+    addPhotoBtn: "Foto hinzufügen",
+    finishScanAnalyzeBtn: "Fertig – analysieren",
+    ingredientScanTapShutter: "Frigy-Kamera: unten aufnehmen, rechts Galerie",
+    ingredientScanRetryAction: "Zutaten nochmal scannen",
     
     // Meal Plans
     weeklyPlan: "Wochenplan",
@@ -1077,7 +1170,6 @@ const translations: Record<Language, Translations> = {
     toastError: "Ein Fehler ist aufgetreten",
     toastSuccess: "Erfolgreich gespeichert",
     notLoggedIn: "Nicht angemeldet",
-    loadingStripePortal: "Lade Stripe-Portal...",
     pleaseWait: "Bitte warten",
     
     // Bottom Navigation
@@ -1106,7 +1198,6 @@ const translations: Record<Language, Translations> = {
     unlimited: "Unbegrenzt",
     loginRequired: "Anmeldung erforderlich",
     loginToUseScanner: "Bitte melde dich an, um den Scanner zu nutzen.",
-    scanLimitReached: "Scan-Limit erreicht (1/Woche)",
     aiAnalyzingIngredients: "KI analysiert deine Zutaten...",
     analyzingFridge: "Analysiere deinen Kühlschrank…",
     creatingWeeklyPlanFromScan: "Erstelle deinen persönlichen Wochenplan…",
@@ -1170,7 +1261,6 @@ const translations: Record<Language, Translations> = {
     // Session expired
     sessionExpired: "Sitzung abgelaufen",
     pleaseLoginAgain: "Bitte melde dich erneut an.",
-    redirectingToStripe: "Du wirst jetzt weitergeleitet...",
     noCheckoutUrl: "Keine Checkout-URL erhalten",
     noPortalUrl: "Keine Portal-URL erhalten",
     
@@ -1200,8 +1290,8 @@ const translations: Record<Language, Translations> = {
     
     // Email Confirmation
     checkYourEmail: "Überprüfe deine E-Mail",
-    confirmationEmailSent: "Wir haben dir eine Bestätigungs-E-Mail gesendet.",
-    clickLinkToConfirm: "Klicke auf den Link in der E-Mail, um dein Konto zu bestätigen und fortzufahren.",
+    confirmationEmailSent: "Konto erstellt – du kannst direkt weitermachen.",
+    clickLinkToConfirm: "Keine E-Mail-Bestätigung nötig.",
     backToLogin: "Zurück zur Anmeldung",
     noEmailReceived: "Keine E-Mail erhalten? Überprüfe deinen Spam-Ordner.",
     emailConfirmed: "E-Mail bestätigt!",
@@ -1216,6 +1306,24 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Noch ein kleiner Moment…",
     mealPlanGenerating7: "Deine Mahlzeiten werden vorbereitet",
     mealPlanBackgroundHint: "Du kannst weiterstöbern – Frigy arbeitet im Hintergrund",
+
+    firstWeeklyPlanTitle: "Erstelle deinen ersten Wochenplan",
+    firstWeeklyPlanSubtitle:
+      "7 Tage voller passender Mahlzeiten — abgestimmt auf deine Ziele und Vorlieben.",
+    firstWeeklyPlanCreateBtn: "Wochenplan erstellen",
+    firstWeeklyPlanSuccessTitle: "Wochenplan erstellt!",
+    firstWeeklyPlanSuccessSubtitle:
+      "Deine Woche ist geplant. Du findest deinen Plan jederzeit unter „Plan“.",
+    firstWeeklyPlanContinueBtn: "Weiter",
+    firstWeeklyPlanPerfectBtn: "Perfekt",
+    splashLoginAccountReady:
+      "Dein Konto ist verbunden. Speichere deinen Plan und wähle dein Abo — danach erstellst du deinen ersten Wochenplan.",
+    firstWeeklyPlanFeatureMeals: "5 Mahlzeiten pro Tag",
+    firstWeeklyPlanFeatureMacros: "Passend zu deinen Makros",
+    firstWeeklyPlanFeatureShopping: "Automatische Einkaufsliste",
+    firstWeeklyPlanStayOnTab: "Bitte verlasse diesen Tab nicht — Frigy erstellt gerade deinen Wochenplan.",
+    firstWeeklyPlanPreviewTitle: "Dein Wochenplan ist fertig!",
+    firstWeeklyPlanPreviewSubtitle: "So sieht deine Woche aus. Unter „Plan“ findest du alles jederzeit wieder.",
     
     // Dashboard & Home
     goodMorning: "Guten Morgen",
@@ -1231,7 +1339,7 @@ const translations: Record<Language, Translations> = {
     // Profile & Settings
     subscriptionStatus: "Abo-Status",
     subscriptionRefreshed: "Abo-Status aktualisiert",
-    freePlanLabel: "Kostenloser Plan",
+    freePlanLabel: "Kein aktives Premium",
     deleteAccount: "Konto löschen",
     deleteAccountSoon: "Diese Funktion wird bald verfügbar sein.",
     resetOnboarding: "Onboarding zurücksetzen",
@@ -1316,6 +1424,7 @@ const translations: Record<Language, Translations> = {
     timeSavedLabel: "Zeit gespart",
     goalSuccessLabel: "Zielerfolg",
     saveYourProgress: "Speichere deinen Fortschritt",
+    orContinueWith: "Oder schnell mit Google / Apple fortfahren",
     createAccountToSave: "Erstelle ein Konto um deinen Plan zu sichern",
     signInToContinue: "Melde dich an um fortzufahren",
     emailAddressPlaceholder: "E-Mail Adresse",
@@ -1330,8 +1439,8 @@ const translations: Record<Language, Translations> = {
     accessRecipesMeals: "Zugang zu deinen Rezepten & Mahlzeiten",
     alreadyLoggedInContinue: "Bereits angemeldet - Weiter",
     chooseYourPlan: "Wähle deinen Plan",
-    startFreeOrPremium: "Starte mit Free oder teste Premium 7 Tage gratis",
-    freeLabel: "Free",
+    startFreeOrPremium: "Teste Premium 3 Tage gratis",
+    freeLabel: "Premium",
     weeklyPlan1Gen: "Wochenplan (1x generieren)",
     waterTrackerLabel: "Wasser-Tracker",
     scansPerDay2: "2 Kühlschrank-Scans/Tag",
@@ -1343,11 +1452,11 @@ const translations: Record<Language, Translations> = {
     statsMacroTracking: "Stats & Makro-Tracking",
     aiChatbotLabel: "KI-Chatbot",
     recommendedLabel: "EMPFOHLEN",
-    trial7DaysFree: "7 Tage gratis",
-    startWithFree: "Mit Free starten",
+    trial7DaysFree: "3 Tage gratis",
+    startWithFree: "Weiter",
     continueToPremium: "Weiter zu Premium",
     selectAPlan: "Wähle einen Plan",
-    youSelectedFree: "Du hast den kostenlosen Plan ausgewählt. Drücke den Button um zu starten!",
+    youSelectedFree: "Drücke den Button, um fortzufahren.",
     cookWithOthers: "Mit anderen kochen",
     discoverCommunityRecipes: "Entdecke Rezepte aus der Community",
     byUser: "von",
@@ -1539,7 +1648,7 @@ const translations: Record<Language, Translations> = {
     onboardingCameraAccess: "Kamera-Zugriff",
     onboardingForFridgeScanning: "Für Kühlschrank-Scanning",
     onboardingAllow: "Erlauben",
-    onboardingOptionalHealthSync: "Optional: Synchronisiere deine Gesundheitsdaten",
+    onboardingOptionalHealthSync: "Optional: Gewicht und Ziele festlegen",
     onboardingYourWeeklyPlan: "Dein Wochenplan",
     onboardingPersonalizedMealPlan: "Personalisiert für deine Makros",
     onboardingWithoutFrigy: "Ohne Frigy",
@@ -1629,8 +1738,8 @@ const translations: Record<Language, Translations> = {
     onboardingAccessRecipes: "Zugang zu deinen Rezepten & Mahlzeiten",
     onboardingAlreadyLoggedIn: "Bereits angemeldet - Weiter",
     onboardingChooseYourPlan: "Wähle deinen Plan",
-    onboardingStartFreeOrPremium: "Starte mit Free oder teste Premium 7 Tage gratis",
-    onboardingFree: "Free",
+    onboardingStartFreeOrPremium: "Teste Premium 3 Tage gratis",
+    onboardingFree: "Premium",
     onboardingWeeklyPlan1x: "Wochenplan (1x generieren)",
     onboardingWaterTrackerFeature: "Wasser-Tracker",
     onboarding2ScansPerDay: "2 Kühlschrank-Scans/Tag",
@@ -1642,7 +1751,7 @@ const translations: Record<Language, Translations> = {
     onboardingStatsAndMacros: "Stats & Makro-Tracking",
     onboardingAIChatbot: "KI-Chatbot",
     onboardingMostPopular: "Beliebteste Wahl",
-    onboardingFreeTrial7Days: "7 Tage gratis, dann €4,99/Monat",
+    onboardingFreeTrial7Days: "3 Tage gratis",
     onboardingContinue: "Weiter",
     onboardingJoinCommunity: "Community beitreten",
     onboardingShareRecipes: "Teile Rezepte & motiviere andere",
@@ -1654,7 +1763,7 @@ const translations: Record<Language, Translations> = {
     onboardingMacrosStructure: "Makros. Struktur. Weniger nachdenken.",
     onboardingToDashboard: "Zum Dashboard",
     onboardingRegistrationFailed: "Registrierung fehlgeschlagen",
-    onboardingEmailAlreadyRegistered: "Diese E-Mail ist bereits registriert. Bitte melde dich an.",
+    onboardingEmailAlreadyRegistered: "Mit dieser E-Mail bist du schon registriert. Bitte melde dich an.",
     onboardingSuccessfullyRegistered: "Erfolgreich registriert!",
     onboardingProgressSavedMsg: "Dein Fortschritt wurde gespeichert.",
     onboardingLoginFailed: "Anmeldung fehlgeschlagen",
@@ -1692,7 +1801,6 @@ const translations: Record<Language, Translations> = {
     homeTitle: "Easier Weight Loss",
     homeSubtitle: "Scan fridge • Set tracker • Enjoy diet recipes",
     scanFridge: "Scan Fridge",
-    scansRemaining: "scans left today",
     unlimitedWithPremium: "Unlimited with Premium",
     tip: "Tip",
     tipText: "Scan your fridge and instantly get low-calorie recipes with only 3-4 ingredients.",
@@ -1735,8 +1843,8 @@ const translations: Record<Language, Translations> = {
     onboardingSlide6Title: "Lose weight easier",
     onboardingSlide6Subtitle: "Reach your goal weight",
     // New onboarding slides 7-14
-    onboardingSlide7Title: "Health Sync",
-    onboardingSlide7Subtitle: "Connect your health data",
+    onboardingSlide7Title: "Weekly meal plans",
+    onboardingSlide7Subtitle: "AI plans tailored to your goals",
     onboardingSlide8Title: "Community",
     onboardingSlide8Subtitle: "Share recipes & connect",
     onboardingSlide9Title: "Over 10,000 happy users",
@@ -1746,10 +1854,10 @@ const translations: Record<Language, Translations> = {
     onboardingSlide13Title: "What is your biggest challenge?",
     onboardingSlide14Title: "You're ready! 🎉",
     // Health Sync options
-    healthSyncTitle: "Enable Health Sync?",
-    healthSyncSubtitle: "Automatically sync weight & activities",
-    connectAppleHealth: "Connect Apple Health",
-    connectGoogleFit: "Connect Google Fit",
+    healthSyncTitle: "Weight & activity",
+    healthSyncSubtitle: "Log weight and steps in Frigy",
+    connectAppleHealth: "Enter weight manually",
+    connectGoogleFit: "Enter activity manually",
     skipForNow: "Set up later",
     communityTitle: "Join Community?",
     communitySubtitle: "Share recipes and motivate others",
@@ -1796,9 +1904,9 @@ const translations: Record<Language, Translations> = {
     premiumFeature5: "Macro & calorie tracker",
     premiumFeature6: "Water tracker with reminders",
     premiumFeature7: "Weight progress & statistics",
-    freeTrialInfo: "1 week free trial, then €4.99/month",
+    freeTrialInfo: "3-day free trial",
     continueWithFree: "Start free",
-    startFreeTrial: "Start 1 week free trial",
+    startFreeTrial: "Start 3-day free trial",
     
     // Auth
     email: "Email",
@@ -1807,6 +1915,9 @@ const translations: Record<Language, Translations> = {
     signIn: "Sign In",
     signUp: "Sign Up",
     signInWithGoogle: "Sign in with Google",
+    signInWithApple: "Sign in with Apple",
+    restorePurchases: "Restore purchases",
+    linkAppleAccount: "Link Apple account",
     noAccount: "No account yet? Sign up now",
     alreadyHaveAccount: "Already have an account? Sign in",
     forgotPassword: "Forgot password?",
@@ -1847,10 +1958,44 @@ const translations: Record<Language, Translations> = {
     foodAdded: "Food added",
     entryUpdated: "Entry updated",
     couldNotAnalyzeFood: "Could not analyze food",
+    foodNotFound: "Food not found",
     patienceMessage: "Thanks for your patience...",
     calculatingCalories: "Calculating calories...",
     determiningNutrients: "Determining nutrients...",
     almostDone: "Almost done...",
+    frigySays: "Frigy says",
+    foodScanPlateTitle: "Plate is being scanned.",
+    foodScanAiPowered: "AI-powered ✨",
+    foodScanTryAnotherDish: "Try another dish",
+    foodScanRecognized: "Recognized successfully!",
+    foodScanScanAnother: "Scan another dish",
+    foodScanContinue: "Continue",
+    foodNotFoodHint: "Hmm, I do not think that is food. Let's try again with something edible, okay?",
+    foodAnalyzeTimeout: "Analysis took too long. Please try again.",
+    foodPhotoReadError: "Could not read the photo. Please capture it again.",
+    foodPhotoProcessError: "The photo could not be processed. Please try again.",
+    noAnalysisData: "No data received from analysis",
+    gallery: "Gallery",
+    cameraGalleryHint: " — or use the gallery below.",
+    cameraOpenDevHint: "Open the app with ",
+    cameraLocalhostHint: " at ",
+    cameraBlockedHint: "Camera blocked — allow access in the browser bar or use the gallery.",
+    cameraNoDeviceGallery: "No camera — use the gallery or choose a photo.",
+    cameraInUseHint: "Camera is in use (close other apps).",
+    cameraLiveUnavailableHint: "Live camera unavailable here (e.g. preview). Use the gallery bottom right.",
+    cameraUnsupportedHint: "Live camera not supported — use gallery or file upload.",
+    cameraHttpsHint: "Camera needs localhost/HTTPS — run npm run dev and open http://localhost:4137",
+    cameraStartSlowHint: "Camera is taking too long — use the gallery or another browser.",
+    cameraPreviewHint: "Preview not visible — use the gallery or another browser.",
+    ingredientsNotRecognizedHint: "Hmm, I could not recognize any ingredients. Let's try again with a clearer photo, okay?",
+    ingredientScanAnalyzingTitle: "Ingredients are being scanned.",
+    ingredientsPresentLabel: "Available",
+    ingredientsMissingLabel: "Missing",
+    createShoppingListBtn: "Create shopping list",
+    addPhotoBtn: "Add photo",
+    finishScanAnalyzeBtn: "Done — analyze",
+    ingredientScanTapShutter: "Frigy camera: capture below, gallery on the right",
+    ingredientScanRetryAction: "Scan ingredients again",
     
     // Meal Plans
     weeklyPlan: "Weekly Plan",
@@ -1909,7 +2054,6 @@ const translations: Record<Language, Translations> = {
     toastError: "An error occurred",
     toastSuccess: "Successfully saved",
     notLoggedIn: "Not logged in",
-    loadingStripePortal: "Loading Stripe portal...",
     pleaseWait: "Please wait",
     
     // Bottom Navigation
@@ -1938,7 +2082,6 @@ const translations: Record<Language, Translations> = {
     unlimited: "Unlimited",
     loginRequired: "Login Required",
     loginToUseScanner: "Please sign in to use the scanner.",
-    scanLimitReached: "Scan limit reached",
     aiAnalyzingIngredients: "AI is analyzing your ingredients...",
     analyzingFridge: "Analyzing your fridge…",
     creatingWeeklyPlanFromScan: "Creating your personalized weekly plan…",
@@ -2002,7 +2145,6 @@ const translations: Record<Language, Translations> = {
     // Session expired
     sessionExpired: "Session expired",
     pleaseLoginAgain: "Please sign in again.",
-    redirectingToStripe: "Redirecting you now...",
     noCheckoutUrl: "No checkout URL received",
     noPortalUrl: "No portal URL received",
     
@@ -2032,8 +2174,8 @@ const translations: Record<Language, Translations> = {
     
     // Email Confirmation
     checkYourEmail: "Check your email",
-    confirmationEmailSent: "We've sent you a confirmation email.",
-    clickLinkToConfirm: "Click the link in the email to confirm your account and continue.",
+    confirmationEmailSent: "Account created — you can continue right away.",
+    clickLinkToConfirm: "No email confirmation required.",
     backToLogin: "Back to login",
     noEmailReceived: "Didn't receive an email? Check your spam folder.",
     emailConfirmed: "Email confirmed!",
@@ -2048,6 +2190,24 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Just a moment longer…",
     mealPlanGenerating7: "Your meals are being prepared",
     mealPlanBackgroundHint: "You can browse around – Frigy is working in the background",
+
+    firstWeeklyPlanTitle: "Create your first weekly plan",
+    firstWeeklyPlanSubtitle:
+      "7 days of meals tailored to your goals and preferences.",
+    firstWeeklyPlanCreateBtn: "Create weekly plan",
+    firstWeeklyPlanSuccessTitle: "Weekly plan created!",
+    firstWeeklyPlanSuccessSubtitle:
+      "Your week is planned. Find your plan anytime under “Plan”.",
+    firstWeeklyPlanContinueBtn: "Continue",
+    firstWeeklyPlanPerfectBtn: "Perfect",
+    splashLoginAccountReady:
+      "Your account is connected. Save your plan and choose your subscription — then create your first weekly plan.",
+    firstWeeklyPlanFeatureMeals: "5 meals per day",
+    firstWeeklyPlanFeatureMacros: "Matched to your macros",
+    firstWeeklyPlanFeatureShopping: "Automatic shopping list",
+    firstWeeklyPlanStayOnTab: "Please don't leave this tab — Frigy is creating your weekly plan.",
+    firstWeeklyPlanPreviewTitle: "Your weekly plan is ready!",
+    firstWeeklyPlanPreviewSubtitle: "Here's your week at a glance. Find everything anytime under “Plan”.",
     
     // Dashboard & Home
     goodMorning: "Good morning",
@@ -2063,7 +2223,7 @@ const translations: Record<Language, Translations> = {
     // Profile & Settings
     subscriptionStatus: "Subscription Status",
     subscriptionRefreshed: "Subscription status refreshed",
-    freePlanLabel: "Free Plan",
+    freePlanLabel: "No active Premium",
     deleteAccount: "Delete Account",
     deleteAccountSoon: "This feature will be available soon.",
     resetOnboarding: "Reset Onboarding",
@@ -2148,6 +2308,7 @@ const translations: Record<Language, Translations> = {
     timeSavedLabel: "Time Saved",
     goalSuccessLabel: "Goal Success",
     saveYourProgress: "Save your progress",
+    orContinueWith: "Or continue quickly with Google / Apple",
     createAccountToSave: "Create an account to save your plan",
     signInToContinue: "Sign in to continue",
     emailAddressPlaceholder: "Email Address",
@@ -2162,8 +2323,8 @@ const translations: Record<Language, Translations> = {
     accessRecipesMeals: "Access to your recipes & meals",
     alreadyLoggedInContinue: "Already logged in - Continue",
     chooseYourPlan: "Choose your plan",
-    startFreeOrPremium: "Start with Free or try Premium 7 days free",
-    freeLabel: "Free",
+    startFreeOrPremium: "Try Premium free for 3 days",
+    freeLabel: "Premium",
     weeklyPlan1Gen: "Weekly plan (1x generation)",
     waterTrackerLabel: "Water Tracker",
     scansPerDay2: "2 fridge scans/day",
@@ -2175,11 +2336,11 @@ const translations: Record<Language, Translations> = {
     statsMacroTracking: "Stats & macro tracking",
     aiChatbotLabel: "AI Chatbot",
     recommendedLabel: "RECOMMENDED",
-    trial7DaysFree: "7 days free",
-    startWithFree: "Start with Free",
+    trial7DaysFree: "3 days free",
+    startWithFree: "Continue",
     continueToPremium: "Continue to Premium",
     selectAPlan: "Select a plan",
-    youSelectedFree: "You selected the free plan. Press the button to start!",
+    youSelectedFree: "Press the button to continue.",
     cookWithOthers: "Cook with others",
     discoverCommunityRecipes: "Discover recipes from the community",
     byUser: "by",
@@ -2371,7 +2532,7 @@ const translations: Record<Language, Translations> = {
     onboardingCameraAccess: "Camera access",
     onboardingForFridgeScanning: "For fridge scanning",
     onboardingAllow: "Allow",
-    onboardingOptionalHealthSync: "Optional: Sync your health data",
+    onboardingOptionalHealthSync: "Optional: Set weight and goals",
     onboardingYourWeeklyPlan: "Your weekly plan",
     onboardingPersonalizedMealPlan: "Personalized for your macros",
     onboardingWithoutFrigy: "Without Frigy",
@@ -2461,8 +2622,8 @@ const translations: Record<Language, Translations> = {
     onboardingAccessRecipes: "Access to your recipes & meals",
     onboardingAlreadyLoggedIn: "Already logged in - Continue",
     onboardingChooseYourPlan: "Choose your plan",
-    onboardingStartFreeOrPremium: "Start with Free or try Premium 7 days free",
-    onboardingFree: "Free",
+    onboardingStartFreeOrPremium: "Try Premium free for 3 days",
+    onboardingFree: "Premium",
     onboardingWeeklyPlan1x: "Weekly plan (1x generate)",
     onboardingWaterTrackerFeature: "Water tracker",
     onboarding2ScansPerDay: "2 fridge scans/day",
@@ -2474,7 +2635,7 @@ const translations: Record<Language, Translations> = {
     onboardingStatsAndMacros: "Stats & macro tracking",
     onboardingAIChatbot: "AI chatbot",
     onboardingMostPopular: "Most popular choice",
-    onboardingFreeTrial7Days: "7 days free, then €4.99/month",
+    onboardingFreeTrial7Days: "3 days free",
     onboardingContinue: "Continue",
     onboardingJoinCommunity: "Join community",
     onboardingShareRecipes: "Share recipes & motivate others",
@@ -2486,7 +2647,7 @@ const translations: Record<Language, Translations> = {
     onboardingMacrosStructure: "Macros. Structure. Less thinking.",
     onboardingToDashboard: "To dashboard",
     onboardingRegistrationFailed: "Registration failed",
-    onboardingEmailAlreadyRegistered: "This email is already registered. Please sign in.",
+    onboardingEmailAlreadyRegistered: "You already registered with this email. Please sign in.",
     onboardingSuccessfullyRegistered: "Successfully registered!",
     onboardingProgressSavedMsg: "Your progress has been saved.",
     onboardingLoginFailed: "Login failed",
@@ -2524,7 +2685,6 @@ const translations: Record<Language, Translations> = {
     homeTitle: "Perdre du poids facilement",
     homeSubtitle: "Scanner le frigo • Configurer le suivi • Profiter des recettes",
     scanFridge: "Scanner le frigo",
-    scansRemaining: "scans restants aujourd'hui",
     unlimitedWithPremium: "Illimité avec Premium",
     tip: "Astuce",
     tipText: "Scannez votre frigo et obtenez instantanément des recettes légères avec seulement 3-4 ingrédients.",
@@ -2567,8 +2727,8 @@ const translations: Record<Language, Translations> = {
     onboardingSlide6Title: "Perdre du poids facilement",
     onboardingSlide6Subtitle: "Atteignez votre poids idéal",
     // New onboarding slides 7-14
-    onboardingSlide7Title: "Health Sync",
-    onboardingSlide7Subtitle: "Connectez vos données de santé",
+    onboardingSlide7Title: "Plans repas hebdo",
+    onboardingSlide7Subtitle: "Plans IA adaptés à tes objectifs",
     onboardingSlide8Title: "Communauté",
     onboardingSlide8Subtitle: "Partagez des recettes et connectez-vous",
     onboardingSlide9Title: "Plus de 10 000 utilisateurs satisfaits",
@@ -2578,10 +2738,10 @@ const translations: Record<Language, Translations> = {
     onboardingSlide13Title: "Quel est votre plus grand défi?",
     onboardingSlide14Title: "Vous êtes prêt! 🎉",
     // Health Sync options
-    healthSyncTitle: "Activer Health Sync?",
-    healthSyncSubtitle: "Synchronisez automatiquement poids et activités",
-    connectAppleHealth: "Connecter Apple Health",
-    connectGoogleFit: "Connecter Google Fit",
+    healthSyncTitle: "Poids et activité",
+    healthSyncSubtitle: "Saisis poids et pas dans Frigy",
+    connectAppleHealth: "Saisir le poids manuellement",
+    connectGoogleFit: "Saisir l'activité manuellement",
     skipForNow: "Configurer plus tard",
     communityTitle: "Rejoindre la communauté?",
     communitySubtitle: "Partagez des recettes et motivez les autres",
@@ -2628,9 +2788,9 @@ const translations: Record<Language, Translations> = {
     premiumFeature5: "Suivi des macros et calories",
     premiumFeature6: "Suivi de l'eau avec rappels",
     premiumFeature7: "Progression du poids et statistiques",
-    freeTrialInfo: "1 semaine gratuite, puis €4,99/mois",
+    freeTrialInfo: "3 jours gratuits",
     continueWithFree: "Commencer gratuitement",
-    startFreeTrial: "Essayer 1 semaine gratuite",
+    startFreeTrial: "Essayer 3 jours gratuits",
     
     // Auth
     email: "E-mail",
@@ -2639,6 +2799,9 @@ const translations: Record<Language, Translations> = {
     signIn: "Connexion",
     signUp: "Inscription",
     signInWithGoogle: "Se connecter avec Google",
+    signInWithApple: "Se connecter avec Apple",
+    restorePurchases: "Restaurer les achats",
+    linkAppleAccount: "Lier le compte Apple",
     noAccount: "Pas encore de compte? Inscrivez-vous",
     alreadyHaveAccount: "Déjà un compte? Connectez-vous",
     forgotPassword: "Mot de passe oublié?",
@@ -2679,10 +2842,44 @@ const translations: Record<Language, Translations> = {
     foodAdded: "Aliment ajouté",
     entryUpdated: "Entrée mise à jour",
     couldNotAnalyzeFood: "Impossible d'analyser l'aliment",
+    foodNotFound: "Aliment introuvable",
     patienceMessage: "Merci pour votre patience...",
     calculatingCalories: "Calcul des calories...",
     determiningNutrients: "Détermination des nutriments...",
     almostDone: "Presque terminé...",
+    frigySays: "Frigy dit",
+    foodScanPlateTitle: "L'assiette est scannée.",
+    foodScanAiPowered: "Propulsé par l'IA ✨",
+    foodScanTryAnotherDish: "Essayer un autre plat",
+    foodScanRecognized: "Reconnu avec succès !",
+    foodScanScanAnother: "Autre plat",
+    foodScanContinue: "Continuer",
+    foodNotFoodHint: "Hmm, je ne pense pas que ce soit de la nourriture. On essaie avec quelque chose de comestible, d'accord ?",
+    foodAnalyzeTimeout: "L'analyse a pris trop de temps. Réessaie.",
+    foodPhotoReadError: "Impossible de lire la photo. Reprends-la.",
+    foodPhotoProcessError: "La photo n'a pas pu être traitée. Réessaie.",
+    noAnalysisData: "Aucune donnée reçue de l'analyse",
+    gallery: "Galerie",
+    cameraGalleryHint: " — ou utilise la galerie en bas.",
+    cameraOpenDevHint: "Ouvre l'app avec ",
+    cameraLocalhostHint: " sur ",
+    cameraBlockedHint: "Caméra bloquée — autorise l'accès dans le navigateur ou utilise la galerie.",
+    cameraNoDeviceGallery: "Pas de caméra — utilise la galerie ou choisis une photo.",
+    cameraInUseHint: "Caméra occupée (ferme les autres apps).",
+    cameraLiveUnavailableHint: "Caméra live indisponible ici. Utilise la galerie en bas à droite.",
+    cameraUnsupportedHint: "Caméra live non prise en charge — utilise la galerie.",
+    cameraHttpsHint: "La caméra nécessite localhost/HTTPS — lance npm run dev et ouvre http://localhost:4137",
+    cameraStartSlowHint: "La caméra met trop de temps — utilise la galerie ou un autre navigateur.",
+    cameraPreviewHint: "Aperçu invisible — utilise la galerie ou un autre navigateur.",
+    ingredientsNotRecognizedHint: "Hmm, je n'ai pas réussi à reconnaître les ingrédients. On réessaie avec une photo plus nette ?",
+    ingredientScanAnalyzingTitle: "Les ingrédients sont scannés.",
+    ingredientsPresentLabel: "Disponible",
+    ingredientsMissingLabel: "Manquant",
+    createShoppingListBtn: "Créer la liste de courses",
+    addPhotoBtn: "Ajouter une photo",
+    finishScanAnalyzeBtn: "Terminé — analyser",
+    ingredientScanTapShutter: "Caméra Frigy : capture en bas, galerie à droite",
+    ingredientScanRetryAction: "Scanner à nouveau",
     
     // Meal Plans
     weeklyPlan: "Plan de la semaine",
@@ -2741,7 +2938,6 @@ const translations: Record<Language, Translations> = {
     toastError: "Une erreur s'est produite",
     toastSuccess: "Enregistré avec succès",
     notLoggedIn: "Non connecté",
-    loadingStripePortal: "Chargement du portail Stripe...",
     pleaseWait: "Veuillez patienter",
     
     // Bottom Navigation
@@ -2770,7 +2966,6 @@ const translations: Record<Language, Translations> = {
     unlimited: "Illimité",
     loginRequired: "Connexion requise",
     loginToUseScanner: "Veuillez vous connecter pour utiliser le scanner.",
-    scanLimitReached: "Limite de scan atteinte",
     aiAnalyzingIngredients: "L'IA analyse vos ingrédients...",
     analyzingFridge: "Analyse de votre réfrigérateur…",
     creatingWeeklyPlanFromScan: "Création de votre plan de repas personnalisé…",
@@ -2834,7 +3029,6 @@ const translations: Record<Language, Translations> = {
     // Session expired
     sessionExpired: "Session expirée",
     pleaseLoginAgain: "Veuillez vous reconnecter.",
-    redirectingToStripe: "Redirection en cours...",
     noCheckoutUrl: "Aucune URL de paiement reçue",
     noPortalUrl: "Aucune URL de portail reçue",
     
@@ -2864,8 +3058,8 @@ const translations: Record<Language, Translations> = {
     
     // Email Confirmation
     checkYourEmail: "Vérifiez votre e-mail",
-    confirmationEmailSent: "Nous vous avons envoyé un e-mail de confirmation.",
-    clickLinkToConfirm: "Cliquez sur le lien dans l'e-mail pour confirmer votre compte et continuer.",
+    confirmationEmailSent: "Compte créé — tu peux continuer tout de suite.",
+    clickLinkToConfirm: "Pas de confirmation par e-mail nécessaire.",
     backToLogin: "Retour à la connexion",
     noEmailReceived: "Pas reçu d'e-mail? Vérifiez votre dossier spam.",
     emailConfirmed: "E-mail confirmé!",
@@ -2880,6 +3074,24 @@ const translations: Record<Language, Translations> = {
     mealPlanGenerating6: "Encore un petit moment…",
     mealPlanGenerating7: "Tes repas sont en préparation",
     mealPlanBackgroundHint: "Tu peux continuer à naviguer – Frigy travaille en arrière-plan",
+
+    firstWeeklyPlanTitle: "Crée ton premier plan de la semaine",
+    firstWeeklyPlanSubtitle:
+      "7 jours de repas adaptés à tes objectifs et préférences.",
+    firstWeeklyPlanCreateBtn: "Créer le plan hebdomadaire",
+    firstWeeklyPlanSuccessTitle: "Plan hebdomadaire créé !",
+    firstWeeklyPlanSuccessSubtitle:
+      "Ta semaine est prête. Retrouve ton plan à tout moment sous « Plan ».",
+    firstWeeklyPlanContinueBtn: "Continuer",
+    firstWeeklyPlanPerfectBtn: "Parfait",
+    splashLoginAccountReady:
+      "Ton compte est connecté. Enregistre ton plan et choisis ton abonnement — puis crée ton premier plan de la semaine.",
+    firstWeeklyPlanFeatureMeals: "5 repas par jour",
+    firstWeeklyPlanFeatureMacros: "Adapté à tes macros",
+    firstWeeklyPlanFeatureShopping: "Liste de courses automatique",
+    firstWeeklyPlanStayOnTab: "Ne quitte pas cet onglet — Frigy prépare ton plan de la semaine.",
+    firstWeeklyPlanPreviewTitle: "Ton plan de la semaine est prêt !",
+    firstWeeklyPlanPreviewSubtitle: "Voici ta semaine. Retrouve tout sous « Plan » à tout moment.",
     
     // Dashboard & Home
     goodMorning: "Bonjour",
@@ -2895,7 +3107,7 @@ const translations: Record<Language, Translations> = {
     // Profile & Settings
     subscriptionStatus: "Statut de l'abonnement",
     subscriptionRefreshed: "Statut de l'abonnement actualisé",
-    freePlanLabel: "Plan gratuit",
+    freePlanLabel: "Premium inactif",
     deleteAccount: "Supprimer le compte",
     deleteAccountSoon: "Cette fonctionnalité sera bientôt disponible.",
     resetOnboarding: "Réinitialiser l'onboarding",
@@ -2980,6 +3192,7 @@ const translations: Record<Language, Translations> = {
     timeSavedLabel: "Temps gagné",
     goalSuccessLabel: "Succès objectif",
     saveYourProgress: "Sauvegarde ta progression",
+    orContinueWith: "Ou continue rapidement avec Google / Apple",
     createAccountToSave: "Crée un compte pour sauvegarder ton plan",
     signInToContinue: "Connecte-toi pour continuer",
     emailAddressPlaceholder: "Adresse e-mail",
@@ -2994,8 +3207,8 @@ const translations: Record<Language, Translations> = {
     accessRecipesMeals: "Accès à tes recettes & repas",
     alreadyLoggedInContinue: "Déjà connecté - Continuer",
     chooseYourPlan: "Choisis ton plan",
-    startFreeOrPremium: "Commence avec Free ou essaie Premium 7 jours gratuit",
-    freeLabel: "Gratuit",
+    startFreeOrPremium: "Essaie Premium gratuitement pendant 3 jours",
+    freeLabel: "Premium",
     weeklyPlan1Gen: "Plan hebdo (1x génération)",
     waterTrackerLabel: "Suivi d'eau",
     scansPerDay2: "2 scans frigo/jour",
@@ -3007,11 +3220,11 @@ const translations: Record<Language, Translations> = {
     statsMacroTracking: "Stats & suivi des macros",
     aiChatbotLabel: "Chatbot IA",
     recommendedLabel: "RECOMMANDÉ",
-    trial7DaysFree: "7 jours gratuits",
-    startWithFree: "Commencer avec Gratuit",
+    trial7DaysFree: "3 jours gratuits",
+    startWithFree: "Continuer",
     continueToPremium: "Continuer vers Premium",
     selectAPlan: "Choisis un plan",
-    youSelectedFree: "Tu as choisi le plan gratuit. Appuie sur le bouton pour commencer!",
+    youSelectedFree: "Appuie sur le bouton pour continuer.",
     cookWithOthers: "Cuisiner avec les autres",
     discoverCommunityRecipes: "Découvre des recettes de la communauté",
     byUser: "par",
@@ -3203,7 +3416,7 @@ const translations: Record<Language, Translations> = {
     onboardingCameraAccess: "Accès caméra",
     onboardingForFridgeScanning: "Pour scanner le frigo",
     onboardingAllow: "Autoriser",
-    onboardingOptionalHealthSync: "Optionnel: Synchronise tes données de santé",
+    onboardingOptionalHealthSync: "Optionnel: Définir poids et objectifs",
     onboardingYourWeeklyPlan: "Ton plan hebdomadaire",
     onboardingPersonalizedMealPlan: "Personnalisé pour tes macros",
     onboardingWithoutFrigy: "Sans Frigy",
@@ -3293,8 +3506,8 @@ const translations: Record<Language, Translations> = {
     onboardingAccessRecipes: "Accès à tes recettes & repas",
     onboardingAlreadyLoggedIn: "Déjà connecté - Continuer",
     onboardingChooseYourPlan: "Choisis ton plan",
-    onboardingStartFreeOrPremium: "Commence avec Free ou essaie Premium 7 jours gratuit",
-    onboardingFree: "Gratuit",
+    onboardingStartFreeOrPremium: "Essaie Premium gratuitement pendant 3 jours",
+    onboardingFree: "Premium",
     onboardingWeeklyPlan1x: "Plan hebdo (1x génération)",
     onboardingWaterTrackerFeature: "Suivi d'eau",
     onboarding2ScansPerDay: "2 scans frigo/jour",
@@ -3306,7 +3519,7 @@ const translations: Record<Language, Translations> = {
     onboardingStatsAndMacros: "Stats & suivi des macros",
     onboardingAIChatbot: "Chatbot IA",
     onboardingMostPopular: "Choix le plus populaire",
-    onboardingFreeTrial7Days: "7 jours gratuits, puis €4,99/mois",
+    onboardingFreeTrial7Days: "3 jours gratuits",
     onboardingContinue: "Continuer",
     onboardingJoinCommunity: "Rejoindre la communauté",
     onboardingShareRecipes: "Partage des recettes & motive les autres",
@@ -3318,7 +3531,7 @@ const translations: Record<Language, Translations> = {
     onboardingMacrosStructure: "Macros. Structure. Moins de réflexion.",
     onboardingToDashboard: "Vers le tableau de bord",
     onboardingRegistrationFailed: "Inscription échouée",
-    onboardingEmailAlreadyRegistered: "Cet e-mail est déjà enregistré. Connecte-toi.",
+    onboardingEmailAlreadyRegistered: "Tu es déjà inscrit avec cet e-mail. Connecte-toi.",
     onboardingSuccessfullyRegistered: "Inscription réussie!",
     onboardingProgressSavedMsg: "Ta progression a été sauvegardée.",
     onboardingLoginFailed: "Connexion échouée",
@@ -3345,6 +3558,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("app-language", lang);
+    dispatchLanguageChanged(lang);
   };
 
   useEffect(() => {
@@ -3354,8 +3568,10 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const t = { ...translations[language], ...extendedTranslations[language] };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t: translations[language] }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -3368,3 +3584,14 @@ export const useLanguage = () => {
   }
   return context;
 };
+
+/** For hooks/utilities outside React tree. */
+export function getTranslations(lang: Language): Translations {
+  return { ...translations[lang], ...extendedTranslations[lang] };
+}
+
+export function getStoredLanguage(): Language {
+  if (typeof window === "undefined") return "de";
+  const saved = localStorage.getItem("app-language");
+  return saved === "en" || saved === "fr" || saved === "de" ? saved : "de";
+}

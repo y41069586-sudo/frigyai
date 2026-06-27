@@ -22,7 +22,6 @@ type DashboardNewProps = {
   targetCalories: number;
   proteinEaten: number;
   targetProtein: number;
-  scansRemaining?: number | null;
 };
 
 const goals: { id: UserGoal; label: string }[] = [
@@ -41,7 +40,6 @@ export function DashboardNew({
   targetCalories,
   proteinEaten,
   targetProtein,
-  scansRemaining,
 }: DashboardNewProps) {
   const navigate = useNavigate();
 
@@ -86,11 +84,6 @@ export function DashboardNew({
               Wochenplan
             </Button>
           </div>
-          {scansRemaining !== null && scansRemaining !== undefined && (
-            <p className="text-xs text-muted-foreground">
-              Noch {scansRemaining} Scan(s) diese Woche (Free)
-            </p>
-          )}
         </div>
       </motion.section>
 
@@ -145,9 +138,9 @@ export function DashboardNew({
           <div className="flex-1 max-w-md w-full">
             <div className="h-3 rounded-full bg-muted overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400"
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, calorieProgress)}%` }}
+                className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-emerald-400"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: Math.min(100, calorieProgress) / 100 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             </div>

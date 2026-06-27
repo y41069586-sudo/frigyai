@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
+import {
+  type WheelPickerSnapPreset,
+  type WheelPickerTuning,
+} from "@/lib/wheelPickerUtils";
+import { StableWheelPicker } from "@/components/StableWheelPicker";
 
 export const WHEEL_VISIBLE_ITEMS = 5;
 export const WHEEL_PAD_ITEMS = Math.floor(WHEEL_VISIBLE_ITEMS / 2);
 
-/** Short phones (e.g. iPhone SE): tighter wheel. Most iPhones use the comfortable row height. */
 const COMPACT_HEIGHT_MQ = "(max-height: 700px)";
 export const WHEEL_ROW_COMPACT = 40;
 export const WHEEL_ROW_COMFORT = 46;
+export const WHEEL_ITEM_HEIGHT = WHEEL_ROW_COMFORT;
 
 export function useMintWheelRowHeight(): number {
   return useSyncExternalStore(
@@ -33,16 +38,14 @@ type MintWheelColumnProps = {
   align?: "left" | "center" | "right";
   width?: number | string;
   ariaLabel?: string;
-  /** Row height in px — must match overlay math in parent (use `useMintWheelRowHeight()`). */
-  rowHeight: number;
-  /** Repeat options in a loop so short lists (e.g. 0–9) show digits above/below the ends */
+  rowHeight?: number;
   circular?: boolean;
-};
-
-const haptic = () => {
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    navigator.vibrate?.(4);
-  }
+  compactLabels?: boolean;
+  /** Numbers only in the wheel; unit shown for screen readers / optional suffix. */
+  unitSuffix?: string;
+  snapPreset?: WheelPickerSnapPreset;
+  tuning?: Partial<WheelPickerTuning>;
+  wheelKey?: string | number;
 };
 
 export function MintWheelColumn({
@@ -52,112 +55,21 @@ export function MintWheelColumn({
   align = "center",
   width = "100%",
   ariaLabel,
-  rowHeight,
+  rowHeight = WHEEL_ROW_COMFORT,
   circular = false,
+  compactLabels = false,
+  unitSuffix,
+  snapPreset = "default",
+  tuning,
+  wheelKey,
 }: MintWheelColumnProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastPhysicalIndexRef = useRef(0);
-  const isProgrammaticRef = useRef(false);
-  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const circularActive = Boolean(circular && options.length > 1);
 
-  const segmentLen = options.length;
-  const circularActive = Boolean(circular && segmentLen > 1);
-
-  const displayOptions = useMemo(() => {
-    if (circularActive) {
-      return [...options, ...options, ...options];
-    }
-    return options;
-  }, [options, circularActive]);
-
-  const physicalOffset = circularActive ? segmentLen : 0;
-
-  const selectedIndex = useMemo(() => {
-    const idx = options.findIndex((o) => o.value === value);
-    return idx >= 0 ? idx : 0;
+  const selectedItem = useMemo(() => {
+    const found = options.find((o) => o.value === value);
+    return found ?? options[0];
   }, [options, value]);
 
-  const centerPhysicalIndex = physicalOffset + selectedIndex;
-
-  /** Keeps fade/scale aligned with scroll position while dragging (circular wheels need this). */
-  const [visualPhysicalIndex, setVisualPhysicalIndex] = useState(centerPhysicalIndex);
-
-  useEffect(() => {
-    setVisualPhysicalIndex(centerPhysicalIndex);
-  }, [centerPhysicalIndex]);
-
-  const scrollToIndex = useCallback(
-    (idx: number, smooth: boolean) => {
-      if (!scrollRef.current) return;
-      isProgrammaticRef.current = true;
-      scrollRef.current.scrollTo({
-        top: idx * rowHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
-      lastPhysicalIndexRef.current = idx;
-      setTimeout(
-        () => {
-          isProgrammaticRef.current = false;
-        },
-        smooth ? 260 : 30,
-      );
-    },
-    [rowHeight],
-  );
-
-  useEffect(() => {
-    const targetPhysical = physicalOffset + selectedIndex;
-    scrollToIndex(targetPhysical, false);
-  }, [selectedIndex, physicalOffset, scrollToIndex, rowHeight]);
-
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current || isProgrammaticRef.current) return;
-    const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / rowHeight);
-    const clamped = Math.max(0, Math.min(displayOptions.length - 1, idx));
-
-    setVisualPhysicalIndex((prev) => (prev === clamped ? prev : clamped));
-
-    if (clamped !== lastPhysicalIndexRef.current) {
-      haptic();
-      lastPhysicalIndexRef.current = clamped;
-      onChange(displayOptions[clamped].value);
-    }
-
-    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-    snapTimeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
-      let physical = Math.round(scrollRef.current.scrollTop / rowHeight);
-      physical = Math.max(0, Math.min(displayOptions.length - 1, physical));
-
-      if (circularActive) {
-        if (physical < segmentLen) {
-          scrollToIndex(physical + segmentLen, false);
-          physical += segmentLen;
-        } else if (physical >= 2 * segmentLen) {
-          scrollToIndex(physical - segmentLen, false);
-          physical -= segmentLen;
-        }
-      }
-
-      lastPhysicalIndexRef.current = physical;
-      setVisualPhysicalIndex(physical);
-      const targetTop = physical * rowHeight;
-      const currentTop = scrollRef.current.scrollTop;
-      if (Math.abs(currentTop - targetTop) > 0.5) {
-        scrollToIndex(physical, true);
-      }
-    }, 90);
-  }, [displayOptions, onChange, scrollToIndex, circularActive, segmentLen, rowHeight]);
-
-  useEffect(
-    () => () => {
-      if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-    },
-    [],
-  );
-
-  const containerHeight = WHEEL_VISIBLE_ITEMS * rowHeight;
   const textAlignClass =
     align === "left"
       ? "justify-start pl-1"
@@ -165,61 +77,62 @@ export function MintWheelColumn({
         ? "justify-end pr-1"
         : "justify-center";
 
-  const selectedFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 19 : 24;
-  const idleFontPx = rowHeight <= WHEEL_ROW_COMPACT ? 14 : 17;
+  const idleFontPx = compactLabels
+    ? rowHeight <= WHEEL_ROW_COMPACT
+      ? 14
+      : 15
+    : rowHeight <= WHEEL_ROW_COMPACT
+      ? 14
+      : 17;
+  const activeFontPx = compactLabels
+    ? rowHeight <= WHEEL_ROW_COMPACT
+      ? 17
+      : 18
+    : rowHeight <= WHEEL_ROW_COMPACT
+      ? 18
+      : 22;
+
+  const formatLiveLabel = (opt: MintWheelOption) =>
+    unitSuffix ? `${opt.label} ${unitSuffix}` : opt.label;
 
   return (
-    <div
-      className="relative shrink-0"
-      style={{ height: containerHeight, width }}
-      role="listbox"
-      aria-label={ariaLabel}
-    >
-      <div
-        ref={scrollRef}
-        className="h-full overflow-y-scroll scrollbar-hide select-none"
-        style={{
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          WebkitUserSelect: "none",
-          userSelect: "none",
-          willChange: "scroll-position",
-          transform: "translateZ(0)",
-        }}
-        onScroll={handleScroll}
-      >
-        <div style={{ height: WHEEL_PAD_ITEMS * rowHeight }} />
-        {displayOptions.map((opt, idx) => {
-          const distance = Math.abs(idx - visualPhysicalIndex);
-          const isSelected = idx === visualPhysicalIndex;
-          const opacity =
-            distance === 0 ? 1 : distance === 1 ? 0.78 : distance === 2 ? 0.52 : 0.34;
+    <div className="relative shrink-0" style={{ width }}>
+      <StableWheelPicker
+        key={wheelKey}
+        data={options}
+        value={selectedItem}
+        onChange={(item) => onChange(item.value)}
+        itemHeight={rowHeight}
+        visibleItems={WHEEL_VISIBLE_ITEMS}
+        infinite={circularActive}
+        snapPreset={snapPreset}
+        tuning={tuning}
+        enableHaptics
+        tapToSelect
+        ariaLabel={ariaLabel}
+        formatLiveLabel={formatLiveLabel}
+        getItemKey={(item, index) =>
+          circularActive ? `wheel-${index}-${item.value}` : item.value
+        }
+        renderItem={(opt, selected, _logical, _active, isCenter) => {
+          const highlighted = isCenter || selected;
           return (
             <div
-              key={circularActive ? `wheel-${idx}` : opt.value}
-              role="option"
-              aria-selected={isSelected}
-              className={`flex items-center ${textAlignClass}`}
+              className={`flex w-full items-center ${textAlignClass}`}
               style={{
-                height: rowHeight,
-                scrollSnapAlign: "center",
-                fontSize: isSelected ? `${selectedFontPx}px` : `${idleFontPx}px`,
-                fontWeight: isSelected ? 600 : 400,
-                color: isSelected ? "#1F2937" : "#4B5563",
-                opacity,
+                fontSize: `${highlighted ? activeFontPx : idleFontPx}px`,
+                fontWeight: highlighted ? 600 : 400,
+                lineHeight: 1,
+                color: highlighted ? "#1F2937" : "#9CA3AF",
                 letterSpacing: "-0.01em",
-                transition:
-                  "font-size 160ms cubic-bezier(0.4,0,0.2,1), color 160ms, opacity 160ms",
                 WebkitTapHighlightColor: "transparent",
               }}
             >
               {opt.label}
             </div>
           );
-        })}
-        <div style={{ height: WHEEL_PAD_ITEMS * rowHeight }} />
-      </div>
+        }}
+      />
     </div>
   );
 }

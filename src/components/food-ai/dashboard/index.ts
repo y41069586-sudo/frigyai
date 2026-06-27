@@ -4,7 +4,6 @@ export { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 export { ShoppingListWidget } from "./ShoppingListWidget";
 export { TrackerWidget } from "./TrackerWidget";
 export { WaterWidget } from "./WaterWidget";
-export { StepsWidget } from "./StepsWidget";
 export { AddMealWidget } from "./AddMealWidget";
 export { MealSlotsWidget } from "./MealSlotsWidget";
 export { AiChatPromptWidget } from "./AiChatPromptWidget";

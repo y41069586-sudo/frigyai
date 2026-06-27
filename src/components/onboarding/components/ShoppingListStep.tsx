@@ -3,6 +3,9 @@ import { Check, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MintTextHighlight } from "./MintTextHighlight";
 
 type Props = {
   userData: UserData;
@@ -12,12 +15,12 @@ type Props = {
 };
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  primaryDeep: "#0A8550",
-  bg: "#F0FFF7",
-  accent: "#D4FFEA",
-  border: "#6EECC0",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  primaryDeep: "#2EB56D",
+  bg: "#FBFFFD",
+  accent: "#DCFEEF",
+  border: "#BCFDDC",
   text: "#1F2937",
   subtext: "#7C9388",
   cardBorderIdle: "#D1D5DB",
@@ -31,7 +34,6 @@ const ITEMS: { emoji: string; label: Record<Lng, string> }[] = [
   { emoji: "🥑", label: { de: "Avocados", en: "Avocados", fr: "Avocats" } },
   { emoji: "🐟", label: { de: "Lachsfilet", en: "Salmon fillet", fr: "Filet de saumon" } },
   { emoji: "🥗", label: { de: "Rucola-Salat", en: "Rocket salad", fr: "Salade de roquette" } },
-  { emoji: "🌾", label: { de: "Quinoa", en: "Quinoa", fr: "Quinoa" } },
   { emoji: "🍓", label: { de: "Bio-Beeren", en: "Organic berries", fr: "Baies bio" } },
 ];
 
@@ -49,7 +51,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
   return (
     <div
       className="relative"
-      style={{ width: 286, height: 360 }}
+      style={{ width: 192, height: 252 }}
     >
       {/* Soft floor glow */}
       <div
@@ -58,45 +60,57 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
           left: "50%",
           bottom: 4,
           transform: "translateX(-50%)",
-          width: 220,
-          height: 22,
+          width: 148,
+          height: 18,
           borderRadius: "50%",
           background:
-            "radial-gradient(ellipse, rgba(18,217,120,0.22) 0%, rgba(18,217,120,0) 70%)",
+            "radial-gradient(ellipse, rgba(57, 212, 127,0.22) 0%, rgba(57, 212, 127,0) 70%)",
           filter: "blur(2px)",
         }}
       />
 
-      {/* Clipboard clip on top */}
+      {/* Clipboard clip */}
       <motion.div
-        initial={{ opacity: 0, y: -8, scale: 0.85 }}
+        initial={{ opacity: 0, y: -6, scale: 0.92 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: 0.15, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-        className="absolute left-1/2"
-        style={{
-          top: 6,
-          width: 70,
-          height: 24,
-          transform: "translateX(-50%)",
-          background:
-            "linear-gradient(180deg, #B0FFDC 0%, #24FF8F 100%)",
-          borderRadius: 8,
-          boxShadow:
-            "0 6px 14px -4px rgba(18,217,120,0.55), inset 0 1px 1px rgba(255,255,255,0.6)",
-        }}
+        transition={{ delay: 0.15, duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+        className="absolute left-1/2 z-20 -translate-x-1/2"
+        style={{ top: 0 }}
+        aria-hidden
       >
-        {/* Inner notch */}
         <div
-          className="absolute left-1/2 rounded-md"
+          className="relative"
           style={{
-            top: 6,
-            transform: "translateX(-50%)",
-            width: 40,
-            height: 8,
-            background: "rgba(255,255,255,0.4)",
-            border: "1px solid rgba(255,255,255,0.7)",
+            width: 34,
+            height: 14,
+            borderRadius: "8px 8px 5px 5px",
+            background:
+              "linear-gradient(180deg, #FBFFFD 0%, #75FBB2 42%, #39D47F 100%)",
+            boxShadow:
+              "0 5px 14px -3px rgba(24,104,72,0.45), inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -3px 5px rgba(10,90,55,0.28)",
           }}
-        />
+        >
+          <div
+            className="absolute inset-x-1 top-[2px] h-[2px] rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0.15) 100%)",
+            }}
+          />
+          <div
+            className="absolute left-1/2 rounded-full"
+            style={{
+              top: 6,
+              transform: "translateX(-50%)",
+              width: 14,
+              height: 4,
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.2) 100%)",
+              border: "1px solid rgba(255,255,255,0.75)",
+              boxShadow: "inset 0 1px 2px rgba(24,104,72,0.15)",
+            }}
+          />
+        </div>
       </motion.div>
 
       {/* Card body */}
@@ -104,11 +118,11 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.55, ease: [0.34, 1.56, 0.64, 1] }}
-        className="absolute inset-x-0 mx-auto overflow-hidden rounded-[22px]"
+        className="absolute inset-x-0 mx-auto flex flex-col overflow-hidden rounded-[18px]"
         style={{
-          top: 22,
-          width: 286,
-          height: 332,
+          top: 9,
+          width: 192,
+          height: 238,
           background: "linear-gradient(180deg, #FFFFFF 0%, #FAFFFC 100%)",
           border: `1px solid ${PALETTE.cardBorderIdle}`,
           boxShadow:
@@ -117,47 +131,32 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
         }}
       >
         {/* Header */}
-        <div className="px-5 pt-5 pb-3">
-          <div className="flex items-center gap-2.5">
+        <div className="shrink-0 px-4 pb-2 pt-[14px]">
+          <div className="flex items-center gap-1.5">
             <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.25, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-              className="relative flex h-7 w-7 items-center justify-center rounded-lg"
+              className="flex h-3 w-3 shrink-0 items-center justify-center rounded-[4px]"
               style={{
                 background:
-                  "linear-gradient(135deg, #B0FFDC 0%, #24FF8F 100%)",
+                  "linear-gradient(135deg, #FBFFFD 0%, #75FBB2 100%)",
                 color: "#fff",
                 boxShadow:
-                  "0 4px 10px -4px rgba(18,217,120,0.5), inset 0 1px 1px rgba(255,255,255,0.55)",
+                  "0 1px 4px -2px rgba(74, 232, 150,0.4), inset 0 1px 0 rgba(255,255,255,0.45)",
               }}
             >
-              <ClipboardList className="size-4" strokeWidth={2.2} />
-              {/* Writing dot pulse on top-right of icon */}
-              <motion.span
-                className="absolute h-1.5 w-1.5 rounded-full bg-white"
-                style={{
-                  top: 4,
-                  right: 4,
-                  boxShadow: "0 0 6px rgba(255,255,255,0.95)",
-                }}
-                animate={{ opacity: [0, 1, 0] }}
-                transition={{
-                  duration: 1.4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
+              <ClipboardList className="size-2" strokeWidth={2.6} />
             </motion.div>
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <span
-                className="text-[14px] font-semibold tracking-tight"
+                className="text-[12px] font-semibold tracking-tight"
                 style={{ color: PALETTE.text }}
               >
                 {headerLabel}
               </span>
               <span
-                className="text-[11px]"
+                className="text-[10px]"
                 style={{ color: PALETTE.subtext }}
               >
                 {countLabel}
@@ -168,15 +167,15 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
 
         {/* Divider */}
         <div
-          className="mx-5"
+          className="mx-4 shrink-0"
           style={{ height: 1, background: PALETTE.pageLine }}
         />
 
-        {/* Items list */}
-        <div className="flex flex-col gap-2 px-5 pt-3 pb-4">
+        {/* Items list — fills to bottom */}
+        <div className="flex min-h-0 flex-1 flex-col justify-between px-4 pb-3.5 pt-2">
           {ITEMS.map((item, i) => (
             <motion.div
-              key={item.emoji}
+              key={item.label.de}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{
@@ -184,7 +183,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
                 duration: 0.4,
                 ease: [0.4, 0, 0.2, 1],
               }}
-              className="flex items-center gap-2.5"
+              className="flex items-center gap-2"
             >
               {/* Check pill */}
               <motion.div
@@ -195,19 +194,18 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
                   duration: 0.3,
                   ease: [0.34, 1.56, 0.64, 1],
                 }}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full"
                 style={{
                   background:
-                    "linear-gradient(135deg, #24FF8F 0%, #12D978 100%)",
+                    "linear-gradient(135deg, #75FBB2 0%, #39D47F 100%)",
                   boxShadow:
-                    "0 4px 10px -3px rgba(18,217,120,0.55), inset 0 1px 1px rgba(255,255,255,0.5)",
+                    "0 3px 8px -2px rgba(74, 232, 150,0.5), inset 0 1px 1px rgba(255,255,255,0.45)",
                 }}
               >
-                <Check className="size-3.5 text-white" strokeWidth={3} />
+                <Check className="size-3 text-white" strokeWidth={3} />
               </motion.div>
-              {/* Emoji chip */}
               <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[15px]"
+                className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md text-[12px]"
                 style={{
                   background: PALETTE.accent,
                   border: `1px solid ${PALETTE.border}`,
@@ -217,7 +215,7 @@ function ShoppingListCard({ lng }: { lng: Lng }) {
                 {item.emoji}
               </span>
               <span
-                className="flex-1 truncate text-[13.5px] font-semibold tracking-tight"
+                className="min-w-0 flex-1 truncate text-[11.5px] font-semibold tracking-tight"
                 style={{ color: PALETTE.text }}
               >
                 {item.label[lng]}
@@ -241,17 +239,26 @@ export function ShoppingListStep({
 
   const L = {
     de: {
-      title: "Einkaufsliste generieren",
+      titleBefore: "",
+      titleHighlight: "Einkaufsliste",
+      titleAfter: " generieren",
+      subtitle: "Nur die Zutaten, die dir noch fehlen.",
       next: "Weiter",
       back: "Zurück",
     },
     en: {
-      title: "Generate your shopping list",
+      titleBefore: "Generate your ",
+      titleHighlight: "shopping list",
+      titleAfter: "",
+      subtitle: "Only the ingredients you're still missing.",
       next: "Next",
       back: "Back",
     },
     fr: {
-      title: "Générer ta liste de courses",
+      titleBefore: "Générer ta ",
+      titleHighlight: "liste de courses",
+      titleAfter: "",
+      subtitle: "Seulement ce qu'il te manque encore.",
       next: "Suivant",
       back: "Retour",
     },
@@ -264,7 +271,7 @@ export function ShoppingListStep({
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
@@ -273,7 +280,7 @@ export function ShoppingListStep({
             aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -285,20 +292,26 @@ export function ShoppingListStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="min-w-0 shrink-0 px-6 pb-3 pt-1"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
-          {t.title}
+          {t.titleBefore}
+          <MintTextHighlight>{t.titleHighlight}</MintTextHighlight>
+          {t.titleAfter}
         </h1>
-      </motion.div>
+      </OnboardingMascotQuestion>
+
+      <motion.p
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05, ease: [0.4, 0, 0.2, 1] }}
+        className="mt-1 px-5 text-[14px] leading-snug"
+        style={{ color: PALETTE.subtext }}
+      >
+        {t.subtitle}
+      </motion.p>
 
       {/* Hero: shopping list card */}
       <div className="mt-4 flex flex-1 min-h-0 items-center justify-center px-5 pb-2">
@@ -310,6 +323,7 @@ export function ShoppingListStep({
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
@@ -318,7 +332,7 @@ export function ShoppingListStep({
           style={{
             background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
             boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+              "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)",
           }}
         >
           {t.next}

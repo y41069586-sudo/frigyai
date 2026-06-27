@@ -1,28 +1,62 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
-import {
-  MintWheelColumn,
-  useMintWheelRowHeight,
-  WHEEL_PAD_ITEMS,
-  WHEEL_ROW_COMPACT,
-  type MintWheelOption,
-} from "./MintWheelColumn";
+import type { UserData } from "../types";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
 import { MintSegmentedControl } from "./MintSegmentedControl";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  bg: "#F0FFF7",
-  selectedBg: "#D4FFEA",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#FBFFFD",
+  selectedBg: "#DCFEEF",
   text: "#1F2937",
   textMuted: "#6B7280",
 };
 
 const KG_PER_LB = 0.45359237;
+
+const sanitizeDecimalInput = (raw: string) => {
+  let result = "";
+  let separatorUsed = false;
+  let decimals = 0;
+
+  for (const char of raw) {
+    if (/\d/.test(char)) {
+      if (!separatorUsed) {
+        result += char;
+      } else if (decimals < 1) {
+        result += char;
+        decimals += 1;
+      }
+      continue;
+    }
+
+    if ((char === "." || char === ",") && !separatorUsed) {
+      separatorUsed = true;
+      result += char;
+    }
+  }
+
+  return result;
+};
+
+const parseDecimalInput = (value: string) => {
+  if (!value || value === "." || value === ",") {
+    return null;
+  }
+
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatDecimalInput = (value: number, separator: "." | ",") => {
+  const formatted = value.toFixed(1);
+  return separator === "," ? formatted.replace(".", ",") : formatted;
+};
 
 type Props = {
   userData: UserData;
@@ -37,12 +71,8 @@ export function TargetWeightSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language } = useLanguage();
-  const wheelRow = useMintWheelRowHeight();
-  const wholeColW = wheelRow <= WHEEL_ROW_COMPACT ? 118 : 134;
-  const decimalColW = wheelRow <= WHEEL_ROW_COMPACT ? 68 : 78;
-  const sepColW = wheelRow <= WHEEL_ROW_COMPACT ? 26 : 30;
-  const unitColW = wheelRow <= WHEEL_ROW_COMPACT ? 56 : 64;
+  const { t } = useLanguage();
+  const [targetWeightInput, setTargetWeightInput] = useState("");
 
   const unit = userData.weightUnit;
   const isMetric = unit === "metric";
@@ -69,34 +99,20 @@ export function TargetWeightSelectStep({
     userData.targetWeight + (userData.targetWeightDecimal ?? 0) / 10;
   const totalLbs = totalKg / KG_PER_LB;
 
-  const displayValue = isMetric ? totalKg : totalLbs;
-  const whole = Math.floor(displayValue);
-  const decimal = Math.max(0, Math.min(9, Math.round((displayValue - whole) * 10)));
-
   const minWhole = isMetric ? 30 : 66;
   const maxWhole = isMetric ? 250 : 550;
+  const separator: "." | "," = isMetric ? "," : ".";
 
-  const wholeOptions: MintWheelOption[] = Array.from(
-    { length: maxWhole - minWhole + 1 },
-    (_, i) => {
-      const v = minWhole + i;
-      return { value: v, label: String(v) };
-    },
-  );
-  const decimalOptions: MintWheelOption[] = Array.from({ length: 10 }, (_, i) => ({
-    value: i,
-    label: String(i),
-  }));
-
-  const commitDisplay = (newWhole: number, newDecimal: number) => {
-    const display = newWhole + newDecimal / 10;
+  const commitDisplay = (display: number) => {
     const kg = isMetric ? display : display * KG_PER_LB;
-    const kgWhole = Math.floor(kg);
-    const kgDecimal = Math.max(0, Math.min(9, Math.round((kg - kgWhole) * 10)));
+    const roundedKg = Math.round(kg * 10) / 10;
+    const kgWhole = Math.floor(roundedKg);
+    const kgDecimal = Math.max(0, Math.min(9, Math.round((roundedKg - kgWhole) * 10)));
     setUserData({
       ...userData,
       targetWeight: kgWhole,
       targetWeightDecimal: kgDecimal,
+      targetWeightConfirmed: true,
     });
   };
 
@@ -105,75 +121,78 @@ export function TargetWeightSelectStep({
     setUserData({ ...userData, weightUnit: nextUnit });
   };
 
-  const titles = {
-    de: {
-      lose: "Was ist dein Zielgewicht?",
-      gain: "Was ist dein Wunschgewicht?",
-      maintain: "Bestätige dein Zielgewicht",
-      fallback: "Was ist dein Zielgewicht?",
-    },
-    en: {
-      lose: "What's your target weight?",
-      gain: "What's your desired weight?",
-      maintain: "Confirm your target weight",
-      fallback: "What's your target weight?",
-    },
-    fr: {
-      lose: "Quel est ton poids cible ?",
-      gain: "Quel est ton poids souhaité ?",
-      maintain: "Confirme ton poids cible",
-      fallback: "Quel est ton poids cible ?",
-    },
-  } as const;
-  const buttonLabel = {
-    de: "Ziel festlegen",
-    en: "Set goal",
-    fr: "Définir l'objectif",
-  } as const;
-
-  const lng = (language as "de" | "en" | "fr") in titles ? (language as "de" | "en" | "fr") : "de";
   const goal = userData.goalMode;
   const title =
     goal === "lose"
-      ? titles[lng].lose
+      ? t.onboardingTargetWeightLoseTitle
       : goal === "gain"
-        ? titles[lng].gain
+        ? t.onboardingTargetWeightGainTitle
         : goal === "maintain"
-          ? titles[lng].maintain
-          : titles[lng].fallback;
+          ? t.onboardingTargetWeightMaintainTitle
+          : t.onboardingTargetWeightFallbackTitle;
 
-  const sepChar = isMetric ? "," : ".";
   const unitLabel = isMetric ? "kg" : "lbs";
 
   const unitOptions: { id: "metric" | "imperial"; label: string }[] = [
-    {
-      id: "metric",
-      label: language === "fr" ? "Métrique" : language === "en" ? "Metric" : "Metrisch",
-    },
-    { id: "imperial", label: "Imperial" },
+    { id: "metric", label: t.onboardingUnitMetric },
+    { id: "imperial", label: t.onboardingUnitImperial },
   ];
+
+  useEffect(() => {
+    if (!userData.targetWeightConfirmed) {
+      setTargetWeightInput("");
+      return;
+    }
+
+    const nextDisplay = isMetric ? totalKg : totalLbs;
+    setTargetWeightInput(formatDecimalInput(nextDisplay, separator));
+  }, [
+    isMetric,
+    separator,
+    totalKg,
+    totalLbs,
+    userData.targetWeight,
+    userData.targetWeightDecimal,
+    userData.targetWeightConfirmed,
+  ]);
+
+  const parsedTargetWeight = parseDecimalInput(targetWeightInput);
+  const canProceed =
+    parsedTargetWeight !== null &&
+    parsedTargetWeight >= minWhole &&
+    parsedTargetWeight <= maxWhole;
+
+  const helperText = isMetric ? t.onboardingTargetWeightHelperMetric : t.onboardingTargetWeightHelperImperial;
+  const errorText = isMetric ? t.onboardingTargetWeightErrorMetric : t.onboardingTargetWeightErrorImperial;
+
+  const handleTargetWeightChange = (raw: string) => {
+    const nextValue = sanitizeDecimalInput(raw);
+    setTargetWeightInput(nextValue);
+
+    const parsed = parseDecimalInput(nextValue);
+    if (parsed === null || parsed < minWhole || parsed > maxWhole) {
+      return;
+    }
+
+    commitDisplay(parsed);
+  };
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
-      style={{
-        backgroundColor: PALETTE.bg,
-        color: PALETTE.text,
-        paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
+      className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
+      style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 pt-3 pb-1 shrink-0">
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -185,136 +204,80 @@ export function TargetWeightSelectStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-        className="px-6 pt-3 pb-2 shrink-0 [@media(max-height:700px)]:pt-3 [@media(max-height:700px)]:pb-2 [@media(min-height:701px)]:pt-5 [@media(min-height:701px)]:pb-4 [@media(min-height:800px)]:pt-7 [@media(min-height:800px)]:pb-5"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[24px] font-semibold leading-tight tracking-tight [@media(max-height:700px)]:text-[21px] [@media(min-height:800px)]:text-[30px]"
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
-        <p
-          className="mt-1.5 text-[15px] leading-snug [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:text-[13px] [@media(min-height:800px)]:mt-3 [@media(min-height:800px)]:text-[17px]"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {subtitle}
-        </p>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
-      {/* Unit toggle — stay above the wheel card if the middle section overflows */}
-      <div className="relative z-30 flex justify-center px-5 pb-3 shrink-0 [@media(max-height:700px)]:pb-2 [@media(min-height:800px)]:pb-5">
+      {/* Unit toggle */}
+      <div className="mt-7 flex shrink-0 justify-center px-5 pb-1 sm:mt-4">
         <MintSegmentedControl
           options={unitOptions}
           value={unit}
           onChange={handleUnitChange}
-          ariaLabel="Einheit"
+          ariaLabel={t.onboardingUnitAriaLabel}
         />
       </div>
 
-      {/* Wheel picker card */}
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-start overflow-y-auto px-4 pb-2 pt-1">
-        <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-          className="relative w-full max-w-md rounded-[24px] p-3 [@media(max-height:700px)]:rounded-[22px] [@media(max-height:700px)]:p-2.5 [@media(min-height:800px)]:rounded-[28px] [@media(min-height:800px)]:p-5"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%)",
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-            border: `1px solid ${PALETTE.cardBorderIdle}`,
-            boxShadow:
-              "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
-          }}
-        >
+      <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
+        <div className="mx-auto w-full max-w-[320px]">
           <div
-            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
-            style={{
-              top: `calc(50% - ${wheelRow / 2}px)`,
-              height: wheelRow,
-              backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
-            style={{
-              height: WHEEL_PAD_ITEMS * wheelRow + 12,
-              background:
-                "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px] [@media(min-height:800px)]:rounded-b-[28px]"
-            style={{
-              height: WHEEL_PAD_ITEMS * wheelRow + 12,
-              background:
-                "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
-            }}
-          />
-
-          {/* Wheels */}
-          <div className="relative z-10 flex items-stretch justify-center">
-            <MintWheelColumn
-              options={wholeOptions}
-              value={whole}
-              onChange={(v) => commitDisplay(v, decimal)}
-              align="right"
-              width={wholeColW}
-              rowHeight={wheelRow}
-              ariaLabel={`Zielgewicht ganz (${unitLabel})`}
+            className="flex items-center gap-3 rounded-[24px] border px-5 py-4 shadow-[0_18px_45px_-28px_rgba(57,212,127,0.45)]"
+            style={{ backgroundColor: "#FFFFFF", borderColor: "#6EECC0" }}
+          >
+            <input
+              type="text"
+              inputMode="decimal"
+              value={targetWeightInput}
+              onChange={(event) => handleTargetWeightChange(event.target.value)}
+              placeholder={isMetric ? "65,0" : "143.3"}
+              aria-label={title}
+              className="min-w-0 flex-1 bg-transparent text-center text-[28px] font-semibold tracking-[-0.04em] outline-none placeholder:text-[#9AB5A7]"
+              style={{ color: PALETTE.text }}
             />
-            <div className="relative shrink-0" style={{ width: sepColW }}>
-              <span
-                className="absolute inset-0 flex items-center justify-center text-[22px] font-semibold [@media(max-height:700px)]:text-[20px] [@media(min-height:800px)]:text-[26px]"
-                style={{ color: PALETTE.text }}
-              >
-                {sepChar}
-              </span>
-            </div>
-            <MintWheelColumn
-              options={decimalOptions}
-              value={decimal}
-              onChange={(v) => commitDisplay(whole, v)}
-              align="left"
-              width={decimalColW}
-              rowHeight={wheelRow}
-              ariaLabel="Dezimal"
-              circular
-            />
-            <div className="relative shrink-0" style={{ width: unitColW }}>
-              <span
-                className="absolute inset-0 flex items-center pl-2 text-[17px] font-medium [@media(max-height:700px)]:text-[16px] [@media(min-height:800px)]:pl-2.5 [@media(min-height:800px)]:text-[19px]"
-                style={{ color: PALETTE.textMuted }}
-              >
-                {unitLabel}
-              </span>
-            </div>
+            <span className="shrink-0 text-[18px] font-semibold" style={{ color: PALETTE.textMuted }}>
+              {unitLabel}
+            </span>
           </div>
-        </motion.div>
+
+          <p
+            className="mt-3 text-center text-[12px] font-medium"
+            style={{ color: targetWeightInput.length > 0 && !canProceed ? "#DC2626" : PALETTE.textMuted }}
+          >
+            {targetWeightInput.length > 0 && !canProceed ? errorText : helperText}
+          </p>
+        </div>
       </div>
 
       {/* Continue */}
-      <div className="shrink-0 px-5 pt-3 pb-4 [@media(max-height:700px)]:pt-2 [@media(max-height:700px)]:pb-3 [@media(min-height:800px)]:pt-5 [@media(min-height:800px)]:pb-6">
+      <div
+        className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
+        style={{ backgroundColor: PALETTE.bg }}
+      >
+        <OnboardingDataNotice variant="mint" className="mb-3" />
         <motion.button
           type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={onNext}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-semibold text-white transition-all [@media(max-height:700px)]:h-11 [@media(max-height:700px)]:text-[14px] [@media(min-height:800px)]:h-[58px] [@media(min-height:800px)]:text-[17px]"
+          whileTap={{ scale: canProceed ? 0.98 : 1 }}
+          onClick={canProceed ? onNext : undefined}
+          disabled={!canProceed}
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
           style={{
-            background: `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`,
-            boxShadow:
-              "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)",
+            background: canProceed
+              ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
+              : "linear-gradient(135deg, #DFF9EA 0%, #C8F4DD 100%)",
+            boxShadow: canProceed
+              ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
+              : "0 1px 2px rgba(15,40,30,0.04)",
+            cursor: canProceed ? "pointer" : "not-allowed",
+            opacity: canProceed ? 1 : 0.85,
           }}
         >
-          {buttonLabel[lng]}
-          <ChevronRight className="size-5 [@media(min-height:800px)]:size-6" strokeWidth={2.5} />
+          {t.onboardingTargetWeightSetGoal}
+          <ChevronRight className="size-5" strokeWidth={2.5} />
         </motion.button>
       </div>
     </div>

@@ -17,6 +17,7 @@
     <meta name="format-detection" content="telephone=no" />
     
     <!-- PWA Links -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-192x192.png" />
@@ -25,21 +26,101 @@
     <meta property="og:title" content="Frigy – Kühlschrank scannen, Wochenplan & Makros" />
     <meta property="og:description" content="Scanne deinen Kühlschrank oder gib Zutaten ein - erhalte sofort gesunde, kalorienarme Rezepte in Sekunden. Abnehmen war nie einfacher!" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://app.frigy.app/" />
+    <meta property="og:image" content="https://app.frigy.app/pwa-512x512.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Frigy – Kühlschrank scannen & Wochenplan" />
     <meta name="twitter:description" content="Ultra-einfache, gesunde Rezepte mit nur 3 Zutaten. Unter 500 Kalorien, unter 15 Minuten!" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:image" content="https://app.frigy.app/pwa-512x512.png" />
     
-    <link rel="canonical" href="https://lovable.dev/" />
+    <link rel="canonical" href="https://app.frigy.app/" />
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div
+        id="app-boot-loader"
+        role="status"
+        aria-label="Frigy wird geladen"
+        style="
+          min-height: 100dvh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1.25rem;
+          background: linear-gradient(180deg, #ffffff 0%, #f7faf7 100%);
+        "
+      >
+        <div
+          style="
+            width: 4rem;
+            height: 4rem;
+            border-radius: 1rem;
+            background: linear-gradient(135deg, #75fbb2 0%, #39d47f 100%);
+            box-shadow: 0 18px 40px -18px rgba(57, 212, 127, 0.65);
+            animation: frigy-boot-pulse 1.5s ease-in-out infinite;
+          "
+        ></div>
+        <div
+          style="
+            width: 6rem;
+            height: 0.25rem;
+            border-radius: 999px;
+            background: #e8f5ee;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              width: 45%;
+              height: 100%;
+              border-radius: 999px;
+              background: linear-gradient(90deg, #75fbb2, #39d47f);
+              animation: frigy-boot-bar 1.1s ease-in-out infinite;
+            "
+          ></div>
+        </div>
+      </div>
+      <style>
+        @keyframes frigy-boot-pulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.85;
+          }
+          50% {
+            transform: scale(1.06);
+            opacity: 1;
+          }
+        }
+        @keyframes frigy-boot-bar {
+          0% {
+            transform: translateX(-120%);
+          }
+          100% {
+            transform: translateX(260%);
+          }
+        }
+      </style>
+    </div>
 
     <script>
       (function () {
+        // Dev / LAN preview: kein SW-Recovery (sonst Reload-Schleife auf Handy)
+        function isDevPreviewHost() {
+          var h = location.hostname;
+          var p = location.port;
+          if (/localhost|127\.0\.0\.1/.test(h)) return true;
+          if (/^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+          if (/^(5173|5199|4173|3000|4137|8080|8081|8082)$/.test(p)) return true;
+          return false;
+        }
+        if (isDevPreviewHost() && !/^\?.*pwa=/i.test(location.search)) {
+          return;
+        }
+
         const FLAG = "fb_sw_recovered";
         const MAX_RECOVERY_ATTEMPTS = 2;
         let recoveryAttempts = parseInt(sessionStorage.getItem("fb_recovery_count") || "0");

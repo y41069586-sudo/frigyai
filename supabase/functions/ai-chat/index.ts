@@ -329,6 +329,12 @@ serve(async (req) => {
 
     const systemPrompt = `Du bist Frigy, der freundliche KI-Ernährungsassistent in der Frig AI App.
 
+WICHTIG — KEINE MEDIZINISCHE BERATUNG:
+- Du ersetzt keinen Arzt, keine Ärztin und keinen Ernährungsberater.
+- Keine Diagnose, Therapie oder Behandlungsempfehlung.
+- Bei Gesundheitsfragen, Allergien oder Medikamenten immer Fachpersonal konsultieren.
+- Ernährungstipps sind allgemein informativ und basieren auf Nutzerangaben — keine Garantie.
+
 ÜBER DIE APP:
 - Frig AI ist eine Ernährungs-App zum Kühlschrank scannen, Rezepte generieren und Wochenpläne erstellen
 - Nutzer können ihren Kühlschrank fotografieren → KI erkennt Zutaten → generiert passende Rezepte
@@ -355,7 +361,7 @@ Nutze die verfügbaren Tools um echte Aktionen auszuführen wenn der Nutzer daru
     let response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gpt-4o-mini', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
+      body: JSON.stringify({ model: 'gpt-4o', messages, tools, tool_choice: 'auto', max_tokens: 300 }),
     });
 
     if (!response.ok) {
@@ -377,7 +383,7 @@ Nutze die verfügbaren Tools um echte Aktionen auszuführen wenn der Nutzer daru
       response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
+        body: JSON.stringify({ model: 'gpt-4o', messages: [...messages, assistantMessage, ...toolResults], max_tokens: 300 }),
       });
 
       if (!response.ok) throw new Error(`AI error: ${response.status}`);

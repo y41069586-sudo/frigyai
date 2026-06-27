@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Camera, Loader2, Refrigerator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type ScanResultActionsProps = {
   onWeekPlan: () => void;
@@ -16,9 +17,11 @@ export function ScanResultActions({
   onNewPhoto,
   loading,
   planPhase = "idle",
-  planningLabel = "Erstelle deinen persoenlichen Wochenplan…",
+  planningLabel,
 }: ScanResultActionsProps) {
+  const { t } = useLanguage();
   const planning = !!loading && planPhase === "planning";
+  const resolvedPlanningLabel = planningLabel ?? t.scanResultGeneratingPlan;
 
   return (
     <div className="space-y-3 min-[360px]:space-y-4 w-full">
@@ -38,15 +41,15 @@ export function ScanResultActions({
           <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
           <Refrigerator className="h-5 w-5 min-[360px]:h-6 min-[360px]:w-6 sm:h-8 sm:w-8 text-primary mb-1 sm:mb-2" />
           <h3 className="text-[13px] min-[360px]:text-sm sm:text-base font-bold text-foreground mb-0.5 sm:mb-1 leading-tight">
-            Wochenplan generieren
+            {t.scanResultGeneratePlan}
           </h3>
           <p className="text-[11px] min-[360px]:text-xs sm:text-sm text-muted-foreground leading-tight sm:leading-snug">
-            Aus deinen analysierten Zutaten und Makrozielen.
+            {t.scanResultGeneratePlanDesc}
           </p>
           {loading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 min-[360px]:gap-2 sm:gap-3 bg-background/70 backdrop-blur-[2px] rounded-[1rem] min-[360px]:rounded-[1.2rem] sm:rounded-[1.4rem] px-2.5 min-[360px]:px-3 sm:px-4">
               <Loader2 className="h-5 w-5 min-[360px]:h-6 min-[360px]:w-6 sm:h-8 sm:w-8 animate-spin text-primary shrink-0" />
-              {planning && <p className="text-[11px] min-[360px]:text-xs sm:text-sm font-medium text-center text-foreground">{planningLabel}</p>}
+              {planning && <p className="text-[11px] min-[360px]:text-xs sm:text-sm font-medium text-center text-foreground">{resolvedPlanningLabel}</p>}
             </div>
           )}
         </motion.button>
@@ -60,9 +63,9 @@ export function ScanResultActions({
         >
           <span className="flex flex-col">
             <Camera className="mb-1 h-5 w-5 min-[360px]:h-6 min-[360px]:w-6 sm:h-7 sm:w-7 text-primary" />
-            <span className="text-[13px] min-[360px]:text-sm sm:text-base font-bold text-foreground">Neues Foto</span>
+            <span className="text-[13px] min-[360px]:text-sm sm:text-base font-bold text-foreground">{t.scanResultNewPhoto}</span>
             <span className="mt-0.5 text-[11px] min-[360px]:text-xs sm:text-sm font-normal text-muted-foreground leading-tight">
-              Scan wiederholen oder Bild mit besserem Winkel aufnehmen.
+              {t.scanResultRetryScan}
             </span>
           </span>
         </Button>

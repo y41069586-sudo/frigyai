@@ -1,143 +1,126 @@
-import { useEffect, useRef } from 'react';
-import { FRIGY_STORAGE_UPDATED } from '@/lib/frigyStorageSync';
+import { useEffect, useRef } from "react";
+import { getStoredLanguage } from "@/contexts/LanguageContext";
+import {
+  buildWaterSchedule,
+  checkWebTrialEndingReminder,
+  isNativeApp,
+  normalizeReminderConfig,
+  reminderNotificationCopy,
+  type ReminderConfig,
+} from "@/lib/notifications";
 
-interface ReminderConfig {
-  water: { enabled: boolean; interval: number };
-  meals: { enabled: boolean; times: string[] };
-  weight: { enabled: boolean; time: string };
+const LAST_FIRED_KEY = "frigy_reminder_last_fired_v2";
+const REMINDER_CONFIG_KEY = "reminderConfig";
+
+function pad2(n: number): string {
+  return n.toString().padStart(2, "0");
 }
 
-const sendNotification = (title: string, body: string) => {
-  if ('Notification' in window && Notification.permission === 'granted') {
+function currentHm(): string {
+  const now = new Date();
+  return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+}
+
+function slotHm(slot: { hour: number; minute: number }): string {
+  return `${pad2(slot.hour)}:${pad2(slot.minute)}`;
+}
+
+/** At most one notification per logical slot per calendar day. */
+function markFiredIfNew(slotId: string): boolean {
+  const today = new Date().toDateString();
+  const key = `${slotId}:${today}`;
+  try {
+    const raw = localStorage.getItem(LAST_FIRED_KEY);
+    const map: Record<string, string> = raw ? JSON.parse(raw) : {};
+    if (map[key]) return false;
+    map[key] = new Date().toISOString();
+    const keys = Object.keys(map);
+    if (keys.length > 40) {
+      for (const k of keys.slice(0, keys.length - 30)) delete map[k];
+    }
+    localStorage.setItem(LAST_FIRED_KEY, JSON.stringify(map));
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+function sendNotification(title: string, body: string, tag: string) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
     new Notification(title, {
       body,
-      icon: '/favicon.ico',
-      tag: title, // Prevents duplicate notifications
+      icon: "/pwa-192x192.png",
+      tag,
     });
+  } catch {
+    /* ignore */
   }
-};
-
-const getNextMealName = (hour: number): string => {
-  if (hour < 10) return 'Frühstück';
-  if (hour < 15) return 'Mittagessen';
-  return 'Abendessen';
-};
+}
 
 export const useReminders = () => {
-  const waterIntervalRef = useRef<number | null>(null);
   const checkIntervalRef = useRef<number | null>(null);
-  const lastMealReminderRef = useRef<string>('');
-  const lastWeightReminderRef = useRef<string>('');
 
   useEffect(() => {
-    // Check if notifications are supported and permitted
-    const checkNotificationPermission = () => {
-      if (!('Notification' in window)) {
-        console.log('Notifications not supported');
-        return false;
-      }
-      return Notification.permission === 'granted';
-    };
+    if (isNativeApp()) return;
 
-    const checkReminders = () => {
-      if (!checkNotificationPermission()) return;
-      
-      const saved = localStorage.getItem('reminderConfig');
+    const tick = () => {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+      checkWebTrialEndingReminder();
+
+      const saved = localStorage.getItem(REMINDER_CONFIG_KEY);
       if (!saved) return;
 
-      const config: ReminderConfig = JSON.parse(saved);
-      const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      const today = now.toDateString();
-
-      console.log('Checking reminders at:', currentTime);
-
-      // Check meal reminders
-      if (config.meals.enabled) {
-        config.meals.times.forEach(time => {
-          const reminderKey = `${today}-${time}`;
-          if (currentTime === time && lastMealReminderRef.current !== reminderKey) {
-            lastMealReminderRef.current = reminderKey;
-            const mealName = getNextMealName(now.getHours());
-            console.log('Sending meal reminder:', mealName);
-            sendNotification(
-              `🍽️ ${mealName} Zeit!`,
-              'Vergiss nicht, deine Mahlzeit zu loggen.'
-            );
-          }
-        });
+      let config: ReminderConfig;
+      try {
+        config = normalizeReminderConfig(JSON.parse(saved) as ReminderConfig);
+      } catch {
+        return;
       }
 
-      // Check weight reminder
-      if (config.weight.enabled) {
-        const reminderKey = `${today}-weight`;
-        if (currentTime === config.weight.time && lastWeightReminderRef.current !== reminderKey) {
-          lastWeightReminderRef.current = reminderKey;
-          console.log('Sending weight reminder');
-          sendNotification(
-            '⚖️ Zeit zum Wiegen!',
-            'Dokumentiere deinen Fortschritt.'
-          );
+      const hm = currentHm();
+      const copy = reminderNotificationCopy(getStoredLanguage());
+
+      if (config.water.enabled) {
+        const slots = buildWaterSchedule(config.water.interval);
+        for (let i = 0; i < slots.length; i++) {
+          if (hm !== slotHm(slots[i]!)) continue;
+          if (!markFiredIfNew(`water-${i}-${slotHm(slots[i]!)}`)) continue;
+          sendNotification(copy.waterTitle, copy.waterBody, "frigy-water");
+          break;
+        }
+      }
+
+      if (config.meals.enabled) {
+        for (const time of config.meals.times) {
+          if (hm !== time.trim()) continue;
+          if (!markFiredIfNew(`meal-${time}`)) continue;
+          const hour = new Date().getHours();
+          const mealName =
+            hour < 11 ? copy.mealName(8) : hour < 16 ? copy.mealName(12) : copy.mealName(19);
+          sendNotification(`🍽️ ${mealName}!`, copy.mealBody, `frigy-meal-${time}`);
+        }
+      }
+
+      if (config.weight.enabled && hm === config.weight.time.trim()) {
+        if (markFiredIfNew(`weight-${config.weight.time}`)) {
+          sendNotification(copy.weightTitle, copy.weightBody, "frigy-weight");
         }
       }
     };
 
-    const startWaterReminder = () => {
-      if (!checkNotificationPermission()) return;
-      
-      const saved = localStorage.getItem('reminderConfig');
-      if (!saved) return;
+    tick();
+    checkIntervalRef.current = window.setInterval(tick, 60_000);
 
-      const config: ReminderConfig = JSON.parse(saved);
-      
-      // Clear existing interval
-      if (waterIntervalRef.current) {
-        clearInterval(waterIntervalRef.current);
-        waterIntervalRef.current = null;
-      }
-
-      if (config.water.enabled) {
-        const intervalMs = config.water.interval * 60 * 60 * 1000; // Convert hours to ms
-        console.log('Starting water reminder every', config.water.interval, 'hours');
-        
-        waterIntervalRef.current = window.setInterval(() => {
-          console.log('Sending water reminder');
-          sendNotification(
-            '💧 Wasser trinken!',
-            'Zeit für ein Glas Wasser.'
-          );
-        }, intervalMs);
-      }
+    const onStorageChange = (e: StorageEvent) => {
+      if (e.key === REMINDER_CONFIG_KEY) tick();
     };
-
-    // Run initial check
-    checkReminders();
-    
-    // Check every minute for time-based reminders
-    checkIntervalRef.current = window.setInterval(checkReminders, 60000);
-    
-    // Initial setup
-    startWaterReminder();
-
-    // Listen for config changes
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'reminderConfig') {
-        startWaterReminder();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-
-    const onAppStorageUpdate = () => {
-      startWaterReminder();
-      checkReminders();
-    };
-    window.addEventListener(FRIGY_STORAGE_UPDATED, onAppStorageUpdate);
+    window.addEventListener("storage", onStorageChange);
 
     return () => {
-      if (waterIntervalRef.current) clearInterval(waterIntervalRef.current);
       if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener(FRIGY_STORAGE_UPDATED, onAppStorageUpdate);
+      window.removeEventListener("storage", onStorageChange);
     };
   }, []);
 };

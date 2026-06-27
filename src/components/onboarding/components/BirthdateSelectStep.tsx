@@ -1,192 +1,106 @@
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
-import { useMintWheelRowHeight } from "./MintWheelColumn";
+import type { UserData } from "../types";
+import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import { MIN_ONBOARDING_AGE } from "../utils";
 
 const PALETTE = {
-  primary: "#24FF8F",
-  primaryDark: "#12D978",
-  bg: "#F0FFF7",
-  selectedBg: "#D4FFEA",
+  primary: "#75FBB2",
+  primaryDark: "#39D47F",
+  bg: "#FBFFFD",
+  selectedBg: "#DCFEEF",
   border: "#6EECC0",
   text: "#1F2937",
   textMuted: "#6B7280",
 };
 
-const VISIBLE_ITEMS = 5;
-const PAD_ITEMS = Math.floor(VISIBLE_ITEMS / 2);
-
-type WheelOption = { value: number; label: string };
-
-type WheelColumnProps = {
-  options: WheelOption[];
-  value: number;
-  onChange: (value: number) => void;
-  align?: "left" | "center" | "right";
-  width?: number | string;
-  ariaLabel?: string;
-  rowHeight: number;
-};
-
-const haptic = () => {
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    navigator.vibrate?.(4);
-  }
-};
-
-function WheelColumn({
-  options,
-  value,
-  onChange,
-  align = "center",
-  width = "100%",
-  ariaLabel,
-  rowHeight,
-}: WheelColumnProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const lastIndexRef = useRef(0);
-  const isProgrammaticRef = useRef(false);
-  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const selectedIndex = useMemo(() => {
-    const idx = options.findIndex((o) => o.value === value);
-    return idx >= 0 ? idx : 0;
-  }, [options, value]);
-
-  const scrollToIndex = useCallback(
-    (idx: number, smooth: boolean) => {
-      if (!scrollRef.current) return;
-      isProgrammaticRef.current = true;
-      scrollRef.current.scrollTo({
-        top: idx * rowHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
-      setTimeout(
-        () => {
-          isProgrammaticRef.current = false;
-        },
-        smooth ? 260 : 30,
-      );
-    },
-    [rowHeight],
-  );
-
-  useEffect(() => {
-    scrollToIndex(selectedIndex, false);
-    lastIndexRef.current = selectedIndex;
-  }, [selectedIndex, rowHeight, scrollToIndex]);
-
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current || isProgrammaticRef.current) return;
-    const top = scrollRef.current.scrollTop;
-    const idx = Math.round(top / rowHeight);
-    const clamped = Math.max(0, Math.min(options.length - 1, idx));
-
-    if (clamped !== lastIndexRef.current) {
-      haptic();
-      lastIndexRef.current = clamped;
-      onChange(options[clamped].value);
-    }
-
-    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-    snapTimeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
-      const currentTop = scrollRef.current.scrollTop;
-      const targetTop = lastIndexRef.current * rowHeight;
-      if (Math.abs(currentTop - targetTop) > 0.5) {
-        scrollToIndex(lastIndexRef.current, true);
-      }
-    }, 90);
-  }, [options, onChange, scrollToIndex, rowHeight]);
-
-  useEffect(() => () => {
-    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
-  }, []);
-
-  const containerHeight = VISIBLE_ITEMS * rowHeight;
-  const textAlignClass =
-    align === "left" ? "justify-start pl-2" : align === "right" ? "justify-end pr-2" : "justify-center";
-
-  const selectedPx = rowHeight <= 40 ? 18 : 22;
-  const idlePx = rowHeight <= 40 ? 15 : 16;
-
-  return (
-    <div
-      className="relative shrink-0"
-      style={{ height: containerHeight, width }}
-      role="listbox"
-      aria-label={ariaLabel}
-    >
-      <div
-        ref={scrollRef}
-        className="h-full overflow-y-scroll scrollbar-hide select-none"
-        style={{
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-          overscrollBehavior: "contain",
-          WebkitUserSelect: "none",
-          userSelect: "none",
-          willChange: "scroll-position",
-          transform: "translateZ(0)",
-        }}
-        onScroll={handleScroll}
-      >
-        <div style={{ height: PAD_ITEMS * rowHeight }} />
-        {options.map((opt, idx) => {
-          const distance = Math.abs(idx - selectedIndex);
-          const isSelected = idx === selectedIndex;
-          const opacity =
-            distance === 0 ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.28 : 0.15;
-          return (
-            <div
-              key={opt.value}
-              role="option"
-              aria-selected={isSelected}
-              className={`flex items-center ${textAlignClass}`}
-              style={{
-                height: rowHeight,
-                scrollSnapAlign: "center",
- cursor/wheelpicker-weight-step-e370
-                fontSize: isSelected ? `${selectedPx}px` : `${idlePx}px`,
-=======
-                fontSize: isSelected ? "19px" : "15px",
- main
-                fontWeight: isSelected ? 600 : 400,
-                color: isSelected ? PALETTE.text : PALETTE.textMuted,
-                opacity,
-                letterSpacing: "-0.01em",
-                transition: "font-size 160ms cubic-bezier(0.4,0,0.2,1), color 160ms",
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              {opt.label}
-            </div>
-          );
-        })}
-        <div style={{ height: PAD_ITEMS * rowHeight }} />
-      </div>
-    </div>
-  );
-}
-
-const MONTHS_DE = [
-  "Januar", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
-];
-const MONTHS_EN = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-const MONTHS_FR = [
-  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
-];
-
 const daysInMonth = (month: number, year: number) =>
   new Date(year, month, 0).getDate();
+
+const MAX_AGE = 100;
+
+const formatBirthdateValue = (birthdate: { day: number; month: number; year: number }) =>
+  `${String(birthdate.day).padStart(2, "0")}.${String(birthdate.month).padStart(2, "0")}.${birthdate.year}`;
+
+const sanitizeBirthdateInput = (raw: string) => {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  const parts: string[] = [];
+
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 8));
+
+  return parts.join(".");
+};
+
+const calculateAgeFromBirthdate = (day: number, month: number, year: number) => {
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const hasHadBirthdayThisYear =
+    today.getMonth() + 1 > month ||
+    (today.getMonth() + 1 === month && today.getDate() >= day);
+
+  if (!hasHadBirthdayThisYear) {
+    age -= 1;
+  }
+
+  return age;
+};
+
+type BirthdateParseResult =
+  | { status: "invalid" }
+  | { status: "too_young" }
+  | { status: "valid"; day: number; month: number; year: number; age: number };
+
+const parseBirthdateInput = (value: string): BirthdateParseResult | null => {
+  if (!value) return null;
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
+    return { status: "invalid" };
+  }
+
+  const [dayString, monthString, yearString] = value.split(".");
+  const day = Number(dayString);
+  const month = Number(monthString);
+  const year = Number(yearString);
+
+  if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) {
+    return { status: "invalid" };
+  }
+
+  if (year > new Date().getFullYear() - MIN_ONBOARDING_AGE) {
+    return { status: "too_young" };
+  }
+
+  const today = new Date();
+  const minYear = today.getFullYear() - MAX_AGE;
+
+  if (year < minYear) {
+    return { status: "invalid" };
+  }
+
+  if (month < 1 || month > 12) {
+    return { status: "invalid" };
+  }
+
+  const maxDay = daysInMonth(month, year);
+  if (day < 1 || day > maxDay) {
+    return { status: "invalid" };
+  }
+
+  const age = calculateAgeFromBirthdate(day, month, year);
+  if (age < MIN_ONBOARDING_AGE) {
+    return { status: "too_young" };
+  }
+  if (age > MAX_AGE) {
+    return { status: "invalid" };
+  }
+
+  return { status: "valid", day, month, year, age };
+};
 
 type Props = {
   userData: UserData;
@@ -201,85 +115,77 @@ export function BirthdateSelectStep({
   onBack,
   onNext,
 }: Props) {
-  const { language, t } = useLanguage();
-  const wheelRow = useMintWheelRowHeight();
+  const { t } = useLanguage();
+  const [birthdateInput, setBirthdateInput] = useState("");
 
-  const monthNames = language === "fr" ? MONTHS_FR : language === "en" ? MONTHS_EN : MONTHS_DE;
+  useEffect(() => {
+    if (!userData.birthdate || !userData.birthdateConfirmed) {
+      setBirthdateInput("");
+      return;
+    }
 
-  const today = new Date();
-  const maxYear = today.getFullYear() - 13;
-  const minYear = today.getFullYear() - 100;
+    setBirthdateInput(formatBirthdateValue(userData.birthdate));
+  }, [userData.birthdate, userData.birthdateConfirmed]);
 
-  const birth = userData.birthdate ?? {
-    day: 15,
-    month: 6,
-    year: maxYear - 12,
+  const title = t.onboardingBirthdateTitle;
+
+  const placeholder = "16.05.2002";
+  const helperText = t.onboardingBirthdateFormat;
+  const errorText = t.onboardingBirthdateError;
+  const tooYoungText = t.onboardingBirthdateTooYoung;
+
+  const parsedBirthdate = parseBirthdateInput(birthdateInput);
+  const canProceed = parsedBirthdate?.status === "valid";
+  const showTooYoung = parsedBirthdate?.status === "too_young";
+  const showInvalid =
+    birthdateInput.length > 0 &&
+    parsedBirthdate !== null &&
+    parsedBirthdate.status === "invalid";
+
+  const handleBirthdateChange = (raw: string) => {
+    const nextValue = sanitizeBirthdateInput(raw);
+    setBirthdateInput(nextValue);
+
+    const parsed = parseBirthdateInput(nextValue);
+    if (!parsed || parsed.status !== "valid") {
+      if (userData.birthdateConfirmed) {
+        setUserData({
+          ...userData,
+          birthdate: null,
+          birthdateConfirmed: false,
+        });
+      }
+      return;
+    }
+
+    setUserData({
+      ...userData,
+      birthdate: {
+        day: parsed.day,
+        month: parsed.month,
+        year: parsed.year,
+      },
+      age: parsed.age,
+      birthdateConfirmed: true,
+    });
   };
-
-  const monthOptions: WheelOption[] = monthNames.map((label, i) => ({
-    value: i + 1,
-    label,
-  }));
-
-  const maxDay = daysInMonth(birth.month, birth.year);
-  const dayOptions: WheelOption[] = Array.from({ length: maxDay }, (_, i) => ({
-    value: i + 1,
-    label: String(i + 1).padStart(2, "0"),
-  }));
-
-  const yearOptions: WheelOption[] = Array.from(
-    { length: maxYear - minYear + 1 },
-    (_, i) => {
-      const v = maxYear - i;
-      return { value: v, label: String(v) };
-    },
-  );
-
-  const updateBirth = (patch: Partial<typeof birth>) => {
-    const next = { ...birth, ...patch };
-    const cap = daysInMonth(next.month, next.year);
-    if (next.day > cap) next.day = cap;
-    setUserData({ ...userData, birthdate: next });
-  };
-
-  const title =
-    language === "de"
-      ? "Wann bist du geboren?"
-      : language === "fr"
-        ? "Quand es-tu né(e) ?"
-        : "When were you born?";
-
-  const canProceed = true;
 
   return (
     <div
- cursor/wheelpicker-weight-step-e370
-      className="fixed inset-0 z-[100] flex flex-col"
-      style={{
-        backgroundColor: PALETTE.bg,
-        color: PALETTE.text,
-        paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}
-    >
-      {/* ── Top bar: back + progress ── */}
-      <div className="flex items-center gap-3 px-5 pt-3 pb-1 shrink-0">
-=======
       className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden"
       style={{ backgroundColor: PALETTE.bg, color: PALETTE.text }}
     >
-      {/* ── Top bar: back + progress ── */}
-      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+0.25rem)]">
- main
+      {/* â”€â”€ Top bar: back + progress â”€â”€ */}
+      <div className="flex shrink-0 items-center px-5 pb-1 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)]">
         {onBack ? (
           <motion.button
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={onBack}
-            aria-label="Zurück"
+            aria-label={t.back}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl transition-colors"
             style={{
-              backgroundColor: "#E4FFF2",
+              backgroundColor: "#FBFFFD",
               color: PALETTE.primaryDark,
               boxShadow: "0 1px 2px rgba(15,40,30,0.04)",
             }}
@@ -291,167 +197,74 @@ export function BirthdateSelectStep({
         )}
 </div>
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
- cursor/wheelpicker-weight-step-e370
-        className="px-6 pt-3 pb-3 shrink-0 [@media(max-height:700px)]:pt-3 [@media(max-height:700px)]:pb-3 [@media(min-height:701px)]:pt-5 [@media(min-height:701px)]:pb-4 [@media(min-height:800px)]:pt-8 [@media(min-height:800px)]:pb-6"
-      >
+      <OnboardingMascotQuestion>
         <h1
-          className="text-[24px] font-semibold leading-tight tracking-tight [@media(max-height:700px)]:text-[21px] [@media(min-height:800px)]:text-[30px]"
-=======
-        className="min-w-0 shrink-0 overflow-visible px-6 pb-4 pt-1"
-      >
-        <h1
-          className="text-[22px] font-semibold leading-tight tracking-tight"
- main
+          className="text-[19px] font-semibold leading-snug tracking-tight"
           style={{ color: PALETTE.text }}
         >
           {title}
         </h1>
- cursor/wheelpicker-weight-step-e370
-        <p
-          className="mt-1.5 text-[15px] leading-snug [@media(max-height:700px)]:mt-2 [@media(max-height:700px)]:text-[13px] [@media(min-height:800px)]:mt-3 [@media(min-height:800px)]:text-[17px]"
-          style={{ color: PALETTE.textMuted }}
-        >
-          {subtitle}
-        </p>
-      </motion.div>
+      </OnboardingMascotQuestion>
 
-      {/* ── Wheel picker card ── */}
-      <div className="flex flex-1 min-h-0 flex-col items-center justify-start overflow-y-auto px-4 pb-2 pt-1">
-        <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-          className="relative w-full max-w-md rounded-[24px] p-3 [@media(max-height:700px)]:rounded-[22px] [@media(max-height:700px)]:p-2.5 [@media(min-height:800px)]:rounded-[28px] [@media(min-height:800px)]:p-5"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%)",
-            backdropFilter: "blur(18px)",
-            WebkitBackdropFilter: "blur(18px)",
-            border: `1px solid ${PALETTE.cardBorderIdle}`,
-            boxShadow:
-              "0 24px 50px -24px rgba(60,120,90,0.18), 0 4px 14px -6px rgba(60,120,90,0.08)",
-          }}
-
-      </motion.div>
-
-      {/* Datumswheels — ohne weiße Kachel */}
-      <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 pb-1 pt-0">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
-          className="relative mx-auto w-full max-w-[288px] shrink-0 py-0.5"
- main
-        >
+      <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
+        <div className="mx-auto w-full max-w-[320px]">
           <div
-            className="pointer-events-none absolute inset-x-0 z-0 rounded-xl"
-            style={{
-              top: `calc(50% - ${wheelRow / 2}px)`,
-              height: wheelRow,
-              backgroundColor: PALETTE.selectedBg,
-              boxShadow: "0 0 0 3px rgba(36,255,143,0.16)",
-            }}
-          />
-
-          <div
- cursor/wheelpicker-weight-step-e370
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 rounded-t-[24px] [@media(min-height:800px)]:rounded-t-[28px]"
-            style={{
-              height: PAD_ITEMS * wheelRow + 12,
-              background:
-                "linear-gradient(180deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
-
-            className="pointer-events-none absolute inset-x-0 top-0 z-20"
-            style={{
-              height: PAD_ITEMS * ITEM_HEIGHT + 12,
-              background:
-                "linear-gradient(180deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
- main
-            }}
-          />
-          <div
- cursor/wheelpicker-weight-step-e370
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 rounded-b-[24px] [@media(min-height:800px)]:rounded-b-[28px]"
-            style={{
-              height: PAD_ITEMS * wheelRow + 12,
-              background:
-                "linear-gradient(0deg, rgba(247,255,251,0.55) 0%, rgba(247,255,251,0.22) 55%, rgba(247,255,251,0) 100%)",
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
-            style={{
-              height: PAD_ITEMS * ITEM_HEIGHT + 12,
-              background:
-                "linear-gradient(0deg, rgba(240,255,247,0.98) 0%, rgba(240,255,247,0.5) 42%, rgba(240,255,247,0) 100%)",
- main
-            }}
-          />
-
-          {/* Three columns — equal width and centered for consistent spacing */}
-          <div className="relative z-10 flex items-stretch">
-            <WheelColumn
-              options={monthOptions}
-              value={birth.month}
-              onChange={(m) => updateBirth({ month: m })}
-              align="center"
-              width="33.3333%"
-              ariaLabel="Monat"
-              rowHeight={wheelRow}
-            />
-            <WheelColumn
-              options={dayOptions}
-              value={birth.day}
-              onChange={(d) => updateBirth({ day: d })}
-              align="center"
-              width="33.3333%"
-              ariaLabel="Tag"
-              rowHeight={wheelRow}
-            />
-            <WheelColumn
-              options={yearOptions}
-              value={birth.year}
-              onChange={(y) => updateBirth({ year: y })}
-              align="center"
-              width="33.3333%"
-              ariaLabel="Jahr"
-              rowHeight={wheelRow}
+            className="rounded-[24px] border px-5 py-4 shadow-[0_18px_45px_-28px_rgba(57,212,127,0.45)]"
+            style={{ backgroundColor: "#FFFFFF", borderColor: PALETTE.border }}
+          >
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="bday"
+              value={birthdateInput}
+              onChange={(event) => handleBirthdateChange(event.target.value)}
+              placeholder={placeholder}
+              aria-label={title}
+              className="w-full bg-transparent text-center text-[28px] font-semibold tracking-[-0.04em] outline-none placeholder:text-[#9AB5A7]"
+              style={{ color: PALETTE.text }}
             />
           </div>
-        </motion.div>
-      </div>
 
- cursor/wheelpicker-weight-step-e370
-      {/* ── Continue button ── */}
-      <div className="shrink-0 px-5 pt-3 pb-4 [@media(max-height:700px)]:pt-2 [@media(max-height:700px)]:pb-3 [@media(min-height:800px)]:pt-5 [@media(min-height:800px)]:pb-6">
+          <p
+            className="mt-3 text-center text-[12px] font-medium"
+            style={{
+              color: showTooYoung || showInvalid ? "#DC2626" : PALETTE.textMuted,
+            }}
+          >
+            {showTooYoung
+              ? tooYoungText
+              : showInvalid
+                ? errorText
+                : helperText}
+          </p>
+        </div>
+      </div>
 
       {/* Continue */}
       <div
         className="relative z-10 shrink-0 border-t border-zinc-200/50 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px)+1rem)] pt-3"
         style={{ backgroundColor: PALETTE.bg }}
       >
- main
+        <OnboardingDataNotice variant="mint" className="mb-3" notice="minAge" />
         <motion.button
           type="button"
           whileTap={{ scale: canProceed ? 0.98 : 1 }}
-          onClick={onNext}
+          onClick={canProceed ? onNext : undefined}
           disabled={!canProceed}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-[18px] text-[15px] font-semibold text-white transition-all [@media(max-height:700px)]:h-11 [@media(max-height:700px)]:text-[14px] [@media(min-height:800px)]:h-[58px] [@media(min-height:800px)]:text-[17px]"
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-[18px] text-[16px] font-semibold text-white transition-all"
           style={{
             background: canProceed
               ? `linear-gradient(135deg, ${PALETTE.primary} 0%, ${PALETTE.primaryDark} 100%)`
               : "linear-gradient(135deg, #BEF5D8 0%, #98EBC5 100%)",
             boxShadow: canProceed
-              ? "0 10px 24px -8px rgba(18,217,120,0.55), 0 2px 4px rgba(15,40,30,0.05)"
+              ? "0 16px 34px -10px rgba(74, 232, 150,0.72), 0 0 34px rgba(110, 240, 168,0.36), 0 2px 4px rgba(15,40,30,0.05)"
               : "0 1px 2px rgba(15,40,30,0.04)",
             cursor: canProceed ? "pointer" : "not-allowed",
             opacity: canProceed ? 1 : 0.85,
           }}
         >
           {t.next}
-          <ChevronRight className="size-5 [@media(min-height:800px)]:size-6" strokeWidth={2.5} />
+          <ChevronRight className="size-5" strokeWidth={2.5} />
         </motion.button>
       </div>
     </div>
