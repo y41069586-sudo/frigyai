@@ -91,11 +91,15 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ success: false, error: "Method not allowed" }, 405);
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } },
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("[send-email-confirmation] Missing Supabase secrets: URL=", !!supabaseUrl, "KEY=", !!supabaseServiceKey);
+    return json({ success: false, error: "Missing Supabase configuration" }, 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
   try {
     const body = await req.json().catch(() => ({}));
