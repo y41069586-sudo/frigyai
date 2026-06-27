@@ -203,33 +203,31 @@ final class SupabaseAuthService: AuthServiceProtocol {
         // with "user already registered" and the branded email is never sent.
         // Routing creation through the function keeps it atomic and avoids the
         // duplicate / silently-dropped email.
-        let sent = await sendBrandedConfirmationEmail(email: email, password: password)
-        guard sent else { throw AuthServiceError.oauthStartFailed }
+        let result = await sendBrandedConfirmationEmail(email: email, password: password)
+        guard result.ok else {
+            // Surface the REAL reason on-screen (no Mac/device-log access needed).
+            throw AuthServiceError.emailSendFailed(result.detail)
+        }
         // Account exists but the email must still be confirmed via the link.
         throw AuthServiceError.emailVerificationRequired
     }
 
-    /// Calls the send-email-confirmation edge function. Returns true when the
-    /// function reports the email was sent (HTTP 200), false otherwise.
-    @discardableResult
-    private func sendBrandedConfirmationEmail(email: String, password: String) async -> Bool {
+    /// Calls the send-email-confirmation edge function. Returns ok=true when the
+    /// function reports the email was sent (HTTP 200). On failure, `detail` carries
+    /// the real reason so it can be shown on-screen (no Mac/device logs required).
+    private func sendBrandedConfirmationEmail(email: String, password: String) async -> (ok: Bool, detail: String) {
         guard SupabaseConfig.isConfigured else {
-            print("[sendBrandedConfirmationEmail] ERROR: SupabaseConfig not configured")
-            return false
+            return (false, "App-Konfiguration fehlt (SUPABASE_URL/ANON_KEY). Neuer Build nötig.")
         }
         guard let base = SupabaseConfig.urlString else {
-            print("[sendBrandedConfirmationEmail] ERROR: SUPABASE_URL is nil")
-            return false
+            return (false, "SUPABASE_URL ist leer.")
         }
         guard let anonKey = SupabaseConfig.anonKey else {
-            print("[sendBrandedConfirmationEmail] ERROR: SUPABASE_ANON_KEY is nil")
-            return false
+            return (false, "SUPABASE_ANON_KEY ist leer.")
         }
         guard let url = URL(string: "\(base)/functions/v1/send-email-confirmation") else {
-            print("[sendBrandedConfirmationEmail] ERROR: Invalid URL: \(base)/functions/v1/send-email-confirmation")
-            return false
+            return (false, "Ungültige Function-URL.")
         }
-        print("[sendBrandedConfirmationEmail] Calling \(url)")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.timeoutInterval = 20
@@ -240,20 +238,13 @@ final class SupabaseAuthService: AuthServiceProtocol {
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
             guard let http = response as? HTTPURLResponse else {
-                print("[sendBrandedConfirmationEmail] ERROR: Invalid response type")
-                return false
+                return (false, "Keine gültige HTTP-Antwort.")
             }
-            print("[sendBrandedConfirmationEmail] Response status: \(http.statusCode)")
-            if http.statusCode == 200 {
-                return true
-            } else {
-                let bodyStr = String(data: data, encoding: .utf8) ?? "no body"
-                print("[sendBrandedConfirmationEmail] ERROR: Status \(http.statusCode), body: \(bodyStr)")
-                return false
-            }
+            if http.statusCode == 200 { return (true, "") }
+            let bodyStr = String(data: data, encoding: .utf8) ?? "(leer)"
+            return (false, "HTTP \(http.statusCode): \(bodyStr)")
         } catch {
-            print("[sendBrandedConfirmationEmail] ERROR: Network error: \(error.localizedDescription)")
-            return false
+            return (false, "Netzwerkfehler: \(error.localizedDescription)")
         }
     }
 
@@ -363,6 +354,7 @@ enum AuthServiceError: LocalizedError {
     case oauthCancelled
     case oauthStartFailed
     case emailVerificationRequired
+    case emailSendFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -370,6 +362,7 @@ enum AuthServiceError: LocalizedError {
         case .oauthCancelled: "Sign in was cancelled."
         case .oauthStartFailed: "Could not start OAuth browser session."
         case .emailVerificationRequired: "Wir haben dir eine Bestätigungs-E-Mail geschickt. Bitte klicke den Link darin."
+        case .emailSendFailed(let detail): "E-Mail konnte nicht gesendet werden — \(detail)"
         }
     }
 }
