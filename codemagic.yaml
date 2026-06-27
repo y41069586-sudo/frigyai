@@ -229,6 +229,8 @@ workflows:
         XCODE_SCHEME: FrigyNative
         BUNDLE_ID: com.frigyapp.app
         XCODE_PROJECT: ios-swiftui/FrigyNative.xcodeproj
+        SUPABASE_URL: $SUPABASE_URL
+        SUPABASE_ANON_KEY: $SUPABASE_ANON_KEY
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
