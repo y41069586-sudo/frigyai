@@ -192,8 +192,8 @@ final class SupabaseAuthService: AuthServiceProtocol {
         }
         let accessToken = result.user.accessToken.tokenString
 
-        _ = try await client.auth.signInWithIDToken(
-    credentials: IDTokenConnectCredentials(
+        _ = try await client.auth.signInWithIdToken(
+    credentials: OpenIDConnectCredentials(
         provider: .google,
         idToken: idToken,
         accessToken: accessToken
