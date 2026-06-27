@@ -54,10 +54,16 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
         bannerTitle: 'Notifications desactivees',
         bannerDesc: 'Appuie sur Activer pour autoriser les notifications.',
         bannerButton: 'Activer',
-        pushLabel: 'Notifications push',
-        pushDesc: 'Une seule notification par jour, ou aucune si desactive.',
-        webOnlyNote:
-          'Dans le navigateur, les rappels fonctionnent seulement tant que Frigy est ouverte. Installe l app pour des notifications fiables.',
+        waterLabel: 'Rappel d eau',
+        waterDesc: '2 a 4 rappels par jour selon le reglage',
+        mealsLabel: 'Rappel repas',
+        mealsDesc: '2 fois par jour, bien espace',
+        weightLabel: 'Rappel de poids',
+        weightDesc: 'Se peser chaque matin',
+        every: 'Toutes les',
+        hours2: '4×/jour',
+        hours3: '3×/jour',
+        hours4: '2×/jour',
       }
     : language === 'en'
       ? {
@@ -74,10 +80,16 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
           bannerTitle: 'Notifications disabled',
           bannerDesc: 'Tap Enable to allow notifications.',
           bannerButton: 'Enable',
-          pushLabel: 'Push notifications',
-          pushDesc: 'One notification per day when on — none when off.',
-          webOnlyNote:
-            'In the browser, reminders only work while Frigy is open. Install the app for reliable push notifications.',
+          waterLabel: 'Water reminder',
+          waterDesc: '2–4 reminders per day depending on setting',
+          mealsLabel: 'Meal reminder',
+          mealsDesc: '2 times daily, spaced out',
+          weightLabel: 'Weigh-in reminder',
+          weightDesc: 'Weigh yourself every morning',
+          every: 'Every',
+          hours2: '4× daily',
+          hours3: '3× daily',
+          hours4: '2× daily',
         }
       : {
           enabledTitle: 'Benachrichtigungen aktiviert ✓',
@@ -93,10 +105,16 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
           bannerTitle: 'Benachrichtigungen deaktiviert',
           bannerDesc: 'Tippe auf Aktivieren, um Benachrichtigungen zu erlauben.',
           bannerButton: 'Aktivieren',
-          pushLabel: 'Push-Benachrichtigungen',
-          pushDesc: 'Maximal eine Erinnerung pro Tag — aus heißt gar keine.',
-          webOnlyNote:
-            'Im Browser funktionieren Erinnerungen nur, solange Frigy geöffnet ist. Installiere die App für zuverlässige Push-Benachrichtigungen.',
+          waterLabel: 'Wasser-Erinnerung',
+          waterDesc: '2–4 Erinnerungen pro Tag je nach Einstellung',
+          mealsLabel: 'Mahlzeiten-Erinnerung',
+          mealsDesc: '2× täglich, großer Abstand',
+          weightLabel: 'Wiege-Erinnerung',
+          weightDesc: 'Täglich morgens wiegen',
+          every: 'Alle',
+          hours2: '4× täglich',
+          hours3: '3× täglich',
+          hours4: '2× täglich',
         };
 
   useEffect(() => {

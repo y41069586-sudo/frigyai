@@ -20,12 +20,10 @@ const TEST_ID = 9999;
 const YESTERDAY_BALANCE_ID = 4200;
 const YESTERDAY_BALANCE_PENDING_KEY = "frigy_yesterday_balance_pending";
 
-type LegacyReminderConfig = {
-  enabled?: boolean;
-  water?: { enabled?: boolean };
-  meals?: { enabled?: boolean };
-  weight?: { enabled?: boolean };
-};
+const MIN_GAP_MINUTES = 90;
+const WATER_SLOT_COUNT = DEFAULT_WATER_SLOTS.length;
+
+let reminderSyncInFlight: Promise<void> | null = null;
 
 export function normalizeReminderConfig(raw: unknown): ReminderConfig {
   if (!raw || typeof raw !== "object") return { enabled: false };
@@ -177,166 +175,125 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
   return { hour: h ?? 0, minute: m ?? 0 };
 }
 
-function nextDailyOccurrence(hour: number, minute: number): Date {
-  const at = new Date();
-  at.setHours(hour, minute, 0, 0);
-  if (at.getTime() <= Date.now()) {
-    at.setDate(at.getDate() + 1);
+function minutesSinceMidnight(hour: number, minute: number): number {
+  return hour * 60 + minute;
+}
+
+function dailyScheduleAt(hour: number, minute: number) {
+  return {
+    on: {
+      hour,
+      minute,
+      second: 0,
+    },
+  };
+}
+
+function isSlotTooClose(
+  hour: number,
+  minute: number,
+  scheduled: { hour: number; minute: number }[],
+): boolean {
+  const slotMinutes = minutesSinceMidnight(hour, minute);
+  return scheduled.some((other) => {
+    const diff = Math.abs(slotMinutes - minutesSinceMidnight(other.hour, other.minute));
+    return diff > 0 && diff < MIN_GAP_MINUTES;
+  });
+}
+
+export function reminderNotificationCopy(language: Language) {
+  if (language === "en") {
+    return {
+      waterTitle: "💧 Time to drink water!",
+      waterBody: "Stay hydrated – have a glass of water!",
+      mealBody: "Don't forget to log your meal.",
+      weightTitle: "⚖️ Time to weigh in!",
+      weightBody: "Track your progress.",
+      mealName: (hour: number) => {
+        if (hour < 11) return "Breakfast";
+        if (hour < 16) return "Lunch";
+        return "Dinner";
+      },
+    };
   }
-  return at;
+  if (language === "fr") {
+    return {
+      waterTitle: "💧 C'est l'heure de boire !",
+      waterBody: "Reste hydraté – bois un verre d'eau !",
+      mealBody: "N'oublie pas d'enregistrer ton repas.",
+      weightTitle: "⚖️ C'est l'heure de te peser !",
+      weightBody: "Suis ta progression.",
+      mealName: (hour: number) => {
+        if (hour < 11) return "Petit-déjeuner";
+        if (hour < 16) return "Déjeuner";
+        return "Dîner";
+      },
+    };
+  }
+  return {
+    waterTitle: "💧 Zeit für Wasser!",
+    waterBody: "Bleib hydriert – trink ein Glas Wasser!",
+    mealBody: "Vergiss nicht, deine Mahlzeit zu loggen.",
+    weightTitle: "⚖️ Zeit zum Wiegen!",
+    weightBody: "Dokumentiere deinen Fortschritt.",
+    mealName: (hour: number) => {
+      if (hour < 11) return "Frühstück";
+      if (hour < 16) return "Mittagessen";
+      return "Abendessen";
+    },
+  };
 }
 
-/** Returns the day-of-year (1–366) for the given date (defaults to today). */
-function dayOfYear(date: Date = new Date()): number {
-  const start = new Date(date.getFullYear(), 0, 0);
-  return Math.round((date.getTime() - start.getTime()) / 86_400_000);
+/** How many water reminders per day for the chosen interval (min 2, max 4). */
+export function waterReminderCount(intervalHours: number): number {
+  const step = Math.max(2, Math.min(4, intervalHours));
+  if (step >= 4) return 2;
+  if (step >= 3) return 3;
+  return 4;
 }
 
-type MessagePair = { title: string; body: string };
-
-const MESSAGES: Record<Language, MessagePair[]> = {
-  de: [
-    { title: "🍽️ Mahlzeit geloggt?", body: "Öffne Frigy und trag ein, was du heute gegessen hast." },
-    { title: "💧 Genug getrunken heute?", body: "Bleib hydriert — log deinen Wasserkonsum jetzt." },
-    { title: "💪 Dein Ziel wartet!", body: "Kleine Schritte zählen. Öffne Frigy und bleib auf Kurs." },
-    { title: "📊 Wie läuft dein Tag?", body: "Schau kurz, wo du beim Kalorienziel stehst." },
-    { title: "⚖️ Gewicht getrackt?", body: "Deine Daten helfen dir, Muster zu erkennen und Ziele zu erreichen." },
-    { title: "🥗 Was war dein Mittagessen?", body: "Ein Foto reicht — log es jetzt und behalte den Überblick." },
-    { title: "🌟 Gut gemacht, weiter so!", body: "Öffne Frigy und trag deine heutige Mahlzeit ein." },
-    { title: "🔥 Kalorien im Blick!", body: "Kurz eintragen und wissen, wie viel noch übrig ist." },
-    { title: "🧠 Wusstest du?", body: "Regelmäßiges Tracking hilft, Gewohnheiten dauerhaft zu verbessern." },
-    { title: "🎯 Zielgerade im Blick!", body: "Log deine Mahlzeit — jeder Eintrag bringt dich näher ans Ziel." },
-    { title: "🥦 Gemüse heute dabei?", body: "Öffne Frigy und schau, wie ausgewogen dein Tag war." },
-    { title: "⏰ Mittagspause — Zeit für Frigy!", body: "Trag jetzt ein, was du gegessen hast." },
-    { title: "🏃 Aktiv geblieben heute?", body: "Log deine Mahlzeiten und behalte dein Energielevel im Blick." },
-    { title: "💡 Tipp des Tages", body: "Proteine sättigen länger — schau, ob du heute genug hattest." },
-    { title: "🍎 Fruchtig gesund?", body: "Öffne Frigy und log, was du heute zu dir genommen hast." },
-    { title: "📱 30 Sekunden reichen!", body: "Schnell einloggen und den Rest des Tages genießen." },
-    { title: "🌱 Gesund essen, besser fühlen", body: "Track deine Mahlzeiten und erkenne, was dir Energie gibt." },
-    { title: "🍳 Frühstück, Mittag, Abend?", body: "Was fehlt noch? Öffne Frigy und füll die Lücken." },
-    { title: "💬 Kleine Gewohnheit, große Wirkung", body: "Täglich tracken macht den Unterschied — öffne Frigy." },
-    { title: "🏅 Dein bester Tag wartet!", body: "Log was du gegessen hast und bleib deinen Zielen treu." },
-    { title: "🌊 Wasser nicht vergessen!", body: "Hydrierung ist wichtig — log deinen Wasserkonsum in Frigy." },
-    { title: "🥩 Protein auf Kurs?", body: "Schau kurz nach — öffne Frigy und check deine Makros." },
-    { title: "🧘 Balance ist alles", body: "Öffne Frigy und tracke, wie ausgewogen dein Tag heute war." },
-    { title: "📅 Tag im Griff?", body: "Ein kurzer Blick in Frigy zeigt dir, wie du unterwegs bist." },
-    { title: "🌈 Bunt essen?", body: "Verschiedene Farben auf dem Teller = verschiedene Nährstoffe." },
-    { title: "🎉 Du schaffst das!", body: "Öffne Frigy und zeig deinem Körper, wie gut du für ihn sorgst." },
-    { title: "⚡ Energie tanken!", body: "Track deine Mahlzeiten und entdecke, was dir Power gibt." },
-    { title: "🔍 Makros im Check?", body: "Öffne Frigy — Kohlenhydrate, Fette, Proteine im Blick." },
-    { title: "🍵 Mittagspause nutzen!", body: "Schnell die letzte Mahlzeit eintragen — dauert nur 30 Sekunden." },
-    { title: "💫 Konsistenz gewinnt!", body: "Jeden Tag ein Eintrag — öffne Frigy und bleib dabei." },
-  ],
-  en: [
-    { title: "🍽️ Meal logged yet?", body: "Open Frigy and track what you ate today." },
-    { title: "💧 Staying hydrated?", body: "Log your water intake and keep your streak going." },
-    { title: "💪 Your goal is waiting!", body: "Small steps add up. Open Frigy and stay on track." },
-    { title: "📊 How's your day going?", body: "Check how close you are to your calorie goal." },
-    { title: "⚖️ Tracked your weight?", body: "Your data helps you spot patterns and hit goals." },
-    { title: "🥗 What did you have for lunch?", body: "One photo is enough — log it now and stay on track." },
-    { title: "🌟 Great job, keep it up!", body: "Open Frigy and log today's meal." },
-    { title: "🔥 Calories in check!", body: "Quick entry — see how much you have left for the day." },
-    { title: "🧠 Did you know?", body: "Regular tracking helps you improve habits for good." },
-    { title: "🎯 Finish line in sight!", body: "Log your meal — every entry brings you closer to your goal." },
-    { title: "🥦 Veggies in today?", body: "Open Frigy and see how balanced your day was." },
-    { title: "⏰ Lunch break — Frigy time!", body: "Log what you just ate while it's fresh." },
-    { title: "🏃 Active today?", body: "Log your meals and keep an eye on your energy balance." },
-    { title: "💡 Today's tip", body: "Protein keeps you fuller longer — check if you hit your target." },
-    { title: "🍎 Eating your fruits?", body: "Open Frigy and log what you've had today." },
-    { title: "📱 30 seconds is all it takes!", body: "Log it quick and enjoy the rest of your day." },
-    { title: "🌱 Eat well, feel great", body: "Track your meals and see what gives you energy." },
-    { title: "🍳 Breakfast, lunch, dinner?", body: "What's missing? Open Frigy and fill in the gaps." },
-    { title: "💬 Small habit, big results", body: "Daily tracking makes the difference — open Frigy." },
-    { title: "🏅 Your best day awaits!", body: "Log what you ate and stay true to your goals." },
-    { title: "🌊 Don't forget water!", body: "Hydration matters — log your water intake in Frigy." },
-    { title: "🥩 Protein on track?", body: "Quick check — open Frigy and review your macros." },
-    { title: "🧘 Balance is everything", body: "Open Frigy and see how balanced your day was." },
-    { title: "📅 Got your day covered?", body: "A quick glance at Frigy shows your progress." },
-    { title: "🌈 Eating the rainbow?", body: "Different colors on your plate = different nutrients." },
-    { title: "🎉 You've got this!", body: "Open Frigy and show your body how well you treat it." },
-    { title: "⚡ Fuel up!", body: "Track your meals and discover what gives you power." },
-    { title: "🔍 Macros in check?", body: "Open Frigy — carbs, fats, protein at a glance." },
-    { title: "🍵 Use your lunch break!", body: "Log your last meal — it only takes 30 seconds." },
-    { title: "💫 Consistency wins!", body: "One entry a day — open Frigy and keep it up." },
-  ],
-  fr: [
-    { title: "🍽️ Repas noté ?", body: "Ouvre Frigy et enregistre ce que tu as mangé aujourd'hui." },
-    { title: "💧 Tu bois assez ?", body: "Note ta consommation d'eau et garde le rythme." },
-    { title: "💪 Ton objectif t'attend !", body: "Les petits pas font les grands progrès. Ouvre Frigy." },
-    { title: "📊 Comment se passe ta journée ?", body: "Vérifie où tu en es par rapport à ton objectif calorique." },
-    { title: "⚖️ Poids noté aujourd'hui ?", body: "Tes données t'aident à repérer des tendances et à atteindre tes objectifs." },
-    { title: "🥗 Qu'as-tu mangé à midi ?", body: "Une photo suffit — note-le maintenant et reste sur la bonne voie." },
-    { title: "🌟 Bravo, continue !", body: "Ouvre Frigy et note ton repas du jour." },
-    { title: "🔥 Calories sous contrôle !", body: "Note vite — vois ce qu'il te reste pour la journée." },
-    { title: "🧠 Le savais-tu ?", body: "Le suivi régulier t'aide à améliorer tes habitudes durablement." },
-    { title: "🎯 La ligne d'arrivée est proche !", body: "Note ton repas — chaque entrée te rapproche de ton objectif." },
-    { title: "🥦 Des légumes aujourd'hui ?", body: "Ouvre Frigy et vois à quel point ta journée est équilibrée." },
-    { title: "⏰ Pause déjeuner — c'est l'heure Frigy !", body: "Note ce que tu viens de manger pendant que c'est frais." },
-    { title: "🏃 Actif aujourd'hui ?", body: "Note tes repas et surveille ton bilan énergétique." },
-    { title: "💡 Conseil du jour", body: "Les protéines rassasient plus longtemps — vérifie si tu as atteint ta cible." },
-    { title: "🍎 Tu manges des fruits ?", body: "Ouvre Frigy et note ce que tu as consommé aujourd'hui." },
-    { title: "📱 30 secondes suffisent !", body: "Note vite et profite du reste de ta journée." },
-    { title: "🌱 Bien manger, se sentir bien", body: "Suis tes repas et découvre ce qui te donne de l'énergie." },
-    { title: "🍳 Petit-déj, déjeuner, dîner ?", body: "Qu'est-ce qui manque ? Ouvre Frigy et complète." },
-    { title: "💬 Petite habitude, grands résultats", body: "Le suivi quotidien fait la différence — ouvre Frigy." },
-    { title: "🏅 Ta meilleure journée t'attend !", body: "Note ce que tu as mangé et reste fidèle à tes objectifs." },
-    { title: "🌊 N'oublie pas l'eau !", body: "L'hydratation est essentielle — note ta consommation dans Frigy." },
-    { title: "🥩 Protéines en bonne voie ?", body: "Vérification rapide — ouvre Frigy et consulte tes macros." },
-    { title: "🧘 L'équilibre avant tout", body: "Ouvre Frigy et vois si ta journée est bien équilibrée." },
-    { title: "📅 Ta journée est bien gérée ?", body: "Un coup d'œil dans Frigy te montre ta progression." },
-    { title: "🌈 Tu manges varié ?", body: "Des couleurs variées dans l'assiette = des nutriments variés." },
-    { title: "🎉 Tu y arrives !", body: "Ouvre Frigy et montre à ton corps combien tu en prends soin." },
-    { title: "⚡ Faits le plein d'énergie !", body: "Suis tes repas et découvre ce qui te donne de la puissance." },
-    { title: "🔍 Macros vérifiés ?", body: "Ouvre Frigy — glucides, lipides, protéines en un coup d'œil." },
-    { title: "🍵 Profite de ta pause !", body: "Note ton dernier repas — ça ne prend que 30 secondes." },
-    { title: "💫 La constance gagne !", body: "Une entrée par jour — ouvre Frigy et continue." },
-  ],
-};
-
-/**
- * Pick a varied daily notification message.
- * dayOffset=0 → today, dayOffset=1 → tomorrow, etc.
- * Uses the day-of-year so the same day always gets the same message,
- * and messages rotate through the full pool before repeating.
- */
-export function reminderNotificationCopy(
-  language: Language,
-  dayOffset: number = 0,
-): { dailyTitle: string; dailyBody: string } {
-  const pool = MESSAGES[language] ?? MESSAGES.de;
-  const index = (dayOfYear() + dayOffset) % pool.length;
-  const { title, body } = pool[index];
-  return { dailyTitle: title, dailyBody: body };
+/** Daily water slots for web + native — count follows user interval setting. */
+export function buildWaterSchedule(intervalHours: number): { hour: number; minute: number }[] {
+  const count = waterReminderCount(intervalHours);
+  return DEFAULT_WATER_SLOTS.slice(0, count);
 }
 
 async function cancelAllFrigyNotifications(
   LocalNotifications: typeof import("@capacitor/local-notifications").LocalNotifications,
 ): Promise<void> {
+  const fixedCancelIds = [
+    ...Array.from({ length: WATER_SLOT_COUNT }, (_, i) => ({ id: WATER_ID_BASE + i })),
+    ...Array.from({ length: 6 }, (_, i) => ({ id: MEALS_ID_BASE + i })),
+    { id: WEIGHT_ID },
+    { id: TEST_ID },
+  ];
+
+  try {
+    await LocalNotifications.cancel({ notifications: fixedCancelIds });
+  } catch {
+    /* ignore */
+  }
+
   try {
     const pending = await LocalNotifications.getPending();
-    const ids = (pending.notifications ?? []).map((n) => ({ id: n.id }));
-    if (ids.length > 0) {
-      await LocalNotifications.cancel({ notifications: ids });
+    const extraIds = (pending.notifications ?? [])
+      .filter(
+        (n) =>
+          n.id !== TRIAL_REMINDER_ID &&
+          n.id !== YESTERDAY_BALANCE_ID &&
+          !fixedCancelIds.some((entry) => entry.id === n.id),
+      )
+      .map((n) => ({ id: n.id }));
+    if (extraIds.length > 0) {
+      await LocalNotifications.cancel({ notifications: extraIds });
     }
   } catch {
-    // Fallback: cancel known ID ranges
-    const fallbackIds = [
-      TEST_ID,
-      YESTERDAY_BALANCE_ID,
-      // Legacy water reminder IDs (100–107)
-      ...Array.from({ length: 8 }, (_, i) => ({ id: 100 + i })),
-      // Legacy single daily push ID
-      { id: 150 },
-      // New varied daily push IDs
-      ...Array.from({ length: DAYS_AHEAD }, (_, i) => ({ id: DAILY_PUSH_BASE_ID + i })),
-    ].map((x) => (typeof x === "number" ? { id: x } : x));
-    await LocalNotifications.cancel({ notifications: fallbackIds });
+    /* ignore */
   }
 }
 
-export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
+async function scheduleRemindersFromConfig(config: ReminderConfig): Promise<void> {
   const normalized = normalizeReminderConfig(config);
-
   if (!isNativeApp()) return;
 
   const { LocalNotifications } = await import("@capacitor/local-notifications");
@@ -344,30 +301,71 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
   await ensureAndroidReminderChannel(LocalNotifications);
   await cancelAllFrigyNotifications(LocalNotifications);
 
-  if (perm.display !== "granted" || !normalized.enabled) return;
+  const notifications: Parameters<typeof LocalNotifications.schedule>[0]["notifications"] = [];
+  const scheduledSlots: { hour: number; minute: number }[] = [];
 
-  const lang = getStoredLanguage();
-  const { hour, minute } = parseTime(DAILY_PUSH_TIME);
+  if (normalized.water.enabled) {
+    const waterSlots = buildWaterSchedule(normalized.water.interval);
+    waterSlots.forEach((slot, idx) => {
+      if (isSlotTooClose(slot.hour, slot.minute, scheduledSlots)) return;
+      scheduledSlots.push(slot);
+      notifications.push({
+        id: WATER_ID_BASE + idx,
+        title: copy.waterTitle,
+        body: copy.waterBody,
+        schedule: dailyScheduleAt(slot.hour, slot.minute),
+        sound: "default",
+        channelId: "frigy_reminders",
+      });
+    });
+  }
 
-  // Schedule the next DAYS_AHEAD days individually so each day gets a different
-  // message. Individual scheduled notifications are more reliable on iOS than
-  // a single `repeats: true` trigger which can be silently skipped.
-  const base = nextDailyOccurrence(hour, minute);
-  const notifications = Array.from({ length: DAYS_AHEAD }, (_, i) => {
-    const at = new Date(base);
-    at.setDate(at.getDate() + i);
-    const copy = reminderNotificationCopy(lang, i);
-    return {
-      id: DAILY_PUSH_BASE_ID + i,
-      title: copy.dailyTitle,
-      body: copy.dailyBody,
-      schedule: { at },
-      sound: "default",
-      channelId: "frigy_reminders",
-    };
-  });
+  if (normalized.meals.enabled) {
+    normalized.meals.times.forEach((time, idx) => {
+      const { hour, minute } = parseTime(time);
+      if (isSlotTooClose(hour, minute, scheduledSlots)) return;
+      scheduledSlots.push({ hour, minute });
+      notifications.push({
+        id: MEALS_ID_BASE + idx,
+        title: `🍽️ ${copy.mealName(hour)}!`,
+        body: copy.mealBody,
+        schedule: dailyScheduleAt(hour, minute),
+        sound: "default",
+        channelId: "frigy_reminders",
+      });
+    });
+  }
+
+  if (normalized.weight.enabled) {
+    const { hour, minute } = parseTime(normalized.weight.time);
+    if (!isSlotTooClose(hour, minute, scheduledSlots)) {
+      notifications.push({
+        id: WEIGHT_ID,
+        title: copy.weightTitle,
+        body: copy.weightBody,
+        schedule: dailyScheduleAt(hour, minute),
+        sound: "default",
+        channelId: "frigy_reminders",
+      });
+    }
+  }
 
   await LocalNotifications.schedule({ notifications });
+}
+
+export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
+  // Do not notifyFrigyStorageUpdated here — would re-sync on every food/plan save and spam notifications.
+  if (!isNativeApp()) return;
+
+  if (reminderSyncInFlight) {
+    await reminderSyncInFlight;
+    return;
+  }
+
+  reminderSyncInFlight = scheduleRemindersFromConfig(config).finally(() => {
+    reminderSyncInFlight = null;
+  });
+  await reminderSyncInFlight;
 }
 
 export async function syncRemindersFromStorage(): Promise<void> {
