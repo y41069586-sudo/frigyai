@@ -209,56 +209,23 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func signUpWithEmail(email: String, password: String) async throws -> UserSession {
-        // Create the account + send a single Frigy-branded confirmation email via
-        // our edge function (which uses Resend). We deliberately do NOT call
-        // client.auth.signUp here: it would create the user AND fire Supabase's own
-        // plain email, after which the function's admin.generateLink("signup") fails
-        // with "user already registered" and the branded email is never sent.
-        // Routing creation through the function keeps it atomic and avoids the
-        // duplicate / silently-dropped email.
-        let result = await sendBrandedConfirmationEmail(email: email, password: password)
-        guard result.ok else {
-            // Surface the REAL reason on-screen (no Mac/device-log access needed).
-            throw AuthServiceError.emailSendFailed(result.detail)
+        // Standard Supabase sign-up. Supabase sends the confirmation email itself
+        // (branded, via the Custom SMTP / Resend configured in the dashboard), so
+        // there is no edge function to keep deployed. The `redirectTo` is where the
+        // confirmation link sends the user back — it must be whitelisted under
+        // Authentication → URL Configuration → Redirect URLs (frigy://callback).
+        let response = try await client.auth.signUp(
+            email: email,
+            password: password,
+            redirectTo: SupabaseConfig.oauthRedirectURL
+        )
+        // When email confirmation is required, no session is returned yet — the
+        // user must tap the link in the email first. When auto-confirm is on
+        // (e.g. test projects), a session comes back and we sign in immediately.
+        if let session = response.session {
+            return UserSession(userId: session.user.id.uuidString, email: session.user.email ?? "")
         }
-        // Account exists but the email must still be confirmed via the link.
         throw AuthServiceError.emailVerificationRequired
-    }
-
-    /// Calls the send-email-confirmation edge function. Returns ok=true when the
-    /// function reports the email was sent (HTTP 200). On failure, `detail` carries
-    /// the real reason so it can be shown on-screen (no Mac/device logs required).
-    private func sendBrandedConfirmationEmail(email: String, password: String) async -> (ok: Bool, detail: String) {
-        guard SupabaseConfig.isConfigured else {
-            return (false, "App-Konfiguration fehlt (SUPABASE_URL/ANON_KEY). Neuer Build nötig.")
-        }
-        guard let base = SupabaseConfig.urlString else {
-            return (false, "SUPABASE_URL ist leer.")
-        }
-        guard let anonKey = SupabaseConfig.anonKey else {
-            return (false, "SUPABASE_ANON_KEY ist leer.")
-        }
-        guard let url = URL(string: "\(base)/functions/v1/send-email-confirmation") else {
-            return (false, "Ungültige Function-URL.")
-        }
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.timeoutInterval = 20
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(anonKey, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["email": email, "password": password])
-        do {
-            let (data, response) = try await URLSession.shared.data(for: req)
-            guard let http = response as? HTTPURLResponse else {
-                return (false, "Keine gültige HTTP-Antwort.")
-            }
-            if http.statusCode == 200 { return (true, "") }
-            let bodyStr = String(data: data, encoding: .utf8) ?? "(leer)"
-            return (false, "HTTP \(http.statusCode): \(bodyStr)")
-        } catch {
-            return (false, "Netzwerkfehler: \(error.localizedDescription)")
-        }
     }
 
     func signOut() async throws {
@@ -367,7 +334,6 @@ enum AuthServiceError: LocalizedError {
     case oauthCancelled
     case oauthStartFailed
     case emailVerificationRequired
-    case emailSendFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -375,7 +341,6 @@ enum AuthServiceError: LocalizedError {
         case .oauthCancelled: "Sign in was cancelled."
         case .oauthStartFailed: "Could not start OAuth browser session."
         case .emailVerificationRequired: "Wir haben dir eine Bestätigungs-E-Mail geschickt. Bitte klicke den Link darin."
-        case .emailSendFailed(let detail): "E-Mail konnte nicht gesendet werden — \(detail)"
         }
     }
 }
