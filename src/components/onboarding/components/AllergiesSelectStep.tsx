@@ -5,6 +5,10 @@ import type { UserData } from "../types";
 import type { Dispatch, SetStateAction } from "react";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
+import {
+  OnboardingManualInput,
+  OnboardingManualInputField,
+} from "./OnboardingManualInput";
 
 type Props = {
   userData: UserData;
@@ -241,26 +245,21 @@ export function AllergiesSelectStep({
                     transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                     className="overflow-hidden"
                   >
-                    <input
-                      type="text"
-                      value={otherText}
-                      onChange={(e) =>
-                        setUserData({
-                          ...userData,
-                          allergiesOther: e.target.value,
-                        })
-                      }
-                      placeholder={L.otherPlaceholder}
-                      className="w-full rounded-[16px] px-4 py-3 text-[15px] outline-none transition-all"
-                      style={{
-                        backgroundColor: "#FBFFFD",
-                        border: `1.5px solid ${PALETTE.border}`,
-                        color: PALETTE.text,
-                        boxShadow:
-                          "0 4px 14px -6px rgba(110, 240, 168,0.35), inset 0 1px 1px rgba(15,40,30,0.02)",
-                      }}
-                      autoFocus
-                    />
+                    <OnboardingManualInputField className="py-3">
+                      <OnboardingManualInput
+                        type="text"
+                        variant="inline"
+                        value={otherText}
+                        onChange={(e) =>
+                          setUserData({
+                            ...userData,
+                            allergiesOther: e.target.value,
+                          })
+                        }
+                        placeholder={L.otherPlaceholder}
+                        autoFocus
+                      />
+                    </OnboardingManualInputField>
                   </motion.div>
                 )}
               </AnimatePresence>

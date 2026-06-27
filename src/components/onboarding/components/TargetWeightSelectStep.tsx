@@ -7,6 +7,12 @@ import type { UserData } from "../types";
 import { OnboardingDataNotice } from "./OnboardingDataNotice";
 import { MintSegmentedControl } from "./MintSegmentedControl";
 import { OnboardingMascotQuestion } from "./OnboardingMascotQuestion";
+import {
+  OnboardingInputHelper,
+  OnboardingManualInput,
+  OnboardingManualInputField,
+  OnboardingManualInputUnit,
+} from "./OnboardingManualInput";
 
 const PALETTE = {
   primary: "#75FBB2",
@@ -224,32 +230,23 @@ export function TargetWeightSelectStep({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col justify-center px-5">
-        <div className="mx-auto w-full max-w-[320px]">
-          <div
-            className="flex items-center gap-3 rounded-[24px] border px-5 py-4 shadow-[0_18px_45px_-28px_rgba(57,212,127,0.45)]"
-            style={{ backgroundColor: "#FFFFFF", borderColor: "#6EECC0" }}
-          >
-            <input
+        <div className="mx-auto w-full max-w-[300px]">
+          <OnboardingManualInputField centered>
+            <OnboardingManualInput
               type="text"
               inputMode="decimal"
               value={targetWeightInput}
               onChange={(event) => handleTargetWeightChange(event.target.value)}
               placeholder={isMetric ? "65,0" : "143.3"}
               aria-label={title}
-              className="min-w-0 flex-1 bg-transparent text-center text-[28px] font-semibold tracking-[-0.04em] outline-none placeholder:text-[#9AB5A7]"
-              style={{ color: PALETTE.text }}
+              className="flex-1"
             />
-            <span className="shrink-0 text-[18px] font-semibold" style={{ color: PALETTE.textMuted }}>
-              {unitLabel}
-            </span>
-          </div>
+            <OnboardingManualInputUnit>{unitLabel}</OnboardingManualInputUnit>
+          </OnboardingManualInputField>
 
-          <p
-            className="mt-3 text-center text-[12px] font-medium"
-            style={{ color: targetWeightInput.length > 0 && !canProceed ? "#DC2626" : PALETTE.textMuted }}
-          >
+          <OnboardingInputHelper error={targetWeightInput.length > 0 && !canProceed}>
             {targetWeightInput.length > 0 && !canProceed ? errorText : helperText}
-          </p>
+          </OnboardingInputHelper>
         </div>
       </div>
 
