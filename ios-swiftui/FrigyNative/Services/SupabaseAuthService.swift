@@ -213,10 +213,23 @@ final class SupabaseAuthService: AuthServiceProtocol {
     /// function reports the email was sent (HTTP 200), false otherwise.
     @discardableResult
     private func sendBrandedConfirmationEmail(email: String, password: String) async -> Bool {
-        guard SupabaseConfig.isConfigured,
-              let base = SupabaseConfig.urlString,
-              let anonKey = SupabaseConfig.anonKey,
-              let url = URL(string: "\(base)/functions/v1/send-email-confirmation") else { return false }
+        guard SupabaseConfig.isConfigured else {
+            print("[sendBrandedConfirmationEmail] ERROR: SupabaseConfig not configured")
+            return false
+        }
+        guard let base = SupabaseConfig.urlString else {
+            print("[sendBrandedConfirmationEmail] ERROR: SUPABASE_URL is nil")
+            return false
+        }
+        guard let anonKey = SupabaseConfig.anonKey else {
+            print("[sendBrandedConfirmationEmail] ERROR: SUPABASE_ANON_KEY is nil")
+            return false
+        }
+        guard let url = URL(string: "\(base)/functions/v1/send-email-confirmation") else {
+            print("[sendBrandedConfirmationEmail] ERROR: Invalid URL: \(base)/functions/v1/send-email-confirmation")
+            return false
+        }
+        print("[sendBrandedConfirmationEmail] Calling \(url)")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.timeoutInterval = 20
@@ -224,9 +237,24 @@ final class SupabaseAuthService: AuthServiceProtocol {
         req.setValue(anonKey, forHTTPHeaderField: "apikey")
         req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["email": email, "password": password])
-        guard let (_, response) = try? await URLSession.shared.data(for: req),
-              let http = response as? HTTPURLResponse else { return false }
-        return http.statusCode == 200
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+            guard let http = response as? HTTPURLResponse else {
+                print("[sendBrandedConfirmationEmail] ERROR: Invalid response type")
+                return false
+            }
+            print("[sendBrandedConfirmationEmail] Response status: \(http.statusCode)")
+            if http.statusCode == 200 {
+                return true
+            } else {
+                let bodyStr = String(data: data, encoding: .utf8) ?? "no body"
+                print("[sendBrandedConfirmationEmail] ERROR: Status \(http.statusCode), body: \(bodyStr)")
+                return false
+            }
+        } catch {
+            print("[sendBrandedConfirmationEmail] ERROR: Network error: \(error.localizedDescription)")
+            return false
+        }
     }
 
     func signOut() async throws {
