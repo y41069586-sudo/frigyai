@@ -1,167 +1,69 @@
 import Foundation
-import Capacitor
 import ChottuLinkSDK
+import UIKit
 
-@objc(ChottuLinkPlugin)
-public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
-    public let identifier = "ChottuLinkPlugin"
-    public let jsName = "ChottuLink"
-    public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "handleLink", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getAppLinkDataFromUrl", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "identify", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "trackConversion", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "trackEvent", returnType: CAPPluginReturnPromise),
-    ]
+/// Native ChottuLink attribution service (no Capacitor bridge).
+/// Call `ChottuLinkService.shared.setup()` from `FrigyNativeApp.init`
+/// and forward incoming URLs via `handle(url:)`.
+@MainActor
+final class ChottuLinkService: NSObject {
+    static let shared = ChottuLinkService()
 
-    @objc func initialize(_ call: CAPPluginCall) {
-        guard let apiKey = call.getString("apiKey"), !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            call.reject("apiKey is required")
-            return
-        }
+    private override init() {}
 
-        let debug = call.getBool("debug", false)
+    func setup(apiKey: String, debug: Bool = false) {
         let config = CLConfiguration(
-            apiKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+            apiKey: apiKey,
             isDebugEnabled: debug,
             delegate: self
         )
-
-        Task { @MainActor in
-            ChottuLink.initialize(config: config)
-            call.resolve()
-        }
+        ChottuLink.initialize(config: config)
     }
 
-    @objc func handleLink(_ call: CAPPluginCall) {
-        guard let urlString = call.getString("url"), let url = URL(string: urlString) else {
-            call.reject("url is required")
-            return
-        }
-
-        Task { @MainActor in
-            ChottuLink.handleLink(url)
-            call.resolve()
-        }
+    func handle(url: URL) {
+        ChottuLink.handleLink(url)
     }
 
-    @objc func getAppLinkDataFromUrl(_ call: CAPPluginCall) {
-        guard let urlString = call.getString("url"), !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            call.reject("url is required")
-            return
-        }
-
-        Task { @MainActor in
-            do {
-                let appLinkData = try await ChottuLink.getAppLinkDataFromUrl(from: urlString)
-                call.resolve([
-                    "link": appLinkData.link?.absoluteString as Any,
-                    "shortLink": appLinkData.shortLink?.absoluteString as Any,
-                ])
-            } catch {
-                call.reject(error.localizedDescription)
-            }
-        }
+    func identify(id: String, name: String? = nil, email: String? = nil) {
+        let customer = CLCustomerMeta(id: id, name: name, email: email, phone: nil, emailSha256: nil, phoneSha256: nil)
+        ChottuLink.identify(customer)
     }
 
-    @objc func identify(_ call: CAPPluginCall) {
-        guard let customerId = call.getString("id"), !customerId.isEmpty else {
-            call.reject("id is required")
-            return
-        }
-
-        let customer = CLCustomerMeta(
-            id: customerId,
-            name: call.getString("name"),
-            email: call.getString("email"),
-            phone: call.getString("phone"),
-            emailSha256: call.getString("emailSha256"),
-            phoneSha256: call.getString("phoneSha256")
-        )
-
-        Task { @MainActor in
-            ChottuLink.identify(customer)
-            call.resolve()
-        }
-    }
-
-    @objc func trackConversion(_ call: CAPPluginCall) {
-        guard let revenue = call.getDouble("revenue") else {
-            call.reject("revenue is required")
-            return
-        }
-
+    func trackConversion(revenue: Double, currency: String? = nil, productId: String? = nil) {
         let meta = CLConversionMeta(
             revenue: revenue,
-            currency: call.getString("currency"),
-            eventName: call.getString("eventName") ?? "conversion",
-            productId: call.getString("productId"),
-            transactionId: call.getString("transactionId"),
-            metadata: call.getObject("metadata") as? [String: Any]
+            currency: currency,
+            eventName: "conversion",
+            productId: productId,
+            transactionId: nil,
+            metadata: nil
         )
+        ChottuLink.trackConversion(meta)
+    }
 
+    func trackEvent(name: String, data: [String: Any]? = nil) {
+        ChottuLink.trackEvent(name: name, data: data)
+    }
+}
+
+extension ChottuLinkService: ChottuLinkDelegate {
+    nonisolated func chottuLink(didInitializeWith configuration: CLConfiguration) {}
+
+    nonisolated func chottuLink(didFailToInitializeWith error: any Error) {
+        print("[ChottuLink] init failed:", error.localizedDescription)
+    }
+
+    nonisolated func chottuLink(didResolveDeepLink link: URL, metadata: [String: Any]?) {
         Task { @MainActor in
-            ChottuLink.trackConversion(meta)
-            call.resolve()
+            NotificationCenter.default.post(name: .chottuDidResolveDeepLink, object: link, userInfo: metadata)
         }
     }
 
-    @objc func trackEvent(_ call: CAPPluginCall) {
-        guard let name = call.getString("name"), !name.isEmpty else {
-            call.reject("name is required")
-            return
-        }
-
-        let data = call.getObject("data") as? [String: Any]
-
-        Task { @MainActor in
-            ChottuLink.trackEvent(name: name, data: data)
-            call.resolve()
-        }
+    nonisolated func chottuLink(didFailToResolveDeepLink originalURL: URL?, error: any Error) {
+        print("[ChottuLink] deep link failed:", error.localizedDescription)
     }
+}
 
-    nonisolated public func chottuLink(didInitializeWith configuration: CLConfiguration) {
-        Task { @MainActor in
-            notifyListeners("initializationSuccess", data: [
-                "apiKey": configuration.apiKey,
-            ], retainUntilConsumed: true)
-        }
-    }
-
-    nonisolated public func chottuLink(didFailToInitializeWith error: any Error) {
-        Task { @MainActor in
-            notifyListeners("deepLinkFailed", data: [
-                "error": error.localizedDescription,
-                "errorCode": Double((error as NSError).code),
-            ], retainUntilConsumed: true)
-        }
-    }
-
-    nonisolated public func chottuLink(didResolveDeepLink link: URL, metadata: [String: Any]?) {
-        let metadataStrings = stringMetadata(metadata)
-        Task { @MainActor in
-            notifyListeners("deepLinkResolved", data: [
-                "url": link.absoluteString,
-                "metadata": metadataStrings,
-            ], retainUntilConsumed: true)
-        }
-    }
-
-    nonisolated public func chottuLink(didFailToResolveDeepLink originalURL: URL?, error: any Error) {
-        Task { @MainActor in
-            notifyListeners("deepLinkFailed", data: [
-                "originalUrl": originalURL?.absoluteString as Any,
-                "error": error.localizedDescription,
-                "errorCode": Double((error as NSError).code),
-            ], retainUntilConsumed: true)
-        }
-    }
-
-    nonisolated private func stringMetadata(_ metadata: [String: Any]?) -> [String: String] {
-        guard let metadata else { return [:] }
-        return metadata.reduce(into: [String: String]()) { result, entry in
-            result[entry.key] = String(describing: entry.value)
-        }
-    }
+extension Notification.Name {
+    static let chottuDidResolveDeepLink = Notification.Name("chottuDidResolveDeepLink")
 }

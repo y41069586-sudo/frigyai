@@ -37,6 +37,7 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case allergies
     case weeklyPlanPreview = "weekly-plan-preview"
     case scanFridge = "scan-fridge"
+    case cameraPermission = "camera-permission"
     case shoppingList = "shopping-list"
     case referralCode = "referral-code"
     case cookingTime = "cooking-time"
@@ -44,6 +45,10 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case planningSetup = "planning-setup"
     case analyzing
     case macroPreview = "macro-preview"
+    // Native-only immersive "experience" screens woven through the flow.
+    case holdExperience = "hold-experience"
+    case energySwipe = "energy-swipe"
+    case momentumReveal = "momentum-reveal"
     case appModeChoice = "app-mode-choice"
     case spontanMode1 = "spontan-mode-1"
     case spontanMode2 = "spontan-mode-2"
@@ -57,6 +62,7 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     case paywall
     case premiumHint = "premium-hint"
     case celebration
+    case themeChoice = "theme-choice"
     case done
 
     var id: String { rawValue }
@@ -65,7 +71,7 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
 /// Production onboarding order from `onboardingSteps` in `types.ts`.
 enum OnboardingFlow {
     /// Macro-level entry managed by `DefaultOnboardingRulesEngine`.
-    static let macroEntryStep: OnboardingStep = .welcome
+    static let macroEntryStep: OnboardingStep = .splash
 
     /// Body/profile data collection (entered from `.profileSetup`).
     static let detailedProfileSteps: [OnboardingStep] = [
@@ -83,6 +89,7 @@ enum OnboardingFlow {
         .allergies,
         .weeklyPlanPreview,
         .scanFridge,
+        .cameraPermission,
         .shoppingList,
         .notificationPrefs,
         .referralCode,

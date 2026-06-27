@@ -105,7 +105,9 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
         var alternatives: [OnboardingStep] = []
         var detail: String?
 
-        if step == .welcome {
+        if step == .splash {
+            alternatives = OnboardingFlow.detailedProfileSteps.first.map { [$0] } ?? []
+        } else if step == .welcome {
             alternatives = context.hasReferralCode ? [.accountCreation] : [.referralCode]
             detail = context.hasReferralCode ? "hasReferralCode=true" : "hasReferralCode=false"
         } else if step == .goalSelection {
@@ -115,7 +117,7 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
 
         if step == .paywall, chosen == nil {
             return OnboardingRulesExplanation(
-                chosen: .done,
+                chosen: .themeChoice,
                 alternatives: [],
                 decisions: [
                     OnboardingRuleDecision(
@@ -123,7 +125,7 @@ struct CompositeOnboardingRulesEngine: OnboardingRulesEngine {
                         role: .route,
                         priority: 1,
                         result: "paywall_fallback",
-                        detail: "paywall → done"
+                        detail: "paywall → themeChoice"
                     ),
                 ]
             )
@@ -235,17 +237,23 @@ enum StepGuard {
 struct MacroRouteOnboardingRules: OnboardingRulesEngine {
     func nextStep(from step: OnboardingStep, context: OnboardingContext) -> OnboardingStep? {
         switch step {
+        case .splash:
+            return OnboardingFlow.detailedProfileSteps.first
         case .welcome:
             return context.hasReferralCode ? .referralCode : .accountCreation
         case .referralCode:
             return .accountCreation
         case .accountCreation:
-            return context.isAuthenticated ? .profileSetup : nil
+            // Profile was already collected before accountCreation in the new flow,
+            // so skip profileSetup and go directly to the monetisation gate.
+            return .paywall
         case .profileSetup:
             return .goalSelection
         case .goalSelection:
             return context.isPremium ? .done : .paywall
         case .paywall:
+            return .themeChoice
+        case .themeChoice:
             return .done
         case .done:
             return nil
@@ -262,7 +270,10 @@ struct AuthOnboardingRules: OnboardingRulesEngine {
 
     func canEnter(step: OnboardingStep, context: OnboardingContext) -> Bool {
         switch step {
-        case .profileSetup, .paywall:
+        case .profileSetup:
+            // profileSetup still requires auth (legacy entry path).
+            // paywall is intentionally open so users who skip accountCreation
+            // can still reach it and subscribe.
             return context.isAuthenticated
         default:
             return true

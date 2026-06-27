@@ -18,12 +18,43 @@ protocol AuthServiceProtocol {
     func signInWithGoogle() async throws
     func signOut() async throws
     func handleOAuthCallback(url: URL) async -> AuthCallbackResult?
+    func signInWithEmail(email: String, password: String) async throws -> UserSession
+    func signUpWithEmail(email: String, password: String) async throws -> UserSession
+}
+
+/// A purchasable subscription option with a store-localized price string.
+struct SubscriptionPackage: Identifiable, Equatable {
+    let id: String                      // RevenueCat package identifier
+    let title: String                   // e.g. "Monatlich" / "Jährlich"
+    let priceString: String             // store-localized total, e.g. "4,99 €"
+    let pricePerMonthString: String?    // store-localized monthly breakdown, e.g. "3,33 €" for yearly
+    let period: String                  // "Monat" / "Jahr"
+    let isYearly: Bool
 }
 
 @MainActor
 protocol SubscriptionServiceProtocol {
     func refreshPremiumState() async throws -> Bool
     func restorePurchases() async throws -> Bool
+    /// Store-localized monthly/yearly packages (empty when billing isn't configured).
+    func availablePackages() async -> [SubscriptionPackage]
+    /// Purchase a package; returns true when the premium entitlement is active afterwards.
+    func purchase(_ package: SubscriptionPackage) async throws -> Bool
+    /// Link the current store identity to the given Supabase user ID. This MUST run
+    /// before any purchase so the entitlement is attached to the Supabase user (not an
+    /// anonymous store ID); otherwise the server, which looks up RevenueCat by Supabase
+    /// user ID, will never see the purchase and premium features stay locked.
+    func identify(userId: String) async
+    /// Detach the current store identity (called on sign-out).
+    func clearIdentity() async
+    /// Opens the App Store's native "Offer Code einlösen" sheet (iOS 14+).
+    func redeemOfferCode()
+}
+
+extension SubscriptionServiceProtocol {
+    func identify(userId: String) async {}
+    func clearIdentity() async {}
+    func redeemOfferCode() {}
 }
 
 @MainActor
@@ -36,12 +67,26 @@ final class MockAuthService: AuthServiceProtocol {
     func signInWithGoogle() async throws {}
     func signOut() async throws {}
     func handleOAuthCallback(url: URL) async -> AuthCallbackResult? { nil }
+    func signInWithEmail(email: String, password: String) async throws -> UserSession {
+        UserSession(userId: "mock", email: email)
+    }
+    func signUpWithEmail(email: String, password: String) async throws -> UserSession {
+        UserSession(userId: "mock", email: email)
+    }
 }
 
 @MainActor
 final class MockSubscriptionService: SubscriptionServiceProtocol {
     func refreshPremiumState() async throws -> Bool { false }
     func restorePurchases() async throws -> Bool { false }
+    func availablePackages() async -> [SubscriptionPackage] {
+        // Fallback prices shown only when RevenueCat isn't configured (e.g. simulator).
+        [
+            SubscriptionPackage(id: "monthly", title: "Monatlich", priceString: "4,99 €", pricePerMonthString: nil, period: "Monat", isYearly: false),
+            SubscriptionPackage(id: "yearly", title: "Jährlich", priceString: "39,99 €", pricePerMonthString: "3,33 €", period: "Jahr", isYearly: true),
+        ]
+    }
+    func purchase(_ package: SubscriptionPackage) async throws -> Bool { false }
 }
 
 #if canImport(Supabase)
@@ -49,6 +94,7 @@ import Supabase
 import AuthenticationServices
 import CryptoKit
 import UIKit
+import GoogleSignIn
 
 @MainActor
 final class SupabaseAuthService: AuthServiceProtocol {
@@ -76,7 +122,11 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func restoreSession() async throws -> UserSession? {
-        _ = try await client.auth.session
+        // Do NOT force-propagate the error from `client.auth.session`: the Supabase
+        // SDK throws `sessionMissing` whenever there is no stored session (i.e. every
+        // fresh install / logged-out launch). `currentSession()` already swallows that
+        // case via `try?` and returns nil, so a new user proceeds into onboarding
+        // instead of being wrongly bounced straight to the auth screen.
         return try await currentSession()
     }
 
@@ -114,12 +164,68 @@ final class SupabaseAuthService: AuthServiceProtocol {
     }
 
     func signInWithGoogle() async throws {
-        let redirect = SupabaseConfig.oauthRedirectURL
-        let url = try client.auth.getOAuthSignInURL(
-            provider: .google,
-            redirectTo: redirect
+        let clientID = "153158265512-8ookf1g41bc74527pqh66ufga6uatrlm.apps.googleusercontent.com"
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+
+        let rootVC = AuthPresentationAnchor.current().rootViewController
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first { $0.isKeyWindow }?
+                .rootViewController
+        guard let rootVC else { throw AuthServiceError.oauthStartFailed }
+
+        // Nonce handshake: Google embeds the SHA256-hashed nonce in the id_token,
+        // Supabase re-hashes the raw nonce we pass and compares. Both sides must
+        // either supply a nonce or neither — otherwise Supabase rejects the token
+        // with "passed nonce and nonce in id_token should either both exist or not".
+        let rawNonce = randomNonceString()
+        let hashedNonce = sha256(rawNonce)
+
+        let result = try await GIDSignIn.sharedInstance.signIn(
+            withPresenting: rootVC,
+            hint: nil,
+            additionalScopes: nil
         )
-        try await startWebAuthenticationSession(url: url)
+        guard let idToken = result.user.idToken?.tokenString else {
+            throw AuthServiceError.missingAppleIdentityToken
+        }
+        let accessToken = result.user.accessToken.tokenString
+
+        _ = try await client.auth.signInWithIdToken(
+    credentials: OpenIDConnectCredentials(
+        provider: .google,
+        idToken: idToken,
+        accessToken: accessToken
+   
+
+             )
+        )
+    }
+
+    func signInWithEmail(email: String, password: String) async throws -> UserSession {
+        let session = try await client.auth.signIn(email: email, password: password)
+        return UserSession(userId: session.user.id.uuidString, email: session.user.email ?? "")
+    }
+
+    func signUpWithEmail(email: String, password: String) async throws -> UserSession {
+        // Standard Supabase sign-up. Supabase sends the confirmation email itself
+        // (branded, via the Custom SMTP / Resend configured in the dashboard), so
+        // there is no edge function to keep deployed. The `redirectTo` is where the
+        // confirmation link sends the user back — it must be whitelisted under
+        // Authentication → URL Configuration → Redirect URLs (frigy://callback).
+        let response = try await client.auth.signUp(
+            email: email,
+            password: password,
+            redirectTo: SupabaseConfig.oauthRedirectURL
+        )
+        // When email confirmation is required, no session is returned yet — the
+        // user must tap the link in the email first. When auto-confirm is on
+        // (e.g. test projects), a session comes back and we sign in immediately.
+        if let session = response.session {
+            return UserSession(userId: session.user.id.uuidString, email: session.user.email ?? "")
+        }
+        throw AuthServiceError.emailVerificationRequired
     }
 
     func signOut() async throws {
@@ -227,12 +333,14 @@ enum AuthServiceError: LocalizedError {
     case missingAppleIdentityToken
     case oauthCancelled
     case oauthStartFailed
+    case emailVerificationRequired
 
     var errorDescription: String? {
         switch self {
         case .missingAppleIdentityToken: "Apple identity token missing."
         case .oauthCancelled: "Sign in was cancelled."
         case .oauthStartFailed: "Could not start OAuth browser session."
+        case .emailVerificationRequired: "Wir haben dir eine Bestätigungs-E-Mail geschickt. Bitte klicke den Link darin."
         }
     }
 }
@@ -241,10 +349,10 @@ enum AuthServiceError: LocalizedError {
 private enum AuthPresentationAnchor {
     static func current() -> ASPresentationAnchor {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        if let window = scenes.flatMap(\.windows).first(where: \.isKeyWindow) {
+        if let window = scenes.first(where: { $0.activationState == .foregroundActive })?.keyWindow {
             return window
         }
-        if let window = scenes.first?.windows.first {
+        if let window = scenes.first?.keyWindow {
             return window
         }
         if let scene = scenes.first {
@@ -266,17 +374,32 @@ private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDele
         didCompleteWithAuthorization authorization: ASAuthorization
     ) {
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            completion(.failure(AuthServiceError.missingAppleIdentityToken))
+            invokeCompletion(.failure(AuthServiceError.missingAppleIdentityToken))
             return
         }
-        completion(.success(credential))
+        invokeCompletion(.success(credential))
     }
 
     nonisolated func authorizationController(
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        completion(.failure(error))
+        invokeCompletion(.failure(error))
+    }
+
+    // ASAuthorizationController delivers delegate callbacks on the main queue, but these
+    // methods are `nonisolated`. Hop onto the main actor before touching the
+    // @MainActor-isolated `completion` so the project compiles under Swift 6.
+    private nonisolated func invokeCompletion(
+        _ result: Result<ASAuthorizationAppleIDCredential, Error>
+    ) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { completion(result) }
+        } else {
+            DispatchQueue.main.sync {
+                MainActor.assumeIsolated { completion(result) }
+            }
+        }
     }
 
     nonisolated func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
@@ -317,6 +440,8 @@ final class SupabaseAuthService: AuthServiceProtocol {
     func signInWithGoogle() async throws { throw AuthServiceError.oauthStartFailed }
     func signOut() async throws {}
     func handleOAuthCallback(url: URL) async -> AuthCallbackResult? { nil }
+    func signInWithEmail(email: String, password: String) async throws -> UserSession { throw AuthServiceError.oauthStartFailed }
+    func signUpWithEmail(email: String, password: String) async throws -> UserSession { throw AuthServiceError.oauthStartFailed }
 }
 
 #endif

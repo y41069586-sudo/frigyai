@@ -55,6 +55,14 @@ export function getBadgeDefinitions(language: Language): BadgeDefinition[] {
         { type: 'first_scan', name: 'First Scan', icon: '📸', description: 'Scanned your first meal', requirement: 1 },
         { type: 'meal_logged', name: 'Meal Logged', icon: '🍽️', description: 'Tracked your first meal', requirement: 1 },
         { type: 'weight_tracked', name: 'Weight Tracked', icon: '⚖️', description: 'Logged your first weight entry', requirement: 1 },
+        { type: 'calorie_goal_3', name: '3 Days on Target', icon: '🎯', description: 'Stayed within calorie budget for 3 days', requirement: 3 },
+        { type: 'calorie_goal_7', name: '7 Days on Target', icon: '💎', description: 'Stayed within calorie budget for 7 days', requirement: 7 },
+        { type: 'protein_champion', name: 'Protein Champion', icon: '💪', description: 'Hit protein goal 5 times', requirement: 5 },
+        { type: 'scanner_pro', name: 'Scanner Pro', icon: '📱', description: 'Logged 20 meals via scan', requirement: 20 },
+        { type: 'weight_loss_1', name: 'First Kilo', icon: '⬇️', description: 'Lost 1 kg', requirement: 1 },
+        { type: 'weight_loss_5', name: 'Five Kilos', icon: '🏅', description: 'Lost 5 kg', requirement: 5 },
+        { type: 'calorie_week_perfect', name: 'Perfect Week', icon: '✨', description: 'Hit calorie budget 7 days in a row', requirement: 7 },
+        { type: 'comeback', name: 'Comeback', icon: '🔄', description: 'Returned after a 5-day break', requirement: 1 },
       ];
     case 'fr':
       return [
@@ -67,6 +75,14 @@ export function getBadgeDefinitions(language: Language): BadgeDefinition[] {
         { type: 'first_scan', name: 'Premier scan', icon: '📸', description: 'Premier repas scanne', requirement: 1 },
         { type: 'meal_logged', name: 'Repas enregistre', icon: '🍽️', description: 'Premier repas suivi', requirement: 1 },
         { type: 'weight_tracked', name: 'Poids enregistre', icon: '⚖️', description: 'Premier poids ajoute', requirement: 1 },
+        { type: 'calorie_goal_3', name: '3 jours dans l objectif', icon: '🎯', description: 'Budget calorique respecte 3 jours', requirement: 3 },
+        { type: 'calorie_goal_7', name: '7 jours dans l objectif', icon: '💎', description: 'Budget calorique respecte 7 jours', requirement: 7 },
+        { type: 'protein_champion', name: 'Champion des proteines', icon: '💪', description: 'Objectif proteique atteint 5 fois', requirement: 5 },
+        { type: 'scanner_pro', name: 'Pro du scanner', icon: '📱', description: '20 repas enregistres par scan', requirement: 20 },
+        { type: 'weight_loss_1', name: 'Premier kilo', icon: '⬇️', description: '1 kg perdu', requirement: 1 },
+        { type: 'weight_loss_5', name: 'Cinq kilos', icon: '🏅', description: '5 kg perdus', requirement: 5 },
+        { type: 'calorie_week_perfect', name: 'Semaine parfaite', icon: '✨', description: 'Budget calorique atteint 7 jours', requirement: 7 },
+        { type: 'comeback', name: 'Retour en force', icon: '🔄', description: 'Retour apres 5 jours d absence', requirement: 1 },
       ];
     case 'de':
     default:
@@ -80,6 +96,14 @@ export function getBadgeDefinitions(language: Language): BadgeDefinition[] {
         { type: 'first_scan', name: 'Erster Scan', icon: '📸', description: 'Erstes Essen gescannt', requirement: 1 },
         { type: 'meal_logged', name: 'Mahlzeit geloggt', icon: '🍽️', description: 'Erste Mahlzeit getrackt', requirement: 1 },
         { type: 'weight_tracked', name: 'Gewicht getrackt', icon: '⚖️', description: 'Erstes Gewicht eingetragen', requirement: 1 },
+        { type: 'calorie_goal_3', name: '3 Tage im Ziel', icon: '🎯', description: 'Kalorienbudget 3 Tage eingehalten', requirement: 3 },
+        { type: 'calorie_goal_7', name: '7 Tage im Ziel', icon: '💎', description: 'Kalorienbudget 7 Tage eingehalten', requirement: 7 },
+        { type: 'protein_champion', name: 'Protein-Champion', icon: '💪', description: 'Proteinziel 5 Mal erreicht', requirement: 5 },
+        { type: 'scanner_pro', name: 'Scanner-Profi', icon: '📱', description: '20 Mahlzeiten per Scan geloggt', requirement: 20 },
+        { type: 'weight_loss_1', name: 'Erstes Kilo', icon: '⬇️', description: '1 kg abgenommen', requirement: 1 },
+        { type: 'weight_loss_5', name: 'Fünf Kilo', icon: '🏅', description: '5 kg abgenommen', requirement: 5 },
+        { type: 'calorie_week_perfect', name: 'Perfekte Woche', icon: '✨', description: '7 Tage Kalorienbudget getroffen', requirement: 7 },
+        { type: 'comeback', name: 'Comeback', icon: '🔄', description: 'Nach 5 Tagen Pause zurückgekommen', requirement: 1 },
       ];
   }
 }
@@ -283,6 +307,67 @@ export const useGamification = () => {
     }
   };
 
+  /**
+   * Call this whenever a day's calories are logged (e.g. from Index.tsx).
+   * If caloriesEaten is within ±15% of targetCalories, the day counts.
+   * Increments a localStorage counter and awards calorie_goal_3 / calorie_goal_7
+   * (and calorie_week_perfect at 7) when the threshold is reached.
+   */
+  const checkCalorieGoalBadge = async (caloriesEaten: number, targetCalories: number) => {
+    if (!user || targetCalories <= 0) return;
+
+    const ratio = caloriesEaten / targetCalories;
+    const isGoalDay = ratio >= 0.85 && ratio <= 1.15;
+
+    if (!isGoalDay) return;
+
+    const raw = localStorage.getItem('frigy_calorie_goal_days');
+    const current = raw ? parseInt(raw, 10) : 0;
+    const next = current + 1;
+    localStorage.setItem('frigy_calorie_goal_days', String(next));
+
+    if (next >= 3) {
+      const def3 = badgeDefinitions.find(b => b.type === 'calorie_goal_3');
+      if (def3 && !badges.find(b => b.badge_type === 'calorie_goal_3')) {
+        await awardBadge('calorie_goal_3', def3.name);
+      }
+    }
+    if (next >= 7) {
+      const def7 = badgeDefinitions.find(b => b.type === 'calorie_goal_7');
+      if (def7 && !badges.find(b => b.badge_type === 'calorie_goal_7')) {
+        await awardBadge('calorie_goal_7', def7.name);
+      }
+      const defPerfect = badgeDefinitions.find(b => b.type === 'calorie_week_perfect');
+      if (defPerfect && !badges.find(b => b.badge_type === 'calorie_week_perfect')) {
+        await awardBadge('calorie_week_perfect', defPerfect.name);
+      }
+    }
+  };
+
+  /**
+   * Call this whenever protein intake is logged for the day.
+   * If proteinEaten >= 90% of targetProtein, the day counts.
+   * Increments a localStorage counter and awards protein_champion at 5.
+   */
+  const checkProteinGoalBadge = async (proteinEaten: number, targetProtein: number) => {
+    if (!user || targetProtein <= 0) return;
+
+    const isGoalDay = proteinEaten >= targetProtein * 0.9;
+    if (!isGoalDay) return;
+
+    const raw = localStorage.getItem('frigy_protein_goal_days');
+    const current = raw ? parseInt(raw, 10) : 0;
+    const next = current + 1;
+    localStorage.setItem('frigy_protein_goal_days', String(next));
+
+    if (next >= 5) {
+      const def = badgeDefinitions.find(b => b.type === 'protein_champion');
+      if (def && !badges.find(b => b.badge_type === 'protein_champion')) {
+        await awardBadge('protein_champion', def.name);
+      }
+    }
+  };
+
   return {
     streak,
     badges,
@@ -291,6 +376,8 @@ export const useGamification = () => {
     recordActivity,
     awardBadge,
     checkAndAwardBadge,
+    checkCalorieGoalBadge,
+    checkProteinGoalBadge,
     refetch: fetchGamificationData,
   };
 };

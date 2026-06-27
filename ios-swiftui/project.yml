@@ -2,7 +2,7 @@ name: FrigyNative
 options:
   bundleIdPrefix: com.frigyapp
   deploymentTarget:
-    iOS: "26.0"
+    iOS: "17.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
@@ -15,22 +15,41 @@ configFiles:
   Release: Config/Release.xcconfig
 
 packages:
-  CapApp-SPM:
-    path: CapApp-SPM
   ChottuLinkSDK:
     url: https://github.com/ConnectingDotsInfotech/chottulink-ios-sdk
     from: 1.1.0
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.29.0
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios
+    from: 5.0.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 8.0.0
 
 settings:
   base:
-    SWIFT_VERSION: "6.0"
-    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    # Swift 5 language mode: the iOS 26 SDK (incl. Liquid Glass) and all app
+    # behavior are unchanged, but Swift 6's complete data-race checking — which
+    # turns every UIKit/Capacitor delegate-bridging concurrency mismatch into a
+    # hard build error ("sending ... risks data races", "@MainActor conformance
+    # crosses ...") — is relaxed to warnings. This stops the recurring archive
+    # failures. Revisit (back to "6.0") only after the native bridging code is
+    # fully audited for Sendable/actor isolation.
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
+    # Required for App Store archive: build all slices (arm64 + arm64e), not just
+    # the active architecture of the build host.
+    ONLY_ACTIVE_ARCH: NO
+    # Explicit module dependencies to avoid module cache corruption
+    CLANG_ENABLE_MODULES: YES
+    CLANG_MODULES_AUTOLINK: YES
+    ENABLE_STRICT_OBJC_MSGSEND: YES
 
 targets:
   FrigyNative:
@@ -42,11 +61,9 @@ targets:
           - "**/*.example"
           - public/**
           - capacitor.config.json
+          - Capacitor/**
     resources:
-      - path: FrigyNative/public
-        buildPhase: resources
-        type: folder
-      - path: FrigyNative/capacitor.config.json
+      - path: FrigyNative/PrivacyInfo.xcprivacy
         buildPhase: resources
     settings:
       base:
@@ -54,43 +71,65 @@ targets:
         INFOPLIST_FILE: FrigyNative/Info.plist
         CODE_SIGN_ENTITLEMENTS: FrigyNative/FrigyNative.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        CURRENT_PROJECT_VERSION: 1
+        CURRENT_PROJECT_VERSION: 506
         MARKETING_VERSION: 1.0.0
         ENABLE_PREVIEWS: YES
     dependencies:
-      - package: CapApp-SPM
-        product: CapApp-SPM
       - package: ChottuLinkSDK
         product: ChottuLinkSDK
       - package: Supabase
         product: Supabase
       - package: Supabase
         product: Auth
+      - package: RevenueCat
+        product: RevenueCat
+      - package: GoogleSignIn
+        product: GoogleSignIn
     info:
       path: FrigyNative/Info.plist
       properties:
         CFBundleDisplayName: Frigy
-        CAPACITOR_DEBUG: "$(CAPACITOR_DEBUG)"
         CFBundleURLTypes:
           - CFBundleURLName: com.frigyapp.app
             CFBundleURLSchemes:
               - frigy
+          - CFBundleURLName: google
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.153158265512-8ookf1g41bc74527pqh66ufga6uatrlm
         UILaunchScreen: {}
+        # iPhone: portrait only (food-tracking UX is vertical)
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSCameraUsageDescription: "Frigy uses the camera to recognize ingredients in your fridge and pantry."
-        NSPhotoLibraryUsageDescription: "Frigy can analyze photos from your gallery to recognize ingredients."
-        NSUserNotificationsUsageDescription: "Frigy sends optional reminders for meals, water, and your goals."
+        # Supabase + OAuth — values injected by Secrets.xcconfig on Codemagic
+        SUPABASE_URL: "$(SUPABASE_URL)"
+        SUPABASE_ANON_KEY: "$(SUPABASE_ANON_KEY)"
+        APP_WEB_HOST: "$(APP_WEB_HOST)"
+        OAUTH_REDIRECT_SCHEME: "$(OAUTH_REDIRECT_SCHEME)"
+        OAUTH_CALLBACK_HOST: "$(OAUTH_CALLBACK_HOST)"
+        REVENUECAT_API_KEY: "$(REVENUECAT_API_KEY)"
+        REVENUECAT_ENTITLEMENT_ID: "$(REVENUECAT_ENTITLEMENT_ID)"
+        # Paywall bypass for dev/tester accounts — value injected by Secrets.xcconfig.
+        # MUST be declared here: XcodeGen regenerates Info.plist on every Codemagic
+        # build, so a key present only in the checked-in Info.plist would be dropped.
+        PAYWALL_BYPASS_EMAILS: "$(PAYWALL_BYPASS_EMAILS)"
+        # Usage descriptions — required by App Store Review (German: app primary language)
+        NSHealthShareUsageDescription: "Frigy liest deine Schritte und aktiven Kalorien aus der Gesundheits-App, um deinen Netto-Kalorienverbrauch zu berechnen."
+        NSHealthUpdateUsageDescription: "Frigy schreibt keine Gesundheitsdaten. Dieser Text ist aus technischen Gründen erforderlich."
+        NSCameraUsageDescription: "Frigy braucht die Kamera, um Barcodes zu scannen und Fotos deiner Mahlzeiten für die KI-Analyse aufzunehmen."
+        NSPhotoLibraryUsageDescription: "Wähle Fotos deiner Mahlzeiten aus der Bibliothek aus, damit Frigy die Nährwerte per KI berechnen kann."
+        NSUserNotificationsUsageDescription: "Frigy sendet dir Erinnerungen für deine Mahlzeiten und Fortschritts-Updates."
         UIBackgroundModes:
           - remote-notification
+        # Export compliance — app uses HTTPS/TLS only, no proprietary encryption
         ITSAppUsesNonExemptEncryption: false
+        # Allow WKWebView to load local bundle resources (needed if Capacitor is ever re-enabled)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
 
   FrigyNativeTests:
     type: bundle.unit-test

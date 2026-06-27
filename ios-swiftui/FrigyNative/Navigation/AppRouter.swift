@@ -15,18 +15,27 @@ final class AppRouter {
     let authService: AuthServiceProtocol
     let subscriptionService: SubscriptionServiceProtocol
 
+    // Defaults are nil and the concrete instances are built inside the (main-actor)
+    // init body. Default-argument expressions are evaluated in a nonisolated context,
+    // so calling these @MainActor initializers there is a hard error under Xcode 26's
+    // MainActor-by-default isolation.
     init(
         authService: AuthServiceProtocol? = nil,
-        subscriptionService: SubscriptionServiceProtocol = MockSubscriptionService(),
-        onboardingCoordinator: OnboardingCoordinator = OnboardingCoordinator()
+        subscriptionService: SubscriptionServiceProtocol? = nil,
+        onboardingCoordinator: OnboardingCoordinator? = nil
     ) {
         #if canImport(Supabase)
         self.authService = authService ?? (SupabaseConfig.isConfigured ? SupabaseAuthService.shared : MockAuthService())
         #else
         self.authService = authService ?? MockAuthService()
         #endif
+        #if canImport(RevenueCat)
         self.subscriptionService = subscriptionService
-        self.onboardingCoordinator = onboardingCoordinator
+            ?? (RevenueCatConfig.isConfigured ? RevenueCatSubscriptionService.shared : MockSubscriptionService())
+        #else
+        self.subscriptionService = subscriptionService ?? MockSubscriptionService()
+        #endif
+        self.onboardingCoordinator = onboardingCoordinator ?? OnboardingCoordinator()
     }
 
     func bootstrap() async {
@@ -34,11 +43,25 @@ final class AppRouter {
         authStatusMessage = nil
 
         do {
-            _ = try await authService.restoreSession()
+            let session = try await authService.restoreSession()
 
-            guard !onboardingCoordinator.isComplete else {
+            // Link the store identity to this Supabase user as early as possible so a
+            // purchase made later in this session attaches to the right account.
+            if let session {
+                await subscriptionService.identify(userId: session.userId)
+            }
+
+            // Returning user with active session who already completed onboarding → main app
+            if session != nil, onboardingCoordinator.isComplete {
                 try await routeAfterOnboarding()
                 return
+            }
+
+            // All other cases: show onboarding.
+            // If previously marked complete but no active session (expired, signed out,
+            // or reinstalled), reset so the user can sign back in at AccountCreation.
+            if onboardingCoordinator.isComplete {
+                onboardingCoordinator.resetForFreshOnboarding()
             }
 
             onboardingCoordinator.resumeFromLastStep()
@@ -46,10 +69,10 @@ final class AppRouter {
             applyQueuedReferralIfNeeded()
             rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
             flushPendingDeepLinkWhileOnboarding()
-            return
         } catch {
-            authStatusMessage = error.localizedDescription
-            rootRoute = .auth
+            // Supabase unavailable — show onboarding (splash with mascot) instead of auth screen
+            onboardingCoordinator.resumeFromLastStep()
+            rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
         }
     }
 
@@ -142,21 +165,63 @@ final class AppRouter {
         }
     }
 
+    /// Re-reads premium state when the app returns to the foreground so a
+    /// cancelled/expired subscription is detected without a restart. Respects the
+    /// paywall bypass: a dev/tester (or App Review demo) account keeps premium
+    /// even though it has no real RevenueCat entitlement — otherwise it would be
+    /// silently revoked on every foregrounding.
+    func refreshPremiumOnForeground() async {
+        guard case .main = rootRoute else { return }
+        if let session = try? await authService.currentSession(),
+           isPaywallBypassed(for: session.email) {
+            isPremium = true
+            return
+        }
+        if let current = try? await subscriptionService.refreshPremiumState() {
+            isPremium = current
+        }
+    }
+
+    func navigateToAuth() {
+        rootRoute = .auth
+    }
+
+    func navigateToOnboardingStart() {
+        onboardingCoordinator.resetForFreshOnboarding()
+        rootRoute = .onboarding(step: .splash)
+    }
+
     func signOut() async {
         try? await authService.signOut()
+        await subscriptionService.clearIdentity()
+        isPremium = false
+        UserDefaults.standard.removeObject(forKey: "pendingReferralCode")
+        UserDefaults.standard.removeObject(forKey: "frigy.cachedTargets.v1")
         tabCoordinator.popToRootAllTabs()
-        rootRoute = .auth
+        onboardingCoordinator.resetForFreshOnboarding()
+        rootRoute = .onboarding(step: .splash)
     }
 
     // MARK: - Private
 
+    func isPaywallBypassed(for email: String) -> Bool {
+        SupabaseConfig.paywallBypassEmails.contains(email.lowercased())
+    }
+
     private func routeAfterOnboarding() async throws {
-        guard try await authService.currentSession() != nil else {
+        guard let session = try await authService.currentSession() else {
             rootRoute = .auth
             return
         }
 
-        isPremium = try await subscriptionService.refreshPremiumState()
+        // Ensure the store identity is linked before we read premium state.
+        await subscriptionService.identify(userId: session.userId)
+
+        if isPaywallBypassed(for: session.email) {
+            isPremium = true
+        } else {
+            isPremium = try await subscriptionService.refreshPremiumState()
+        }
         rootRoute = .main
         flushPendingDeepLinkIfNeeded()
     }
@@ -174,19 +239,27 @@ final class AppRouter {
 
     private func completeAuthFlowAfterCallback() async {
         do {
-            guard try await authService.currentSession() != nil else {
+            guard let session = try await authService.currentSession() else {
                 authStatusMessage = "Session not available after OAuth callback."
                 rootRoute = .auth
                 return
             }
+
+            // Link the store identity right after authentication so the upcoming
+            // paywall purchase attaches to this Supabase user.
+            await subscriptionService.identify(userId: session.userId)
 
             if onboardingCoordinator.isComplete {
                 isPremium = try await subscriptionService.refreshPremiumState()
                 rootRoute = .main
                 flushPendingDeepLinkIfNeeded()
             } else {
+                // Auth callback arrived during onboarding (email confirmation or OAuth).
+                // Always jump straight to paywall regardless of the persisted step,
+                // so the user never lands back on the Apple/Google/Email auth screen.
                 onboardingCoordinator.resumeFromLastStep()
-                rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
+                onboardingCoordinator.skipToPaywall()
+                rootRoute = .onboarding(step: .paywall)
             }
         } catch {
             authStatusMessage = error.localizedDescription

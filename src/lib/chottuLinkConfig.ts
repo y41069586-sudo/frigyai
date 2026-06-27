@@ -1,4 +1,4 @@
-import { FRIGY_APP_SCHEME } from "@/lib/appDeepLink";
+import { FRIGY_APP_SCHEME } from "@/lib/appScheme";
 
 /**
  * ChottuLink / App-Link hosts — set in production .env:

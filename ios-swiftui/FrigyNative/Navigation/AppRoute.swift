@@ -22,6 +22,15 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
         case .shopping: "cart.fill"
         }
     }
+
+    /// Short German labels matching the web BottomNavigation (Start / Plan / Einkauf).
+    var shortTitle: String {
+        switch self {
+        case .home: "Start"
+        case .plans: "Plan"
+        case .shopping: "Einkauf"
+        }
+    }
 }
 
 /// Top-level app destinations outside tab stacks.
@@ -48,8 +57,8 @@ enum AppDeepLink: Equatable {
 enum HomeRoute: Hashable {
     case profile
     case badges
-    case foodEntry(UUID)
-    case chatbot
+    case foodEntry(entryId: String)
+    case chatbot(initialPrompt: String?)
     case weightProgress
 }
 
@@ -98,8 +107,8 @@ extension HomeRoute: CustomStringConvertible {
         switch self {
         case .profile: "profile"
         case .badges: "badges"
-        case .foodEntry(let id): "foodEntry(\(id.uuidString))"
-        case .chatbot: "chatbot"
+        case .foodEntry(let id): "foodEntry(\(id))"
+        case .chatbot(let prompt): "chatbot(\(prompt ?? "nil"))"
         case .weightProgress: "weightProgress"
         }
     }

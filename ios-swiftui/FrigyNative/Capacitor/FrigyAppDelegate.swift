@@ -56,9 +56,12 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         continue userActivity: NSUserActivity,
         restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
     ) -> Bool {
-        guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
-              let url = userActivity.webpageURL else {
-            return false
+        return MainActor.assumeIsolated {
+            guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+                  let url = userActivity.webpageURL else {
+                return false
+            }
+            return ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
         }
         return onMainActor {
             ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
@@ -77,7 +80,6 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
 
 @MainActor
 extension FrigyAppDelegate: UNUserNotificationCenterDelegate {
-    @MainActor
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,

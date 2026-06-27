@@ -8,6 +8,8 @@ final class MainTabCoordinator {
     var plansPath = NavigationPath()
     var shoppingPath = NavigationPath()
     var showTrackerSheet = false
+    var trackerPreselectedCategory: MealCategory? = nil
+    var todayMealCount: Int = 0
 
     /// Tracks whether each tab root has been instantiated (TabView keeps views alive; this aids debugging).
     private(set) var tabActivationCounts: [AppTab: Int] = [:]
@@ -60,7 +62,8 @@ final class MainTabCoordinator {
         shoppingPath.append(route)
     }
 
-    func openTracker() {
+    func openTracker(category: MealCategory? = nil) {
+        trackerPreselectedCategory = category
         showTrackerSheet = true
     }
 

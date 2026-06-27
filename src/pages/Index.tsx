@@ -799,6 +799,18 @@ const Index = () => {
                 setChatBootstrapMessage(text);
                 setIsChatbotOpen(true);
               }}
+              onOpenChat={(message) => {
+                setChatBootstrapMessage(message);
+                setIsChatbotOpen(true);
+              }}
+              recentMeals={todayFoodEntries.slice(0, 5).map((e) => ({
+                name: e.name,
+                calories: e.calories,
+                protein: e.protein,
+                carbs: e.carbs,
+                fat: e.fat,
+                meal_type: e.meal_type,
+              }))}
             />
         </div>
       </main>

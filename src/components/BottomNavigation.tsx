@@ -141,14 +141,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           onClick={openTracker}
           whileTap={{ scale: 0.94 }}
           className={cn(
-            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
-            trackerActive
-              ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"
-              : "bg-primary",
+            "lg-control lg-control--primary lg-control--circle relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center text-primary-foreground ring-4 ring-white",
+            trackerActive && "ring-primary/35 ring-offset-2 ring-offset-background",
           )}
           aria-label={t.navTracker}
         >
-          <Plus className="h-8 w-8 stroke-[3]" />
+          <Plus className="h-8 w-8 stroke-[3] drop-shadow-[0_1px_1px_rgba(46,181,109,0.45)]" />
         </motion.button>
       </LiquidGlass>
     </nav>

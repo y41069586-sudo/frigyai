@@ -320,6 +320,87 @@ async function searchOpenFoodFacts(query: string): Promise<OffFoodResult | null>
 
 // --- end Open Food Facts ---
 
+// MARK: - Barcode-specific lookup
+
+function isBarcode(query: string): boolean {
+  // EAN-8, EAN-13, UPC-A (12), UPC-E (6), GTIN-14
+  return /^\d{6,14}$/.test(query.trim());
+}
+
+/** Direct OFF product barcode API — much faster and more accurate than search. */
+async function lookupOffProductByBarcode(barcode: string): Promise<OffFoodResult | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(
+      `https://world.openfoodfacts.org/api/v2/product/${barcode}` +
+      `?fields=code,product_name,product_name_de,nutriments,serving_size,serving_quantity,brands`,
+      { signal: controller.signal },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status !== 1 || !data.product) return null;
+    const mapped = mapOffProductToFood(data.product as Record<string, unknown>, barcode);
+    if (mapped) console.log("[ANALYZE-FOOD] OFF barcode hit:", mapped.name);
+    return mapped;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Ask GPT-4o to identify a product by its EAN/UPC barcode number. */
+async function analyzeBarcodeWithOpenAI(
+  apiKey: string,
+  barcode: string,
+): Promise<Record<string, unknown> | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content:
+              `Du bist eine Lebensmittel-Datenbank. Identifiziere Produkte anhand ihrer EAN/UPC-Barcode-Nummer und nenne realistische Nährwerte.\n` +
+              `Antworte NUR mit JSON, kein anderer Text.\n\n` +
+              `Wenn du das Produkt kennst:\n` +
+              `{"found":true,"name":"Produktname","calories":N,"protein":N,"carbs":N,"fat":N,"portion":"typische Portion oder 100g"}\n\n` +
+              `Kalorien und Makros für eine typische Portion (z.B. 30g Müsli, 1 Riegel, 100ml). Makros müssen stimmen: kcal ≈ 4×Protein + 4×Carbs + 9×Fett.\n\n` +
+              `Nur wenn der Barcode dir völlig unbekannt ist:\n{"found":false}`,
+          },
+          { role: "user", content: `Barcode: ${barcode}` },
+        ],
+        max_tokens: 200,
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+      }),
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content ?? "";
+    console.log("[ANALYZE-FOOD] AI barcode response:", content);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(content.trim());
+    } catch {
+      return null;
+    }
+    if (parsed.found === false || !parsed.name) return null;
+    return normalizeAiFoodEstimate(parsed);
+  } catch {
+    clearTimeout(timeoutId);
+    return null;
+  }
+}
+
 async function uploadFoodPhoto(
   supabaseAdmin: ReturnType<typeof createClient>,
   userId: string,
@@ -614,6 +695,28 @@ serve(async (req) => {
     const uploadPromise = imageBase64
       ? uploadFoodPhoto(supabaseAdmin, user.id, imageBase64)
       : Promise.resolve(null);
+
+    // 0) Barcode path — OFF direct product API + OpenAI barcode recognition run in parallel.
+    //    OFF wins when it has a complete result (precise database); OpenAI fills the gap
+    //    for products not yet in OFF.
+    if (food?.trim() && !imageBase64 && isBarcode(food.trim())) {
+      const barcode = food.trim();
+      console.log("[ANALYZE-FOOD] Barcode lookup:", barcode);
+      const [offRes, aiRes] = await Promise.allSettled([
+        lookupOffProductByBarcode(barcode),
+        analyzeBarcodeWithOpenAI(OPENAI_API_KEY, barcode),
+      ]);
+      const off = offRes.status === "fulfilled" ? offRes.value : null;
+      const ai = aiRes.status === "fulfilled" ? aiRes.value : null;
+      // Prefer OFF (authoritative database) when it has calorie data; fall back to AI
+      const result = (off && off.calories > 0) ? off : ai;
+      if (result) {
+        console.log("[ANALYZE-FOOD] Barcode result:", (result as { name?: string }).name, off ? "(OFF)" : "(AI)");
+        return successResponse(result as Record<string, unknown>);
+      }
+      console.log("[ANALYZE-FOOD] Barcode not found:", barcode);
+      return notFoundResponse();
+    }
 
     // 1) Text search: zero-cal drinks, then Open Food Facts
     if (food?.trim() && !imageBase64) {

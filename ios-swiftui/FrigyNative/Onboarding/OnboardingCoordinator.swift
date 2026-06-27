@@ -6,21 +6,28 @@ final class OnboardingCoordinator {
     private(set) var currentStep: OnboardingStep
     private(set) var context: OnboardingContext
 
+    enum TransitionDirection { case forward, back }
+    private(set) var transitionDirection: TransitionDirection = .forward
+
     private let persistence: OnboardingPersistenceProtocol
     private let rules: CompositeOnboardingRulesEngine
     private let telemetry: OnboardingFlowTelemetry
 
+    // `persistence` / `telemetry` default to nil and are resolved inside this
+    // (main-actor) init body — their @MainActor initializer / static can't be
+    // referenced from a nonisolated default-argument context (Xcode 26 MainActor
+    // default isolation).
     init(
         context: OnboardingContext = .initial,
         rules: CompositeOnboardingRulesEngine = DefaultOnboardingRulesEngine(),
-        persistence: OnboardingPersistenceProtocol = UserDefaultsOnboardingPersistence(),
-        telemetry: OnboardingFlowTelemetry = .shared,
+        persistence: OnboardingPersistenceProtocol? = nil,
+        telemetry: OnboardingFlowTelemetry? = nil,
         startStep: OnboardingStep = OnboardingFlow.macroEntryStep
     ) {
         self.context = context
         self.rules = rules
-        self.persistence = persistence
-        self.telemetry = telemetry
+        self.persistence = persistence ?? UserDefaultsOnboardingPersistence()
+        self.telemetry = telemetry ?? .shared
         self.currentStep = startStep
     }
 
@@ -91,7 +98,9 @@ final class OnboardingCoordinator {
         }
 
         if let saved = persistence.load() {
-            currentStep = saved.currentStep
+            // Migrate the legacy ".welcome" feature-list entry screen (not part of the
+            // web flow) to the mascot splash, so resumed users see the correct first screen.
+            currentStep = saved.currentStep == .welcome ? .splash : saved.currentStep
             context = saved.context
             recordTrace(
                 action: .resume,
@@ -105,12 +114,12 @@ final class OnboardingCoordinator {
         }
 
         context = .initial
+        // Always enter at the mascot splash (matches the web onboarding). A pending
+        // referral code is kept in context but no longer diverts to a separate screen.
         if let pendingRef = UserDefaults.standard.string(forKey: "pendingReferralCode"), !pendingRef.isEmpty {
             context.setReferralInput(pendingRef, for: .localPending)
-            currentStep = .welcome
-        } else {
-            currentStep = OnboardingFlow.macroEntryStep
         }
+        currentStep = OnboardingFlow.macroEntryStep
 
         recordTrace(
             action: .resume,
@@ -135,10 +144,14 @@ final class OnboardingCoordinator {
 
     @discardableResult
     func next() -> OnboardingStep {
+        transitionDirection = .forward
         let from = currentStep
 
         if currentStep == .macroPreview {
-            userProfile.recalculateMacrosIfPossible()
+            // Keep user-adjusted macros; only auto-recalculate when untouched.
+            if !userProfile.macrosManuallyEdited {
+                userProfile.recalculateMacrosIfPossible()
+            }
             context.userProfile = userProfile
         }
 
@@ -154,6 +167,12 @@ final class OnboardingCoordinator {
             )
             return currentStep
         }
+
+        // Mark the current step complete BEFORE validating the transition.
+        // Protected steps (accountCreation/paywall) require their `from` step to
+        // be completed; inserting afterwards would deadlock the linear flow
+        // (e.g. macroPreview → accountCreation could never proceed).
+        context.completedSteps.insert(from)
 
         let explanation = rules.explainNext(from: from, context: context)
         let allowed = StepGuard.validateTransition(
@@ -175,7 +194,6 @@ final class OnboardingCoordinator {
             return currentStep
         }
 
-        context.completedSteps.insert(from)
         currentStep = proposed
         persistState()
 
@@ -192,6 +210,7 @@ final class OnboardingCoordinator {
 
     @discardableResult
     func back() -> OnboardingStep {
+        transitionDirection = .back
         let from = currentStep
         guard let previous = OnboardingFlow.back(before: currentStep) else {
             recordTrace(
@@ -250,7 +269,7 @@ final class OnboardingCoordinator {
         let from = currentStep
         context.setReferralInput(code, for: .deepLink)
         UserDefaults.standard.set(code, forKey: "pendingReferralCode")
-        currentStep = .welcome
+        currentStep = .splash
         persistState()
 
         let suppressed = ReferralCodeResolver.suppressedAlternatives(context.referral.inputs)
@@ -268,11 +287,38 @@ final class OnboardingCoordinator {
         recordTrace(
             action: .deepLink,
             from: from,
-            to: .welcome,
+            to: .splash,
             allowed: true,
             blockReason: nil,
             proposedSource: proposedSource
         )
+    }
+
+    /// Called after the user successfully signs in during AccountCreation so the
+    /// context reflects the new auth state before `next()` routes to paywall.
+    func didAuthenticate() {
+        context.auth.isAuthenticated = true
+        context.auth.hasAccount = true
+        persistState()
+    }
+
+    /// Called from the email-confirmation deep-link callback to bypass
+    /// whatever step was persisted and land directly on the paywall.
+    func skipToPaywall() {
+        context.auth.isAuthenticated = true
+        context.auth.hasAccount = true
+        context.completedSteps.insert(.accountCreation)
+        currentStep = .paywall
+        persistState()
+    }
+
+    /// Clears all persisted onboarding state and restarts from the first step.
+    /// Used when a returning user has no active session — they go through onboarding
+    /// again and can sign in via the AccountCreation step.
+    func resetForFreshOnboarding() {
+        persistence.clear()
+        context = .initial
+        currentStep = OnboardingFlow.macroEntryStep
     }
 
     func markComplete() {
