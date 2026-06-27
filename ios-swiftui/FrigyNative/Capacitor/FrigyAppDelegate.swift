@@ -46,12 +46,9 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        // UIKit delivers this callback on the main thread; hop onto the main actor
-        // so the @MainActor-isolated ApplicationDelegateProxy can be used under Swift 6.
-        MainActor.assumeIsolated {
+        onMainActor {
             ApplicationDelegateProxy.shared.application(app, open: url, options: options)
         }
-        return true
     }
 
     nonisolated func application(
@@ -65,6 +62,18 @@ final class FrigyAppDelegate: NSObject, UIApplicationDelegate {
                 return false
             }
             return ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
+        }
+        return onMainActor {
+            ApplicationDelegateProxy.shared.application(application, open: url, options: [:])
+        }
+    }
+
+    private nonisolated func onMainActor<T>(_ work: @MainActor () -> T) -> T {
+        if Thread.isMainThread {
+            return MainActor.assumeIsolated(work)
+        }
+        return DispatchQueue.main.sync {
+            MainActor.assumeIsolated(work)
         }
     }
 }

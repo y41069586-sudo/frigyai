@@ -120,9 +120,8 @@ workflows:
         VITE_TERMS_URL: https://app.frigy.app/legal/agb
         VITE_APP_WEB_HOST: app.frigy.app
         # iOS CFBundleVersion — never use raw CM_BUILD_NUMBER (e.g. 4) from Android counter.
-        # ios-build uses floor 100+; ios-swiftui-build uses floor 200+ so the two
-        # workflows never collide in the shared ASC app (com.frigyapp.app).
-        IOS_BUILD_NUMBER: "100"
+        IOS_BUILD_NUMBER: "52"
+
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-env.sh
@@ -195,7 +194,7 @@ workflows:
             --disable-xcpretty
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-52}"
           bash scripts/codemagic-locate-ipa.sh
     artifacts:
       - ios/App/build/ios/ipa/*.ipa
@@ -234,14 +233,8 @@ workflows:
         VITE_APP_WEB_HOST: app.frigy.app
         OAUTH_REDIRECT_SCHEME: frigy
         OAUTH_CALLBACK_HOST: callback
-        # Floor build number — actual number = CM_BUILD_NUMBER + IOS_BUILD_OFFSET
-        # (floor only used when CM_BUILD_NUMBER is unavailable or too low).
-        # Last confirmed App Store upload: ~420. Floor 500 ensures no collision.
-        IOS_BUILD_NUMBER: "500"
-        # Added to CM_BUILD_NUMBER so each Codemagic run gets a unique, auto-
-        # incrementing build number without manual bumps. Keep floor 200+ so
-        # it never collides with ios-build workflow (floor 100+).
-        IOS_BUILD_OFFSET: "200"
+        IOS_BUILD_NUMBER: "52"
+
     scripts:
       - name: Verify build environment
         script: bash scripts/codemagic-verify-native-env.sh
@@ -306,7 +299,7 @@ workflows:
             --disable-xcpretty
       - name: Verify IPA artifact
         script: |
-          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-51}"
+          export IOS_MIN_BUILD="${IOS_BUILD_NUMBER:-52}"
           bash scripts/codemagic-locate-ipa.sh
     artifacts:
       - build/ios/ipa/*.ipa

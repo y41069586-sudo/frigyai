@@ -15,7 +15,8 @@
 set -euo pipefail
 
 ROOT="${CM_BUILD_DIR:-$(pwd)}"
-IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-251}"
+IOS_BUILD_NUMBER="${IOS_BUILD_NUMBER:-52}"
+BUILD_NUM="$IOS_BUILD_NUMBER"
 
 # Epoch seconds: ~1.75 billion today, increasing every second. Always unique,
 # always higher than the last upload.

@@ -363,9 +363,9 @@ private enum AuthPresentationAnchor {
 }
 
 private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private let completion: (Result<ASAuthorizationAppleIDCredential, Error>) -> Void
+    private nonisolated(unsafe) let completion: @Sendable (Result<ASAuthorizationAppleIDCredential, Error>) -> Void
 
-    init(completion: @escaping (Result<ASAuthorizationAppleIDCredential, Error>) -> Void) {
+    nonisolated init(completion: @escaping @Sendable (Result<ASAuthorizationAppleIDCredential, Error>) -> Void) {
         self.completion = completion
     }
 
