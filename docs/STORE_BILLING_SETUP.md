@@ -108,3 +108,23 @@ Nach erfolgreichem Store-Kauf ruft die App `sync-store-subscription` auf und sch
 4. Sandbox-Apple-ID (iOS) bzw. License Tester (Android) verwenden.
 5. Paywall → X → Geschenk öffnen → „Jetzt holen“ — Play-Dialog muss **Rabattpreis** zeigen.
 6. Nach Kauf: Profil → Abo aktualisieren oder App neu starten; Premium sollte aktiv sein.
+
+## 8. Google Play Promo-Codes (Custom Codes)
+
+Die App öffnet auf Android die **Play-Store-App** mit vorausgefülltem Code (`play.google.com/redeem?code=…`), nicht den Browser — wichtig für das richtige Google-Konto.
+
+### Checkliste wenn „Code ungültig“
+
+1. **Abo veröffentlicht** — Subscription + Base Plan in Play Console aktiv (nicht Entwurf).
+2. **Code aktiv** — Promo in Play Console erstellt, Laufzeit nicht abgelaufen, Kontingent nicht aufgebraucht.
+3. **Richtiges Produkt** — Code ist dem **gleichen Abo** zugeordnet wie in RevenueCat.
+4. **Gleiches Google-Konto** — Play Store auf dem Gerät = Konto beim Einlösen.
+5. **App aus Play Store** — APK-Sideload von Codemagic reicht für Promo oft nicht; Internal/Closed Testing Track mit Tester-Konto nutzen.
+6. **Groß-/Kleinschreibung** — Custom Codes exakt wie in der Console eingeben.
+7. **Wartezeit** — Neue Codes können bis zu einige Stunden brauchen.
+
+### Server-Verteilung (optional)
+
+Google erlaubt und empfiehlt für manche Szenarien die **Play Developer API** zur Code-Erzeugung. Das ist **richtlinienkonform**. Die App verteilt Codes aktuell nicht selbst — Nutzer gibt den Code aus der Console / vom Influencer ein.
+
+**Alternative ohne Promo-Code:** In-App-Rabatt über Base Plan `paywall-gift` (Geschenk-Angebot auf der Paywall).

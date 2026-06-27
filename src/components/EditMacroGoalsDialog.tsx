@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import {
   calculateMacrosForWeightAndCalories,
   macroGoalsEqual,
+  scaleMacrosToCalorieTarget,
 } from '@/lib/macroGoals';
 
 interface MacroGoals {
@@ -190,9 +191,16 @@ export const EditMacroGoalsDialog = ({
       return;
     }
 
-    if (!validateGoals(pendingGoals)) return;
-    void commitSave(pendingGoals);
+    const fitted = macrosExceedCalories(pendingGoals)
+      ? scaleMacrosToCalorieTarget(pendingGoals.dailyCalories, baselineRef.current)
+      : pendingGoals;
+
+    if (!validateGoals(fitted)) return;
+    void commitSave(fitted);
   };
+
+  const macrosExceedCalories = (goals: MacroGoals) =>
+    goals.dailyCalories - goals.dailyProtein * 4 - goals.dailyFat * 9 < 0;
 
   const handleSave = () => {
     const goals = readGoalsFromInputs();
@@ -202,7 +210,10 @@ export const EditMacroGoalsDialog = ({
       return;
     }
 
-    if (!validateGoals(goals)) return;
+    if (goals.dailyCalories < 800 || goals.dailyCalories > 10000) {
+      validateGoals(goals);
+      return;
+    }
 
     const caloriesChanged = goals.dailyCalories !== baselineRef.current.dailyCalories;
 
@@ -212,6 +223,7 @@ export const EditMacroGoalsDialog = ({
       return;
     }
 
+    if (!validateGoals(goals)) return;
     void commitSave(goals);
   };
 

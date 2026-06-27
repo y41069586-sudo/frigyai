@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import LiquidGlass from "@/components/LiquidGlass";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { motion } from "framer-motion";
@@ -87,10 +88,12 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
       aria-label={t.ariaMainNavigation}
       className="pointer-events-none fixed inset-x-0 bottom-2 z-[100] flex justify-center px-4 safe-bottom"
     >
-      <div
+      <LiquidGlass
+        variant="clear"
+        safeAreaEdge="bottom"
+        borderRadius={999}
         className={cn(
-          "pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible rounded-full border border-gray-200/90 bg-white/95 px-2.5 py-1.5 pr-1.5",
-          "shadow-[0_14px_34px_-24px_rgba(0,0,0,0.3)] sm:bg-white/86 sm:backdrop-blur-2xl sm:shadow-[0_18px_46px_-22px_rgba(0,0,0,0.35)] dark:border-gray-700/50 dark:bg-background/92 sm:dark:bg-background/80",
+          "liquid-tabbar pointer-events-auto flex w-full max-w-md items-end gap-1.5 overflow-visible px-2.5 py-1.5 pr-1.5",
         )}
       >
         {ITEMS.map((item) => {
@@ -107,7 +110,7 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
               {active && (
                 <motion.div
                   layoutId={isMobile ? undefined : "bottom-nav-active-pill"}
-                  className="absolute inset-0 rounded-full bg-primary/[0.10] dark:bg-primary/20"
+                  className="liquid-tab-active absolute inset-0 rounded-full"
                   transition={
                     isMobile
                       ? { duration: 0.16, ease: [0.22, 1, 0.36, 1] }
@@ -138,16 +141,14 @@ export const BottomNavigation = (_props: BottomNavigationProps) => {
           onClick={openTracker}
           whileTap={{ scale: 0.94 }}
           className={cn(
-            "relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-[0_20px_42px_-16px_hsl(var(--primary)/0.85)] ring-4 ring-white",
-            trackerActive
-              ? "bg-primary ring-primary/35 ring-offset-2 ring-offset-background"
-              : "bg-primary",
+            "lg-control lg-control--primary lg-control--circle relative -mt-5 ml-1 flex h-[62px] w-[62px] shrink-0 items-center justify-center text-primary-foreground ring-4 ring-white",
+            trackerActive && "ring-primary/35 ring-offset-2 ring-offset-background",
           )}
           aria-label={t.navTracker}
         >
-          <Plus className="h-8 w-8 stroke-[3]" />
+          <Plus className="h-8 w-8 stroke-[3] drop-shadow-[0_1px_1px_rgba(46,181,109,0.45)]" />
         </motion.button>
-      </div>
+      </LiquidGlass>
     </nav>
   );
 

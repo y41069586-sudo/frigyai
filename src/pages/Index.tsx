@@ -13,7 +13,9 @@ import { toast } from "@/hooks/use-toast";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 import { BottomNavigation } from "@/components/BottomNavigation";
+import LiquidGlass, { GlassGroup } from "@/components/LiquidGlass";
 import { useTrackerSettings } from "@/hooks/useTrackerSettings";
+import { FRIGY_TRACKER_SETTINGS_UPDATED } from "@/lib/frigyStorageSync";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { HealthDashboard } from "@/components/food-ai";
@@ -60,6 +62,8 @@ import {
   clearOnboardingSession,
   isOnboardingInProgress,
   markOnboardingInProgress,
+  shouldDeferAuthOnboardingStartRedirect,
+  shouldDeferAuthPaywallRedirect,
 } from "@/lib/onboardingSession";
 import { markSplashLoginNewUser } from "@/lib/splashLoginOnboarding";
 import { shouldHideBottomNavForFirstPlan } from "@/lib/firstWeekPlanFlow";
@@ -91,6 +95,13 @@ const Index = () => {
   const { t, language } = useLanguage();
   const timeLocale = getAppLocale(language);
   const { settings: trackerSettings, isConfigured: trackerSetup, loading: trackerLoading, reloadSettings } = useTrackerSettings();
+  const [trackerGoalsTick, setTrackerGoalsTick] = useState(0);
+
+  useEffect(() => {
+    const bumpTrackerGoals = () => setTrackerGoalsTick((tick) => tick + 1);
+    window.addEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, bumpTrackerGoals);
+    return () => window.removeEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, bumpTrackerGoals);
+  }, []);
   const { todayTotals, entries: todayFoodEntries } = useFoodEntries();
   const { regenerateTodayForBalance } = useMealPlanGeneration();
   const { streak, recordActivity, checkAndAwardBadge } = useGamification();
@@ -287,7 +298,6 @@ const Index = () => {
   );
   const [onboardingLatch, setOnboardingLatch] = useState(() => isOnboardingInProgress());
   const [onboardingComplete, setOnboardingComplete] = useState(shouldSkipOnboarding);
-  const dashboardReady = onboardingComplete || hasCompletedOnboarding || dbOnboardingComplete;
   const navigate = useNavigate();
   const authRouteHandledRef = useRef(false);
 
@@ -295,6 +305,17 @@ const Index = () => {
     return subscribeAuthFlow(() => {
       const { result, navigation } = getAuthFlowSnapshot();
       if (result.status !== "success" || !navigation.executed || authRouteHandledRef.current) {
+        return;
+      }
+
+      if (
+        result.routePhase === "onboarding_start" &&
+        shouldDeferAuthOnboardingStartRedirect()
+      ) {
+        return;
+      }
+
+      if (result.routePhase === "onboarding_paywall" && shouldDeferAuthPaywallRedirect()) {
         return;
       }
 
@@ -348,12 +369,11 @@ const Index = () => {
         return;
       }
 
-      if (
-        isOnboardingInProgress() ||
-        onboardingLatch ||
-        isAuthCompletionPending() ||
-        isAuthNavigationPending()
-      ) {
+      const authFlowBlocksOnboarding =
+        (isAuthCompletionPending() || isAuthNavigationPending()) &&
+        !(hasCompletedOnboarding || dbOnboardingComplete);
+
+      if (isOnboardingInProgress() || onboardingLatch || authFlowBlocksOnboarding) {
         setShowOnboarding(true);
         setOnboardingComplete(false);
         return;
@@ -583,7 +603,7 @@ const Index = () => {
         preferLocal: trackerLoading && !(trackerSettings?.dailyCalories ?? 0),
         storedProfileOnly: Boolean(user || session),
       }),
-    [trackerSettings, trackerLoading, user, session],
+    [trackerSettings, trackerLoading, user, session, trackerGoalsTick],
   );
   const targetCalories = macroTargets?.dailyCalories ?? 0;
   const targetProtein = macroTargets?.dailyProtein ?? 0;
@@ -705,51 +725,59 @@ const Index = () => {
               </h1>
             </div>
             
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <GlassGroup className="flex-shrink-0">
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <LiquidGlass
+                  variant="clear"
+                  interactive
+                  borderRadius={999}
+                  onClick={() => setShowWeightDialog(true)}
+                  className="flex h-10 w-10 items-center justify-center"
+                  aria-label={t.weightProgress}
+                >
+                  <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
+                </LiquidGlass>
+              </motion.div>
+
               <motion.button
                 type="button"
-                onClick={() => setShowWeightDialog(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] transition-colors hover:bg-[#F2FFF8]"
-                whileTap={{ scale: 0.95 }}
-                aria-label={t.weightProgress}
-                title={t.weightProgress}
+                onClick={() => navigate("/badges")}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-amber-400/14 px-3 text-amber-700 transition-colors hover:bg-amber-400/20"
+                initial={{ scale: 0.94, opacity: 0 }}
+                animate={{ scale: 1, opacity: currentStreak > 0 ? 1 : 0 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 420, damping: 28 }}
+                aria-label="Badge-Seite öffnen"
+                style={{ display: currentStreak > 0 ? "inline-flex" : "none" }}
               >
-                <Scale className="h-4 w-4 text-[#39D47F]" strokeWidth={2.2} />
+                <span className="text-base">🔥</span>
+                <span className="text-[13px] font-bold tabular-nums">{currentStreak}</span>
               </motion.button>
 
-              {currentStreak > 0 && (
-                <motion.button
-                  type="button"
-                  onClick={() => navigate("/badges")}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-full bg-amber-400/14 px-3 text-amber-700 transition-colors hover:bg-amber-400/20"
-                  initial={{ scale: 0.94, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 420, damping: 28 }}
-                  aria-label="Badge-Seite öffnen"
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <LiquidGlass
+                  variant="clear"
+                  interactive
+                  borderRadius={999}
+                  onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+                  className="flex h-10 w-10 items-center justify-center"
                 >
-                  <span className="text-base">🔥</span>
-                  <span className="text-[13px] font-bold tabular-nums">{currentStreak}</span>
-                </motion.button>
-              )}
+                  <Bot className="w-4 h-4 text-primary" />
+                </LiquidGlass>
+              </motion.div>
 
-              <motion.button
-                onClick={() => setIsChatbotOpen(!isChatbotOpen)}
-                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center hover:bg-white transition-colors"
-                whileTap={{ scale: 0.95 }}
-                title="AI Chatbot"
-              >
-                <Bot className="w-4 h-4 text-primary" />
-              </motion.button>
-
-              <motion.button
-                onClick={() => navigate('/profile')}
-                className="w-10 h-10 rounded-full bg-white/80 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.32)] flex items-center justify-center"
-                whileTap={{ scale: 0.95 }}
-              >
-                <Settings className="w-4 h-4 text-muted-foreground" />
-              </motion.button>
-            </div>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <LiquidGlass
+                  variant="clear"
+                  interactive
+                  borderRadius={999}
+                  onClick={() => navigate('/profile')}
+                  className="flex h-10 w-10 items-center justify-center"
+                >
+                  <Settings className="w-4 h-4 text-muted-foreground" />
+                </LiquidGlass>
+              </motion.div>
+            </GlassGroup>
           </motion.header>
 
           <HealthDashboard
@@ -771,16 +799,28 @@ const Index = () => {
                 setChatBootstrapMessage(text);
                 setIsChatbotOpen(true);
               }}
+              onOpenChat={(message) => {
+                setChatBootstrapMessage(message);
+                setIsChatbotOpen(true);
+              }}
+              recentMeals={todayFoodEntries.slice(0, 5).map((e) => ({
+                name: e.name,
+                calories: e.calories,
+                protein: e.protein,
+                carbs: e.carbs,
+                fat: e.fat,
+                meal_type: e.meal_type,
+              }))}
             />
         </div>
       </main>
 
-      {user && dashboardReady && (
-        <MacroTracker onSetupComplete={reloadSettings} />
+      {user && (
+        <MacroTracker onSetupComplete={() => reloadSettings(false)} />
       )}
 
       {/* Bottom Navigation - Show for all logged in users */}
-      {user && dashboardReady && !shouldHideBottomNavForFirstPlan() && (
+      {user && !shouldHideBottomNavForFirstPlan() && (
         <BottomNavigation trackerSetup={trackerSetup} trackerLoading={trackerLoading} />
       )}
 

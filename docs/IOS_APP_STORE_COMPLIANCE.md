@@ -67,6 +67,18 @@ Optional path alias `https://app.frigy.app/apple/s2s` → reverse-proxy to the s
 - [ ] RevenueCat keys in Codemagic (`VITE_REVENUECAT_API_KEY_IOS` / `ANDROID`) — build fails without them
 - [ ] In-App Purchase capability enabled in Xcode
 
+## App Review rejection guide (Guidelines 2.1 / 2.3 / 3.1 / 5.1 / 5.6)
+
+| Guideline | Typical cause | Fix in app / ASC |
+|-----------|---------------|------------------|
+| **2.1.0 Completeness** | Paywall broken, prices show "—", no restore | Restore on onboarding paywall + Profile; Sandbox-test IAP; RevenueCat key in Codemagic |
+| **2.3.2 Metadata** | Screenshots/description ≠ app; wrong version in UI | Match ASC text to real features; version footer uses `app.json` |
+| **3.1.2 Subscriptions** | Missing Restore, hidden Terms/Privacy, no auto-renew text | Paywall always shows subscription name, price, auto-renew, Terms + Privacy links |
+| **5.1.2 Privacy** | Privacy URL mismatch; App Privacy ≠ manifest | ASC Privacy URL = `https://app.frigy.app/legal/datenschutz`; align questionnaire with `PrivacyInfo.xcprivacy` |
+| **5.6.0 Conduct** | Account deletion broken; misleading health claims | Deploy `delete-user`; disclaimers on scan/meal plan (already in app) |
+
+Before resubmit: enable **In-App Purchase** in Xcode, deploy `delete-user`, paste Review Notes below.
+
 ## App Review Information (copy into App Store Connect)
 
 Paste into **App Review Information → Notes** (English):
@@ -80,15 +92,16 @@ How to test subscriptions (Sandbox):
 3. On the paywall, tap "Start my 3-day free trial" (monthly) or choose yearly.
 4. Sign in with a Sandbox Apple ID when prompted.
 5. After purchase, the app opens the dashboard automatically.
-6. To restore: tap "Restore Purchases" on the paywall or Profile → Restore Purchases.
+6. To restore: tap **Restore Purchases** on the onboarding paywall, `/premium-pricing`, or **Profile → Restore Purchases**.
 
 Demo account (optional, if you prefer email login):
 Email: [YOUR_REVIEW_EMAIL]
 Password: [YOUR_REVIEW_PASSWORD]
 (Pre-subscribe this account in Sandbox, or use Restore Purchases after Sandbox IAP.)
 
-Legal links in app: Paywall footer → Terms of Service / Privacy Policy.
-Account deletion: Profile → Delete Account.
+Legal links in app: Paywall footer (always visible) → Terms of Service / Privacy Policy + auto-renewal text.
+Support: frigy.team@gmail.com (also in Impressum / legal pages).
+Account deletion: Profile → Delete Account (requires `delete-user` Edge Function deployed).
 
 No medical advice — informational nutrition tracking only.
 ```

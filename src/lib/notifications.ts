@@ -1,79 +1,50 @@
 import { Capacitor } from "@capacitor/core";
 import { getStoredLanguage, type Language } from "@/contexts/LanguageContext";
 import { notifyFrigyStorageUpdated } from "@/lib/frigyStorageSync";
-import { getLocalDateISO } from "@/lib/localDate";
-import { readStoredTrackerTargets } from "@/lib/trackerTargets";
-import { YESTERDAY_BALANCE_MIN_DELTA, type YesterdayCalorieBalance } from "@/lib/yesterdayCalorieBalance";
-import { supabase } from "@/integrations/supabase/client";
+import type { YesterdayCalorieBalance } from "@/lib/yesterdayCalorieBalance";
 
 export type NotificationPermissionState = "granted" | "denied" | "prompt" | "unsupported";
 
 export interface ReminderConfig {
-  water: { enabled: boolean; interval: number };
-  meals: { enabled: boolean; times: string[] };
-  weight: { enabled: boolean; time: string };
+  enabled: boolean;
 }
 
-/** 2 Mahlzeiten, großer Abstand — keine 3× zur gleichen Stunde */
-export const DEFAULT_MEAL_TIMES = ["12:30", "19:30"];
+/** Single daily push at this time when notifications are enabled. */
+export const DAILY_PUSH_TIME = "12:30";
 
-/** Wasser-Slots mit Offset (:45), kollidieren nicht mit Mahlzeiten (:30) */
-export const DEFAULT_WATER_SLOTS = [
-  { hour: 10, minute: 45 },
-  { hour: 14, minute: 15 },
-  { hour: 17, minute: 45 },
-  { hour: 20, minute: 15 },
-];
+// Schedule this many days of varied notifications ahead (iOS max 64 local notifs)
+const DAYS_AHEAD = 30;
 
-const WATER_ID_BASE = 100;
-const MEALS_ID_BASE = 200;
-const WEIGHT_ID = 300;
+const DAILY_PUSH_BASE_ID = 150;
 const TEST_ID = 9999;
-const TRIAL_REMINDER_ID = 4100;
 const YESTERDAY_BALANCE_ID = 4200;
-const TRIAL_REMINDER_AT_KEY = "frigy_trial_reminder_at";
 const YESTERDAY_BALANCE_PENDING_KEY = "frigy_yesterday_balance_pending";
-const YESTERDAY_BALANCE_WEB_SENT_PREFIX = "frigy_yesterday_balance_web_";
-const YESTERDAY_BALANCE_NOTIFY_HOUR = 8;
-const YESTERDAY_BALANCE_NOTIFY_MINUTE = 15;
 
 const MIN_GAP_MINUTES = 90;
 const WATER_SLOT_COUNT = DEFAULT_WATER_SLOTS.length;
 
 let reminderSyncInFlight: Promise<void> | null = null;
 
+export function normalizeReminderConfig(raw: unknown): ReminderConfig {
+  if (!raw || typeof raw !== "object") return { enabled: false };
+  const obj = raw as LegacyReminderConfig;
+  if (typeof obj.enabled === "boolean") return { enabled: obj.enabled };
+  const legacyEnabled = Boolean(obj.water?.enabled || obj.meals?.enabled || obj.weight?.enabled);
+  return { enabled: legacyEnabled };
+}
+
+export function arePushNotificationsEnabled(): boolean {
+  const saved = localStorage.getItem("reminderConfig");
+  if (!saved) return false;
+  try {
+    return normalizeReminderConfig(JSON.parse(saved)).enabled;
+  } catch {
+    return false;
+  }
+}
+
 export function isNativeApp(): boolean {
   return Capacitor.isNativePlatform();
-}
-
-function migrateMealTimes(times: string[] | undefined): string[] {
-  if (!times?.length) return [...DEFAULT_MEAL_TIMES];
-  const normalized = times.map((t) => t.trim()).filter(Boolean);
-  const legacySet = new Set(["08:00", "12:00", "18:00"]);
-  const hasLegacyBurst =
-    normalized.length >= 3 && normalized.every((t) => legacySet.has(t));
-  if (hasLegacyBurst) return [...DEFAULT_MEAL_TIMES];
-  if (normalized.length >= 2) return normalized.slice(0, 2);
-  return [...DEFAULT_MEAL_TIMES];
-}
-
-export function normalizeReminderConfig(raw: ReminderConfig): ReminderConfig {
-  const meals = migrateMealTimes(raw.meals?.times);
-
-  return {
-    water: {
-      enabled: Boolean(raw.water?.enabled),
-      interval: Math.min(4, Math.max(2, Number(raw.water?.interval) || 3)),
-    },
-    meals: {
-      enabled: Boolean(raw.meals?.enabled),
-      times: meals,
-    },
-    weight: {
-      enabled: Boolean(raw.weight?.enabled),
-      time: raw.weight?.time || "07:15",
-    },
-  };
 }
 
 export async function getNotificationPermission(): Promise<NotificationPermissionState> {
@@ -325,11 +296,8 @@ async function scheduleRemindersFromConfig(config: ReminderConfig): Promise<void
   const normalized = normalizeReminderConfig(config);
   if (!isNativeApp()) return;
 
-  const copy = reminderNotificationCopy(getStoredLanguage());
   const { LocalNotifications } = await import("@capacitor/local-notifications");
   const perm = await LocalNotifications.checkPermissions();
-  if (perm.display !== "granted") return;
-
   await ensureAndroidReminderChannel(LocalNotifications);
   await cancelAllFrigyNotifications(LocalNotifications);
 
@@ -382,9 +350,7 @@ async function scheduleRemindersFromConfig(config: ReminderConfig): Promise<void
     }
   }
 
-  if (notifications.length > 0) {
-    await LocalNotifications.schedule({ notifications });
-  }
+  await LocalNotifications.schedule({ notifications });
 }
 
 export async function syncRemindersFromConfig(config: ReminderConfig): Promise<void> {
@@ -404,9 +370,15 @@ export async function syncRemindersFromConfig(config: ReminderConfig): Promise<v
 
 export async function syncRemindersFromStorage(): Promise<void> {
   const saved = localStorage.getItem("reminderConfig");
-  if (!saved) return;
+  if (!saved) {
+    if (isNativeApp()) {
+      const { LocalNotifications } = await import("@capacitor/local-notifications");
+      await cancelAllFrigyNotifications(LocalNotifications);
+    }
+    return;
+  }
   try {
-    await syncRemindersFromConfig(normalizeReminderConfig(JSON.parse(saved) as ReminderConfig));
+    await syncRemindersFromConfig(normalizeReminderConfig(JSON.parse(saved)));
   } catch (error) {
     console.warn("[notifications] Could not sync reminders:", error);
   }
@@ -417,17 +389,21 @@ export function saveReminderConfigFromOnboarding(prefs: {
   water: boolean;
   weight: boolean;
 }): void {
-  const config: ReminderConfig = {
-    water: { enabled: prefs.water, interval: 3 },
-    meals: { enabled: prefs.meals, times: [...DEFAULT_MEAL_TIMES] },
-    weight: { enabled: prefs.weight, time: "07:15" },
-  };
-  localStorage.setItem("reminderConfig", JSON.stringify(config));
+  const enabled = prefs.meals || prefs.water || prefs.weight;
+  localStorage.setItem("reminderConfig", JSON.stringify({ enabled }));
   notifyFrigyStorageUpdated();
 }
 
 export async function sendTestNotification(): Promise<void> {
   if ((await getNotificationPermission()) !== "granted") return;
+
+  const lang = getStoredLanguage();
+  const testCopy = {
+    de: { title: "✅ Frigy Erinnerungen aktiv!", body: "Du bekommst ab jetzt täglich eine neue Erinnerung." },
+    en: { title: "✅ Frigy reminders active!", body: "You'll now receive a fresh reminder every day." },
+    fr: { title: "✅ Rappels Frigy actifs !", body: "Tu recevras désormais un rappel différent chaque jour." },
+  };
+  const { title, body } = testCopy[lang] ?? testCopy.de;
 
   if (isNativeApp()) {
     const { LocalNotifications } = await import("@capacitor/local-notifications");
@@ -436,8 +412,8 @@ export async function sendTestNotification(): Promise<void> {
       notifications: [
         {
           id: TEST_ID,
-          title: "Frigy Erinnerungen",
-          body: "Benachrichtigungen sind aktiv – Erinnerungen kommen verteilt über den Tag.",
+          title,
+          body,
           schedule: { at: new Date(Date.now() + 800) },
           sound: "default",
           channelId: "frigy_reminders",
@@ -450,8 +426,8 @@ export async function sendTestNotification(): Promise<void> {
   if ("serviceWorker" in navigator) {
     try {
       const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Frigy Erinnerungen", {
-        body: "Benachrichtigungen sind aktiv – Erinnerungen kommen verteilt über den Tag.",
+      await reg.showNotification(title, {
+        body,
         icon: "/pwa-192x192.png",
         badge: "/pwa-192x192.png",
       });
@@ -461,189 +437,22 @@ export async function sendTestNotification(): Promise<void> {
     }
   }
 
-  new Notification("Frigy Erinnerungen", {
-    body: "Benachrichtigungen sind aktiv – Erinnerungen kommen verteilt über den Tag.",
-    icon: "/pwa-192x192.png",
-  });
+  new Notification(title, { body, icon: "/pwa-192x192.png" });
 }
 
-function trialReminderCopy(language: Language) {
-  if (language === "en") {
-    return {
-      title: "⏰ Your trial ends soon",
-      body: "Your 3-day free trial ends tomorrow. Cancel in subscription settings if you don't want to continue.",
-    };
-  }
-  if (language === "fr") {
-    return {
-      title: "⏰ Ton essai se termine bientôt",
-      body: "Ton essai gratuit de 3 jours se termine demain. Annule dans les réglages d'abonnement si tu ne veux pas continuer.",
-    };
-  }
-  return {
-    title: "⏰ Testphase endet bald",
-    body: "Deine 3-tägige Testphase endet morgen. Kündige in den Abo-Einstellungen, wenn du nicht weitermachen möchtest.",
-  };
-}
-
-function computeTrialReminderAt(from: Date = new Date()): Date {
-  const at = new Date(from);
-  at.setDate(at.getDate() + 2);
-  at.setHours(10, 0, 0, 0);
-  return at;
-}
-
-/** Native: schedule stored trial reminder after notification permission is granted. */
+/** Native: trial reminder is not scheduled separately — max one daily push only. */
 export async function applyPendingTrialReminderNative(): Promise<void> {
-  if (!isNativeApp()) return;
-  if ((await getNotificationPermission()) !== "granted") return;
-
-  const raw = localStorage.getItem(TRIAL_REMINDER_AT_KEY);
-  if (!raw) return;
-
-  let at: Date;
-  try {
-    at = new Date(raw);
-    if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) return;
-  } catch {
-    return;
-  }
-
-  const copy = trialReminderCopy(getStoredLanguage());
-  const { LocalNotifications } = await import("@capacitor/local-notifications");
-  await ensureAndroidReminderChannel(LocalNotifications);
-  await LocalNotifications.cancel({ notifications: [{ id: TRIAL_REMINDER_ID }] });
-  await LocalNotifications.schedule({
-    notifications: [
-      {
-        id: TRIAL_REMINDER_ID,
-        title: copy.title,
-        body: copy.body,
-        schedule: { at },
-        sound: "default",
-        channelId: "frigy_reminders",
-      },
-    ],
-  });
+  return;
 }
 
-/** Paywall promise: reminder on day 2 of the 3-day monthly trial. */
+/** Paywall: no extra push — single daily reminder only when enabled in settings. */
 export async function scheduleTrialEndingReminder(): Promise<void> {
-  try {
-    let at: Date;
-    const existing = localStorage.getItem(TRIAL_REMINDER_AT_KEY);
-    if (existing) {
-      at = new Date(existing);
-      if (Number.isNaN(at.getTime())) {
-        at = computeTrialReminderAt();
-        localStorage.setItem(TRIAL_REMINDER_AT_KEY, at.toISOString());
-      }
-    } else {
-      at = computeTrialReminderAt();
-      if (at.getTime() <= Date.now()) return;
-      localStorage.setItem(TRIAL_REMINDER_AT_KEY, at.toISOString());
-    }
-
-    if (at.getTime() <= Date.now()) return;
-
-    if (isNativeApp()) {
-      await applyPendingTrialReminderNative();
-    }
-  } catch (error) {
-    console.warn("[notifications] Trial reminder schedule failed:", error);
-  }
+  return;
 }
 
-/** Web/PWA: fire trial reminder when stored time is reached (app open). */
+/** Web trial reminder disabled — single daily push only. */
 export function checkWebTrialEndingReminder(): void {
-  if (isNativeApp()) return;
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-  const raw = localStorage.getItem(TRIAL_REMINDER_AT_KEY);
-  if (!raw) return;
-
-  let at: Date;
-  try {
-    at = new Date(raw);
-    if (Number.isNaN(at.getTime())) return;
-  } catch {
-    return;
-  }
-
-  if (Date.now() < at.getTime()) return;
-
-  const copy = trialReminderCopy(getStoredLanguage());
-  try {
-    new Notification(copy.title, {
-      body: copy.body,
-      icon: "/pwa-192x192.png",
-      tag: "frigy-trial-reminder",
-    });
-  } catch {
-    /* ignore */
-  } finally {
-    localStorage.removeItem(TRIAL_REMINDER_AT_KEY);
-  }
-}
-
-type YesterdayBalancePending = {
-  forDateIso: string;
-  eatenCalories: number;
-  targetCalories: number;
-  at: string;
-};
-
-function yesterdayBalanceNotificationCopy(
-  language: Language,
-  delta: number,
-  eaten: number,
-  target: number,
-): { title: string; body: string } {
-  const absDelta = Math.abs(delta);
-  if (language === "en") {
-    return delta > 0
-      ? {
-          title: "Yesterday over your calorie goal",
-          body: `You ate ${absDelta} kcal more than your goal (${eaten} of ${target} kcal). Open Frigy to adjust today's meal plan.`,
-        }
-      : {
-          title: "Yesterday under your calorie goal",
-          body: `You ate ${absDelta} kcal less than your goal (${eaten} of ${target} kcal). Open Frigy to adjust today's meal plan.`,
-        };
-  }
-  if (language === "fr") {
-    return delta > 0
-      ? {
-          title: "Hier au-dessus de ton objectif",
-          body: `Tu as mangé ${absDelta} kcal de plus que ton objectif (${eaten} sur ${target} kcal). Ouvre Frigy pour ajuster le plan du jour.`,
-        }
-      : {
-          title: "Hier en dessous de ton objectif",
-          body: `Tu as mangé ${absDelta} kcal de moins que ton objectif (${eaten} sur ${target} kcal). Ouvre Frigy pour ajuster le plan du jour.`,
-        };
-  }
-  return delta > 0
-    ? {
-        title: "Gestern über dem Kalorienziel",
-        body: `Du warst ${absDelta} kcal über deinem Ziel (${eaten} von ${target} kcal). Öffne Frigy, um den heutigen Wochenplan anzupassen.`,
-      }
-    : {
-        title: "Gestern unter dem Kalorienziel",
-        body: `Du warst ${absDelta} kcal unter deinem Ziel (${eaten} von ${target} kcal). Öffne Frigy, um den heutigen Wochenplan anzupassen.`,
-      };
-}
-
-function computeNextMorningBalanceAt(from = new Date()): Date {
-  const at = new Date(from);
-  at.setDate(at.getDate() + 1);
-  at.setHours(YESTERDAY_BALANCE_NOTIFY_HOUR, YESTERDAY_BALANCE_NOTIFY_MINUTE, 0, 0);
-  return at;
-}
-
-function isMorningBalanceWindowOpen(now = new Date()): boolean {
-  const start = new Date(now);
-  start.setHours(YESTERDAY_BALANCE_NOTIFY_HOUR, YESTERDAY_BALANCE_NOTIFY_MINUTE, 0, 0);
-  return now.getTime() >= start.getTime();
+  return;
 }
 
 async function cancelYesterdayBalanceNotificationNative(): Promise<void> {
@@ -656,125 +465,26 @@ async function cancelYesterdayBalanceNotificationNative(): Promise<void> {
   }
 }
 
-/** Schedule native push for tomorrow morning when today is over/under calorie goal. */
-export async function scheduleYesterdayBalanceNotification(opts: {
+/** No separate balance push — in-app prompt only; respects single daily push policy. */
+export async function scheduleYesterdayBalanceNotification(_opts: {
   eatenCalories: number;
   targetCalories: number;
   forDateIso?: string;
 }): Promise<void> {
-  const forDateIso = opts.forDateIso ?? getLocalDateISO();
-  const eaten = Math.max(0, Math.round(opts.eatenCalories));
-  const target = Math.max(0, Math.round(opts.targetCalories));
-  const delta = eaten - target;
-
-  if (!target || eaten <= 0 || Math.abs(delta) < YESTERDAY_BALANCE_MIN_DELTA) {
-    localStorage.removeItem(YESTERDAY_BALANCE_PENDING_KEY);
-    await cancelYesterdayBalanceNotificationNative();
-    return;
-  }
-
-  const at = computeNextMorningBalanceAt();
-  if (at.getTime() <= Date.now()) return;
-
-  const pending: YesterdayBalancePending = {
-    forDateIso,
-    eatenCalories: eaten,
-    targetCalories: target,
-    at: at.toISOString(),
-  };
-  localStorage.setItem(YESTERDAY_BALANCE_PENDING_KEY, JSON.stringify(pending));
-
-  if (!isNativeApp()) return;
-  if ((await getNotificationPermission()) !== "granted") return;
-
-  const copy = yesterdayBalanceNotificationCopy(getStoredLanguage(), delta, eaten, target);
-  const { LocalNotifications } = await import("@capacitor/local-notifications");
-  await ensureAndroidReminderChannel(LocalNotifications);
-  await LocalNotifications.cancel({ notifications: [{ id: YESTERDAY_BALANCE_ID }] });
-  await LocalNotifications.schedule({
-    notifications: [
-      {
-        id: YESTERDAY_BALANCE_ID,
-        title: copy.title,
-        body: copy.body,
-        schedule: { at },
-        sound: "default",
-        channelId: "frigy_reminders",
-      },
-    ],
-  });
+  localStorage.removeItem(YESTERDAY_BALANCE_PENDING_KEY);
+  await cancelYesterdayBalanceNotificationNative();
 }
 
 export async function applyPendingYesterdayBalanceNotificationNative(): Promise<void> {
-  if (!isNativeApp()) return;
-  if ((await getNotificationPermission()) !== "granted") return;
-
-  const raw = localStorage.getItem(YESTERDAY_BALANCE_PENDING_KEY);
-  if (!raw) return;
-
-  try {
-    const pending = JSON.parse(raw) as YesterdayBalancePending;
-    const at = new Date(pending.at);
-    if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) {
-      localStorage.removeItem(YESTERDAY_BALANCE_PENDING_KEY);
-      return;
-    }
-    await scheduleYesterdayBalanceNotification({
-      eatenCalories: pending.eatenCalories,
-      targetCalories: pending.targetCalories,
-      forDateIso: pending.forDateIso,
-    });
-  } catch {
-    localStorage.removeItem(YESTERDAY_BALANCE_PENDING_KEY);
-  }
+  return;
 }
 
-/** Re-schedule morning balance push from today's tracked macros (app start). */
-export async function resyncYesterdayBalanceNotificationForUser(userId: string): Promise<void> {
-  const target = readStoredTrackerTargets()?.dailyCalories ?? 0;
-  if (!target) return;
-
-  const date = getLocalDateISO();
-  const { data, error } = await supabase
-    .from("daily_macros")
-    .select("calories")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle();
-
-  if (error) return;
-
-  await scheduleYesterdayBalanceNotification({
-    eatenCalories: Math.round(Number(data?.calories) || 0),
-    targetCalories: target,
-    forDateIso: date,
-  });
+/** No separate balance push scheduled from app start. */
+export async function resyncYesterdayBalanceNotificationForUser(_userId: string): Promise<void> {
+  return;
 }
 
-/** Web/PWA: show balance notification on first morning open (no background scheduler). */
-export function maybeShowWebYesterdayBalanceNotification(balance: YesterdayCalorieBalance): void {
-  if (isNativeApp()) return;
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  if (!isMorningBalanceWindowOpen()) return;
-
-  const sentKey = `${YESTERDAY_BALANCE_WEB_SENT_PREFIX}${balance.date}`;
-  if (localStorage.getItem(sentKey) === "1") return;
-
-  const copy = yesterdayBalanceNotificationCopy(
-    getStoredLanguage(),
-    balance.delta,
-    balance.eatenCalories,
-    balance.targetCalories,
-  );
-
-  try {
-    new Notification(copy.title, {
-      body: copy.body,
-      icon: "/pwa-192x192.png",
-      tag: `frigy-yesterday-balance-${balance.date}`,
-    });
-    localStorage.setItem(sentKey, "1");
-  } catch {
-    /* ignore */
-  }
+/** Web balance push disabled — in-app dialog on dashboard handles this. */
+export function maybeShowWebYesterdayBalanceNotification(_balance: YesterdayCalorieBalance): void {
+  return;
 }

@@ -1,0 +1,270 @@
+.liquid-glass {
+  --lg-blur: 20px;
+  --lg-saturate: 180%;
+  --lg-bg: rgba(255, 255, 255, 0.14);
+  --lg-border: rgba(255, 255, 255, 0.35);
+  --lg-highlight: rgba(255, 255, 255, 0.55);
+  --lg-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --lg-radius: 20px;
+  --lg-solid-fallback: #1c1c1e;
+
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--lg-radius);
+  background: var(--lg-bg);
+  -webkit-backdrop-filter: saturate(var(--lg-saturate)) blur(var(--lg-blur));
+  backdrop-filter: saturate(var(--lg-saturate)) blur(var(--lg-blur));
+  box-shadow:
+    var(--lg-shadow),
+    inset 0 1px 0 var(--lg-highlight),
+    inset 0 0 0 1px var(--lg-border);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Variant: clear - more transparent, less frosted, used over media-rich backgrounds */
+.liquid-glass--clear {
+  --lg-bg: rgba(255, 255, 255, 0.05);
+  --lg-blur: 12px;
+}
+
+/* Semantic tint, e.g. for a primary action - pass via the `tint` prop */
+.liquid-glass--tinted {
+  background: linear-gradient(var(--lg-tint-overlay), var(--lg-tint-overlay)), var(--lg-bg);
+}
+
+/* Interactive press feedback, mirrors .interactive() on the native API */
+.liquid-glass--interactive {
+  cursor: pointer;
+}
+
+.liquid-glass--interactive:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 var(--lg-highlight),
+    inset 0 0 0 1px var(--lg-border);
+}
+
+@media (hover: hover) {
+  .liquid-glass--interactive:hover {
+    --lg-bg: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Groups multiple glass elements so blur isn't stacked/recomputed per child */
+.glass-group {
+  display: flex;
+  gap: 12px;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .liquid-glass {
+    --lg-bg: rgba(32, 32, 34, 0.4);
+    --lg-border: rgba(255, 255, 255, 0.12);
+    --lg-highlight: rgba(255, 255, 255, 0.16);
+    --lg-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Accessibility: Reduce Transparency -> solid background, no blur */
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--lg-solid-fallback);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass {
+    transition: none;
+  }
+}
+
+/* Optional enhancement: real displacement refraction.
+   Only takes effect where backdrop-filter: url() is supported (Chromium/Android).
+   On iOS WKWebView this class is never applied (see supportsRefraction check in .tsx),
+   so Safari always gets the clean blur above instead. */
+.liquid-glass--refract {
+  backdrop-filter: url(#liquid-glass-refraction) saturate(var(--lg-saturate)) blur(calc(var(--lg-blur) * 0.4));
+}
+
+/* Use when the glass surface sits at the screen edge (tab bar, header) */
+.liquid-glass--safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.liquid-glass--safe-top {
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+
+/* Bottom tab bar: keep base very transparent (no gray slab). */
+.liquid-tabbar {
+  --lg-bg: rgba(255, 255, 255, 0.04);
+  --lg-border: rgba(255, 255, 255, 0.18);
+  --lg-highlight: rgba(255, 255, 255, 0.22);
+  --lg-blur: 22px;
+  --lg-saturate: 190%;
+  --lg-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+}
+
+/* Active tab gets the true liquid capsule and animated movement. */
+.liquid-tab-active {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: saturate(210%) blur(18px);
+  backdrop-filter: saturate(210%) blur(18px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+    0 6px 16px rgba(0, 0, 0, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  .liquid-tabbar {
+    --lg-bg: rgba(24, 24, 27, 0.16);
+    --lg-border: rgba(255, 255, 255, 0.12);
+    --lg-highlight: rgba(255, 255, 255, 0.12);
+    --lg-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+  }
+
+  .liquid-tab-active {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      0 8px 20px rgba(0, 0, 0, 0.26);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Premium interactive controls (buttons, slot cards, action chips).
+   Translucent material + glossy top highlight + gradient border +
+   soft depth + tactile spring press. Layout-neutral: only paints a
+   surface, callers keep their own sizing/spacing.
+   ──────────────────────────────────────────────────────────── */
+.lg-control {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(157deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.74));
+  -webkit-backdrop-filter: saturate(175%) blur(14px);
+  backdrop-filter: saturate(175%) blur(14px);
+  border: 1px solid rgba(188, 253, 220, 0.7);
+  box-shadow:
+    0 10px 26px -12px rgba(15, 23, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Glossy sheen sweeping across the top third */
+.lg-control::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 52%);
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lg-control > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .lg-control:hover {
+    border-color: rgba(117, 251, 178, 0.85);
+    box-shadow:
+      0 16px 32px -12px rgba(57, 212, 127, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  }
+}
+
+.lg-control:active {
+  transform: scale(0.97);
+  box-shadow:
+    0 6px 16px -10px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Selected / active state: mint-tinted glass */
+.lg-control--active {
+  background: linear-gradient(157deg, rgba(220, 254, 239, 0.95), rgba(188, 253, 220, 0.72));
+  border-color: rgba(57, 212, 127, 0.55);
+  box-shadow:
+    0 14px 30px -12px rgba(57, 212, 127, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* Primary mint-gradient surface for FABs / hero actions */
+.lg-control--primary {
+  background: linear-gradient(158deg, #8cffc4 0%, #43dd87 55%, #2eb56d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 22px 44px -16px rgba(46, 181, 109, 0.75),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.65),
+    inset 0 -10px 18px -10px rgba(46, 181, 109, 0.55);
+}
+
+.lg-control--primary::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 48%);
+  opacity: 0.9;
+}
+
+.lg-control--primary:active {
+  transform: scale(0.94);
+  box-shadow:
+    0 12px 26px -14px rgba(46, 181, 109, 0.7),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -10px 18px -10px rgba(46, 181, 109, 0.55);
+}
+
+/* Circular icon control (edit / header actions) */
+.lg-control--circle {
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-control {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .lg-control {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #ffffff;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .lg-control {
+    background: linear-gradient(157deg, rgba(38, 38, 42, 0.92), rgba(28, 28, 32, 0.7));
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 12px 30px -12px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .lg-control::before {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 52%);
+  }
+
+  .lg-control--active {
+    background: linear-gradient(157deg, rgba(57, 212, 127, 0.28), rgba(46, 181, 109, 0.16));
+    border-color: rgba(57, 212, 127, 0.45);
+  }
+}

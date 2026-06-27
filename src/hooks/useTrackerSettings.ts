@@ -39,6 +39,31 @@ type TrackerCacheEntry = {
 let trackerMemoryCache: TrackerCacheEntry | null = null;
 let trackerLoadInflight: Promise<void> | null = null;
 let trackerLoadInflightUserId: string | null = null;
+let trackerSettingsLoadedAt = 0;
+
+const TRACKER_SETTINGS_RELOAD_MS = 30_000;
+
+type TrackerSubscriber = (entry: TrackerCacheEntry) => void;
+const trackerSubscribers = new Set<TrackerSubscriber>();
+
+function resolveTrackerUserId(userId: string | undefined): string {
+  return userId ?? "local";
+}
+
+function publishTrackerSettings(
+  userId: string | undefined,
+  settings: TrackerSettings | null,
+  isConfigured: boolean,
+): void {
+  const resolvedUserId = resolveTrackerUserId(userId);
+  trackerMemoryCache = { userId: resolvedUserId, settings, isConfigured };
+  if (settings && isConfigured && userId) {
+    writePersistedTrackerCache(userId, settings);
+  }
+  trackerSettingsLoadedAt = Date.now();
+  const entry = trackerMemoryCache;
+  trackerSubscribers.forEach((subscriber) => subscriber(entry));
+}
 
 /** Call after onboarding saves userProfile so dashboard does not flash stale DB macros. */
 export function invalidateTrackerSettingsCache(): void {
@@ -187,10 +212,7 @@ function writeTrackerMemoryCache(
   settings: TrackerSettings | null,
   isConfigured: boolean,
 ) {
-  trackerMemoryCache = { userId, settings, isConfigured };
-  if (settings && isConfigured) {
-    writePersistedTrackerCache(userId, settings);
-  }
+  publishTrackerSettings(userId, settings, isConfigured);
 }
 
 export const useTrackerSettings = () => {
@@ -296,6 +318,16 @@ export const useTrackerSettings = () => {
 
   // Load settings from database or localStorage
   const loadSettings = useCallback(async (silent = false) => {
+    if (
+      silent &&
+      user &&
+      trackerMemoryCache?.userId === user.id &&
+      trackerMemoryCache.settings &&
+      Date.now() - trackerSettingsLoadedAt < TRACKER_SETTINGS_RELOAD_MS
+    ) {
+      return;
+    }
+
     if (!silent && !hasLoadedOnceRef.current) {
       setLoading(true);
     }
@@ -420,6 +452,7 @@ export const useTrackerSettings = () => {
       }
     } finally {
       hasLoadedOnceRef.current = true;
+      trackerSettingsLoadedAt = Date.now();
       setLoading(false);
     }
     };
@@ -452,9 +485,7 @@ export const useTrackerSettings = () => {
       merged = mergeTrackerSettings(prev, patch);
       setIsConfigured(merged.dailyCalories > 0);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
-      if (user) {
-        writeTrackerMemoryCache(user.id, merged, merged.dailyCalories > 0);
-      }
+      publishTrackerSettings(user?.id, merged, merged.dailyCalories > 0);
       return merged;
     });
 
@@ -510,18 +541,34 @@ export const useTrackerSettings = () => {
   }, [user, loadSettings]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    const resolvedUserId = resolveTrackerUserId(user?.id);
 
-    const onTrackerSettingsUpdated = () => {
-      const cached = readCachedTrackerSettings(user.id);
-      if (!cached?.dailyCalories) return;
+    const applyEntry = (entry: TrackerCacheEntry) => {
+      if (entry.userId !== resolvedUserId) return;
+      if (!entry.settings?.dailyCalories) return;
       lastLocalSaveAtRef.current = Date.now();
-      setSettings(cached);
-      setIsConfigured(true);
+      setSettings(entry.settings);
+      setIsConfigured(entry.isConfigured);
     };
 
+    const onTrackerSettingsUpdated = () => {
+      const cached = readCachedTrackerSettings(user?.id);
+      if (!cached?.dailyCalories) return;
+      applyEntry({
+        userId: resolvedUserId,
+        settings: cached,
+        isConfigured: true,
+      });
+    };
+
+    const subscriber: TrackerSubscriber = applyEntry;
+    trackerSubscribers.add(subscriber);
     window.addEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerSettingsUpdated);
-    return () => window.removeEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerSettingsUpdated);
+
+    return () => {
+      trackerSubscribers.delete(subscriber);
+      window.removeEventListener(FRIGY_TRACKER_SETTINGS_UPDATED, onTrackerSettingsUpdated);
+    };
   }, [user?.id]);
 
   return {

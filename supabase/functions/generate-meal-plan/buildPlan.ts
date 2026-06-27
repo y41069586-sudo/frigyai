@@ -4,7 +4,8 @@ import { buildMealFromDishTitle, parseIngredientNamesFromDishTitle } from "./mea
 import { generateAIDraft } from "./openai.ts";
 import { finishPlan, mealSlot } from "./meals.ts";
 import { sanitizePlaceholderMeals } from "./planMealSanitize.ts";
-import { ensureDistinctMealsAcrossWeek, dedupeSimilarMealsInWeek } from "./variety.ts";
+import { dedupeSimilarMealsInWeek, ensureDistinctMealsAcrossWeek } from "./variety.ts";
+import { swapUnrealisticDishNames } from "./mealRealism.ts";
 import { auditPlan } from "./validation.ts";
 import { expandPlanToSevenDays, generateFallbackDraft } from "./drafts.ts";
 import { repairPlan } from "./repairLoop.ts";
@@ -32,7 +33,9 @@ function alignPlanIngredientsToTitles(
       const need = titleParts.length >= 2 ? 2 : 1;
       if (matched >= need) return meal;
       const slot = mealSlot(si, mealsPerDay);
-      return buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      const rebuilt = buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      // Preserve AI-provided macros — only the ingredient list is being fixed.
+      return { ...rebuilt, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, calories: meal.calories };
     }),
   }));
 }
@@ -115,6 +118,16 @@ export async function buildPlan(
     varietySeed: input.varietySeed,
     mealPlanPrefs: input.mealPlanPrefs,
   });
+  plan = swapUnrealisticDishNames(
+    plan,
+    input.targets,
+    input.mealsPerDay,
+    input.lang,
+    input.prefs,
+    input.safetyCtx,
+    input.varietySeed ?? "",
+    input.mealPlanPrefs,
+  );
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;

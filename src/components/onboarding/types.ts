@@ -37,7 +37,6 @@ export type OnboardingStep =
   | "weekly-plan-preview"
   | "scan-fridge"
   | "shopping-list"
-  | "data-consent"
   | "referral-code"
   | "cooking-time"
   | "cooking-experience"
@@ -169,7 +168,6 @@ export const onboardingSteps: OnboardingStep[] = [
   "scan-fridge",
   "shopping-list",
   "notification-prefs",
-  "data-consent",
   "referral-code",
   "analyzing",
   "macro-preview",

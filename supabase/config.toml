@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.affiliate-admin]
 verify_jwt = false
+
+[functions.send-email-confirmation]
+verify_jwt = false

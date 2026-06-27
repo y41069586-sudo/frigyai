@@ -10,6 +10,9 @@ public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
         CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "handleLink", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getAppLinkDataFromUrl", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "identify", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "trackConversion", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "trackEvent", returnType: CAPPluginReturnPromise),
     ]
 
     @objc func initialize(_ call: CAPPluginCall) {
@@ -59,6 +62,62 @@ public class ChottuLinkPlugin: CAPPlugin, CAPBridgedPlugin, ChottuLinkDelegate {
             } catch {
                 call.reject(error.localizedDescription)
             }
+        }
+    }
+
+    @objc func identify(_ call: CAPPluginCall) {
+        guard let customerId = call.getString("id"), !customerId.isEmpty else {
+            call.reject("id is required")
+            return
+        }
+
+        let customer = CLCustomerMeta(
+            id: customerId,
+            name: call.getString("name"),
+            email: call.getString("email"),
+            phone: call.getString("phone"),
+            emailSha256: call.getString("emailSha256"),
+            phoneSha256: call.getString("phoneSha256")
+        )
+
+        Task { @MainActor in
+            ChottuLink.identify(customer)
+            call.resolve()
+        }
+    }
+
+    @objc func trackConversion(_ call: CAPPluginCall) {
+        guard let revenue = call.getDouble("revenue") else {
+            call.reject("revenue is required")
+            return
+        }
+
+        let meta = CLConversionMeta(
+            revenue: revenue,
+            currency: call.getString("currency"),
+            eventName: call.getString("eventName") ?? "conversion",
+            productId: call.getString("productId"),
+            transactionId: call.getString("transactionId"),
+            metadata: call.getObject("metadata") as? [String: Any]
+        )
+
+        Task { @MainActor in
+            ChottuLink.trackConversion(meta)
+            call.resolve()
+        }
+    }
+
+    @objc func trackEvent(_ call: CAPPluginCall) {
+        guard let name = call.getString("name"), !name.isEmpty else {
+            call.reject("name is required")
+            return
+        }
+
+        let data = call.getObject("data") as? [String: Any]
+
+        Task { @MainActor in
+            ChottuLink.trackEvent(name: name, data: data)
+            call.resolve()
         }
     }
 

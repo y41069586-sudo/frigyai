@@ -1,4 +1,4 @@
-import { harmonizeDailyTargets, type DailyMacroTargets } from "@/lib/mealPlanMacros";
+import { scaleTargetsToStatedCalories, type DailyMacroTargets } from "@/lib/mealPlanMacros";
 
 const DEFAULT_TARGETS: DailyMacroTargets = {
   dailyCalories: 2000,
@@ -45,10 +45,10 @@ export function resolveMealPlanGenerationTargets(input: {
   const fat = Number(input.dailyFat) || fromStorage?.dailyFat ||
     Math.round(calories * 0.3 / 9);
 
-  return harmonizeDailyTargets({
-    dailyCalories: Math.max(1200, calories),
-    dailyProtein: Math.max(40, protein),
-    dailyCarbs: Math.max(40, carbs),
-    dailyFat: Math.max(20, fat),
+  return scaleTargetsToStatedCalories({
+    dailyCalories: Math.max(800, calories),
+    dailyProtein: Math.max(30, protein),
+    dailyCarbs: Math.max(30, carbs),
+    dailyFat: Math.max(15, fat),
   });
 }

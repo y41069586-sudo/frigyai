@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, Droplets, Utensils, Scale, Clock } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
-  DEFAULT_MEAL_TIMES,
   getNotificationPermission,
   isNativeApp,
   normalizeReminderConfig,
@@ -17,19 +15,14 @@ import {
   syncRemindersFromConfig,
   type ReminderConfig,
 } from '@/lib/notifications';
-import { formatReminderTime, WEIGHT_REMINDER_TIMES } from '@/lib/reminderTimeFormat';
 
-const DEFAULT_CONFIG: ReminderConfig = {
-  water: { enabled: false, interval: 3 },
-  meals: { enabled: false, times: [...DEFAULT_MEAL_TIMES] },
-  weight: { enabled: false, time: '07:15' },
-};
+const DEFAULT_CONFIG: ReminderConfig = { enabled: false };
 
 function loadReminderConfig(): ReminderConfig {
   const saved = localStorage.getItem('reminderConfig');
   if (!saved) return DEFAULT_CONFIG;
   try {
-    return normalizeReminderConfig(JSON.parse(saved) as ReminderConfig);
+    return normalizeReminderConfig(JSON.parse(saved));
   } catch {
     return DEFAULT_CONFIG;
   }
@@ -49,21 +42,17 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
   const copy = language === 'fr'
     ? {
         enabledTitle: 'Notifications activees ✓',
-          enabledDesc: isNativeApp()
-            ? 'Les rappels sont maintenant actifs et seront programmes tout de suite.'
-            : 'Rappels actifs dans le navigateur tant que l app est ouverte. Pour des notifications fiables, utilise l app installee.',
-          webOnlyNote:
-            'Dans le navigateur, les rappels fonctionnent seulement tant que Frigy est ouverte. Pour des notifications systeme fiables, installe l app sur iPhone ou Android.',
+        enabledDesc: 'Tu recevras au maximum une notification par jour.',
         deniedTitle: 'Autorisation refusee',
         deniedDesc: isNativeApp()
-          ? 'Frigy a d abord essaye d ouvrir la demande iPhone/Android. Si tu l as deja refusee, active-la dans les reglages de l appareil.'
-          : 'Autorise les notifications dans ton navigateur pour activer les rappels.',
+          ? 'Active les notifications dans les reglages de l appareil.'
+          : 'Autorise les notifications dans ton navigateur.',
         promptTitle: 'Autorisation necessaire',
-        promptDesc: 'Accepte la demande systeme pour activer directement les rappels.',
+        promptDesc: 'Accepte la demande systeme pour activer les notifications.',
         unsupportedTitle: 'Notifications non disponibles',
         unsupportedDesc: 'Cet appareil ne prend pas en charge les notifications ici.',
         bannerTitle: 'Notifications desactivees',
-        bannerDesc: 'Appuie sur Activer et Frigy demandera directement l autorisation iPhone/Android.',
+        bannerDesc: 'Appuie sur Activer pour autoriser les notifications.',
         bannerButton: 'Activer',
         waterLabel: 'Rappel d eau',
         waterDesc: '2 a 4 rappels par jour selon le reglage',
@@ -79,21 +68,17 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     : language === 'en'
       ? {
           enabledTitle: 'Notifications enabled ✓',
-          enabledDesc: isNativeApp()
-            ? 'Reminders are now active and will be scheduled right away.'
-            : 'Reminders work in the browser while Frigy stays open. Install the app for reliable system notifications.',
-          webOnlyNote:
-            'In the browser, reminders only work while Frigy is open. Install the app on iPhone or Android for reliable push notifications.',
+          enabledDesc: 'You will receive at most one notification per day.',
           deniedTitle: 'Permission denied',
           deniedDesc: isNativeApp()
-            ? 'Frigy first tried to open the iPhone/Android permission prompt. If you already denied it, enable it in your device settings.'
-            : 'Allow notifications in your browser to enable reminders.',
+            ? 'Enable notifications in your device settings.'
+            : 'Allow notifications in your browser.',
           promptTitle: 'Permission needed',
-          promptDesc: 'Accept the system prompt to enable reminders directly.',
+          promptDesc: 'Accept the system prompt to enable notifications.',
           unsupportedTitle: 'Notifications unavailable',
           unsupportedDesc: 'Notifications are not available on this device here.',
           bannerTitle: 'Notifications disabled',
-          bannerDesc: 'Tap Enable and Frigy will request iPhone/Android permission directly.',
+          bannerDesc: 'Tap Enable to allow notifications.',
           bannerButton: 'Enable',
           waterLabel: 'Water reminder',
           waterDesc: '2–4 reminders per day depending on setting',
@@ -108,17 +93,17 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
         }
       : {
           enabledTitle: 'Benachrichtigungen aktiviert ✓',
-          enabledDesc: 'Die Erinnerungen sind jetzt aktiv und werden sofort eingerichtet.',
+          enabledDesc: 'Du erhältst maximal eine Benachrichtigung pro Tag.',
           deniedTitle: 'Berechtigung abgelehnt',
           deniedDesc: isNativeApp()
-            ? 'Frigy hat zuerst die iPhone-/Android-Abfrage geöffnet. Wenn du sie schon abgelehnt hast, aktiviere Benachrichtigungen in den Geräteeinstellungen.'
-            : 'Erlaube Benachrichtigungen im Browser, um Erinnerungen zu aktivieren.',
+            ? 'Aktiviere Benachrichtigungen in den Geräteeinstellungen.'
+            : 'Erlaube Benachrichtigungen im Browser.',
           promptTitle: 'Berechtigung nötig',
-          promptDesc: 'Bestätige die Systemabfrage, damit die Erinnerungen direkt aktiviert werden.',
+          promptDesc: 'Bestätige die Systemabfrage, um Benachrichtigungen zu aktivieren.',
           unsupportedTitle: 'Benachrichtigungen nicht verfügbar',
           unsupportedDesc: 'Auf diesem Gerät sind Benachrichtigungen hier nicht verfügbar.',
           bannerTitle: 'Benachrichtigungen deaktiviert',
-          bannerDesc: 'Tippe auf Aktivieren und Frigy fragt direkt die iPhone-/Android-Berechtigung an.',
+          bannerDesc: 'Tippe auf Aktivieren, um Benachrichtigungen zu erlauben.',
           bannerButton: 'Aktivieren',
           waterLabel: 'Wasser-Erinnerung',
           waterDesc: '2–4 Erinnerungen pro Tag je nach Einstellung',
@@ -144,19 +129,15 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     return () => window.clearTimeout(timer);
   }, [config]);
 
-  const requestPermission = async (enableAll = false): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> => {
+  const requestPermission = async (enablePush = false): Promise<'granted' | 'denied' | 'prompt' | 'unsupported'> => {
     setPermissionBusy(true);
     try {
       const next = await requestNotificationPermissionState({ localOnly: true, sendTest: false });
       setPermission(next);
 
       if (next === 'granted') {
-        if (enableAll) {
-          setConfig(prev => ({
-            water: { ...prev.water, enabled: true },
-            meals: { ...prev.meals, enabled: true },
-            weight: { ...prev.weight, enabled: true },
-          }));
+        if (enablePush) {
+          setConfig({ enabled: true });
         }
         toast({
           title: copy.enabledTitle,
@@ -188,48 +169,16 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
     }
   };
 
-  const ensurePermission = async (): Promise<boolean> => {
-    if (permission === 'granted') return true;
-    const next = await requestPermission(false);
-    return next === 'granted';
-  };
-
-  const updateWaterReminder = async (enabled: boolean) => {
-    if (enabled && !(await ensurePermission())) return;
-    setConfig(prev => ({
-      ...prev,
-      water: { ...prev.water, enabled },
-    }));
-  };
-
-  const updateWaterInterval = (interval: string) => {
-    setConfig(prev => ({
-      ...prev,
-      water: { ...prev.water, interval: parseInt(interval) },
-    }));
-  };
-
-  const updateMealsReminder = async (enabled: boolean) => {
-    if (enabled && !(await ensurePermission())) return;
-    setConfig(prev => ({
-      ...prev,
-      meals: { ...prev.meals, enabled },
-    }));
-  };
-
-  const updateWeightReminder = async (enabled: boolean) => {
-    if (enabled && !(await ensurePermission())) return;
-    setConfig(prev => ({
-      ...prev,
-      weight: { ...prev.weight, enabled },
-    }));
-  };
-
-  const updateWeightTime = (time: string) => {
-    setConfig(prev => ({
-      ...prev,
-      weight: { ...prev.weight, time },
-    }));
+  const updatePushEnabled = async (enabled: boolean) => {
+    if (enabled) {
+      if (permission !== 'granted') {
+        const next = await requestPermission(true);
+        if (next !== 'granted') return;
+      }
+      setConfig({ enabled: true });
+      return;
+    }
+    setConfig({ enabled: false });
   };
 
   const rowClass = compact
@@ -255,9 +204,7 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
               <BellOff className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{copy.bannerTitle}</p>
-                <p className="text-xs text-muted-foreground">
-                  {copy.bannerDesc}
-                </p>
+                <p className="text-xs text-muted-foreground">{copy.bannerDesc}</p>
               </div>
             </div>
             <Button
@@ -274,89 +221,21 @@ export const ReminderSettings = ({ compact = false }: ReminderSettingsProps) => 
       )}
 
       <Card className={cn("border-border/50 shadow-none", rowClass)}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-lg bg-blue-500/20">
-            <Droplets className="h-5 w-5 text-blue-400" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/15">
+            <Bell className="h-5 w-5 text-primary" />
           </div>
-          <div className="flex-1">
-            <Label className="text-sm font-medium">{copy.waterLabel}</Label>
-            <p className="text-xs text-muted-foreground">{copy.waterDesc}</p>
+          <div className="flex-1 min-w-0">
+            <Label className="text-sm font-medium">{copy.pushLabel}</Label>
+            <p className="text-xs text-muted-foreground">{copy.pushDesc}</p>
           </div>
-          <Switch checked={config.water.enabled} onCheckedChange={updateWaterReminder} disabled={permissionBusy} />
+          <Switch
+            checked={config.enabled}
+            onCheckedChange={(checked) => void updatePushEnabled(checked)}
+            disabled={permissionBusy}
+          />
         </div>
-        {config.water.enabled && (
-          <div className="flex items-center gap-2 ml-11">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">{copy.every}</span>
-            <Select value={config.water.interval.toString()} onValueChange={updateWaterInterval}>
-              <SelectTrigger className="w-20 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2">{copy.hours2}</SelectItem>
-                <SelectItem value="3">{copy.hours3}</SelectItem>
-                <SelectItem value="4">{copy.hours4}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </Card>
-
-      <Card className={cn("border-border/50 shadow-none", rowClass)}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-lg bg-green-500/20">
-            <Utensils className="h-5 w-5 text-green-400" />
-          </div>
-          <div className="flex-1">
-            <Label className="text-sm font-medium">{copy.mealsLabel}</Label>
-            <p className="text-xs text-muted-foreground">{copy.mealsDesc}</p>
-          </div>
-          <Switch checked={config.meals.enabled} onCheckedChange={updateMealsReminder} disabled={permissionBusy} />
-        </div>
-        {config.meals.enabled && (
-          <div className="flex items-center gap-2 ml-11 flex-wrap">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            {normalizeReminderConfig(config).meals.times.map((time) => (
-              <span key={time} className="text-xs px-2 py-1 rounded bg-muted">
-                {formatReminderTime(time, language)}
-              </span>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <Card className={cn("border-border/50 shadow-none", rowClass)}>
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-2 rounded-lg bg-purple-500/20">
-            <Scale className="h-5 w-5 text-purple-400" />
-          </div>
-          <div className="flex-1">
-            <Label className="text-sm font-medium">{copy.weightLabel}</Label>
-            <p className="text-xs text-muted-foreground">{copy.weightDesc}</p>
-          </div>
-          <Switch checked={config.weight.enabled} onCheckedChange={updateWeightReminder} disabled={permissionBusy} />
-        </div>
-        {config.weight.enabled && (
-          <div className="flex items-center gap-2 ml-11">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <Select value={config.weight.time} onValueChange={updateWeightTime}>
-              <SelectTrigger className="w-[7.25rem] h-8 text-xs">
-                <SelectValue>
-                  {formatReminderTime(config.weight.time, language)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {WEIGHT_REMINDER_TIMES.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {formatReminderTime(time, language)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
       </Card>
     </div>
   );
 };
-
