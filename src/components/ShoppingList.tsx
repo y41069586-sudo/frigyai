@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Check, Scan, WifiOff, RefreshCw, ChevronDown } from 'lucide-react';
+import { ShoppingCart, Check, WifiOff, RefreshCw, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { useLanguage, formatTranslation, type Translations } from '@/contexts/LanguageContext';
 import { getAppLocale } from '@/lib/mealPlanLanguage';
 import { toast } from '@/hooks/use-toast';
@@ -42,6 +41,12 @@ interface ShoppingListProps {
 const OFFLINE_SHOPPING_LIST_KEY = 'frigai_offline_shopping_list';
 const SHOPPING_LIST_TIMESTAMP_KEY = 'frigai_shopping_list_timestamp';
 
+// Quick-add suggestions
+const QUICK_SUGGESTIONS = [
+  'Hähnchenbrust', 'Eier', 'Brokkoli', 'Magerquark', 'Haferflocken',
+  'Milch', 'Bananen', 'Reis', 'Lachs', 'Spinat',
+];
+
 function getShoppingCategoryLabel(t: Translations, category: IngredientCategory): string {
   const labels: Record<IngredientCategory, string> = {
     'Obst & Gemüse': t.shoppingCategoryFruitVeg,
@@ -54,6 +59,183 @@ function getShoppingCategoryLabel(t: Translations, category: IngredientCategory)
   return labels[category] ?? category;
 }
 
+// ─── Swipeable Item ────────────────────────────────────────────────────────────
+interface SwipeableItemProps {
+  item: ShoppingItem;
+  onToggle: (id: string) => void;
+}
+
+const SwipeableItem = ({ item, onToggle }: SwipeableItemProps) => {
+  const x = useMotionValue(0);
+  const hasTriggered = useRef(false);
+
+  // Green check background fades in as user drags right
+  const bgOpacity = useTransform(x, [0, 80], [0, 1]);
+  const itemOpacity = useTransform(x, [0, 80], [1, 0.6]);
+
+  const handleDragEnd = () => {
+    if (x.get() > 80 && !hasTriggered.current) {
+      hasTriggered.current = true;
+      navigator.vibrate?.(10);
+      onToggle(item.id);
+    }
+    // Spring snap-back
+    animate(x, 0, { type: 'spring', stiffness: 400, damping: 30 });
+    hasTriggered.current = false;
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Green background revealed on swipe */}
+      <motion.div
+        className="absolute inset-0 rounded-xl flex items-center pl-5"
+        style={{ opacity: bgOpacity, backgroundColor: '#39D47F' }}
+        aria-hidden
+      >
+        <Check className="h-5 w-5 text-white" strokeWidth={3} />
+      </motion.div>
+
+      {/* Item card */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 200 }}
+        dragElastic={0.1}
+        style={{ x, opacity: item.purchased ? 0.5 : itemOpacity }}
+        onDragEnd={handleDragEnd}
+        onClick={() => onToggle(item.id)}
+        className={`relative cursor-pointer touch-manipulation select-none rounded-xl border px-4 py-3 flex items-center gap-3 transition-colors ${
+          item.purchased
+            ? 'bg-white/60 border-gray-100'
+            : 'bg-white border-gray-100 hover:border-[#75FBB2]/60 active:bg-gray-50'
+        }`}
+      >
+        {/* Custom circle checkbox */}
+        <div
+          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+            item.purchased
+              ? 'bg-[#39D47F] border-[#39D47F]'
+              : 'border-gray-300 bg-white'
+          }`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(item.id);
+          }}
+        >
+          {item.purchased && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p
+            className={`font-medium text-sm truncate transition-all ${
+              item.purchased
+                ? 'line-through text-gray-400'
+                : 'text-[#1F2937]'
+            }`}
+          >
+            {item.name}
+          </p>
+          {item.amount && item.amount !== '—' && (
+            <p className="text-xs text-[#6B7280] truncate mt-0.5">
+              {formatShoppingListAmount(item.name, item.amount)}
+            </p>
+          )}
+        </div>
+
+        {item.price > 0 && (
+          <span
+            className={`flex-shrink-0 font-semibold text-sm ${
+              item.purchased ? 'text-gray-400' : 'text-[#39D47F]'
+            }`}
+          >
+            €{item.price.toFixed(2)}
+          </span>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
+// ─── Quick Add Bar ─────────────────────────────────────────────────────────────
+interface QuickAddBarProps {
+  onAdd: (name: string) => void;
+}
+
+const QuickAddBar = ({ onAdd }: QuickAddBarProps) => {
+  const [value, setValue] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [debounced, setDebounced] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), 200);
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  const filteredSuggestions = debounced.length > 0
+    ? QUICK_SUGGESTIONS.filter((s) =>
+        s.toLowerCase().includes(debounced.toLowerCase())
+      )
+    : focused ? QUICK_SUGGESTIONS : [];
+
+  const handleAdd = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onAdd(trimmed);
+    setValue('');
+    inputRef.current?.blur();
+  };
+
+  return (
+    <div className="mt-4">
+      {/* Suggestion chips */}
+      {filteredSuggestions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          className="flex flex-wrap gap-2 mb-3"
+        >
+          {filteredSuggestions.map((s) => (
+            <button
+              key={s}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => handleAdd(s)}
+              className="px-3 py-1 rounded-full bg-[#75FBB2]/20 border border-[#75FBB2]/40 text-xs font-medium text-[#1F2937] hover:bg-[#75FBB2]/40 transition-colors"
+            >
+              {s}
+            </button>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Input row */}
+      <div className="flex gap-2 items-center">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleAdd(value);
+          }}
+          placeholder="Zutat hinzufügen…"
+          className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-[#1F2937] placeholder-gray-400 outline-none focus:border-[#75FBB2] focus:ring-2 focus:ring-[#75FBB2]/20 transition-all"
+        />
+        <button
+          onClick={() => handleAdd(value)}
+          className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#39D47F] flex items-center justify-center hover:bg-[#2bbd70] transition-colors shadow-sm"
+        >
+          <Plus className="h-5 w-5 text-white" strokeWidth={2.5} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const { t, language } = useLanguage();
   const defaultIngredientName = t.ingredientDefaultName ?? 'Zutat';
@@ -61,7 +243,11 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']));
+  const [expandedCategories, setExpandedCategories] = useState<Set<IngredientCategory>>(
+    new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges'])
+  );
+  // Track which completed sections are collapsed (category label → bool)
+  const [collapsedCompleted, setCollapsedCompleted] = useState<Set<string>>(new Set());
   const lastToggleAtRef = useRef<Record<string, number>>({});
   const locale = getAppLocale(language);
 
@@ -75,7 +261,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
         description: t.shoppingListOfflineToastDesc,
       });
     };
-    
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -112,7 +297,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     }));
   };
 
-  // Wochenplan ist Quelle der Wahrheit — Einkaufsliste daraus ableiten (Mengen + Preise aggregiert)
+  // Wochenplan ist Quelle der Wahrheit — Einkaufsliste daraus ableiten
   useEffect(() => {
     const mapGapToItems = (gap: Array<{ name: string; amount: string; price: number }>): ShoppingItem[] =>
       gap
@@ -145,7 +330,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
       }
     };
 
-    // Wenn offline und kein MealPlan, lade aus Offline-Cache
     if (isOffline && (!mealPlan || mealPlan.length === 0)) {
       const cached = localStorage.getItem(OFFLINE_SHOPPING_LIST_KEY);
       if (cached) {
@@ -223,20 +407,18 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     return () => window.removeEventListener(FRIGY_STORAGE_UPDATED, onStorage);
   }, [defaultIngredientName, mealPlan]);
 
-  // Einkaufsliste im Cache speichern bei jeder Änderung
+  // Auto-save bei Änderungen
   const saveToCache = useCallback((itemsToCache: ShoppingItem[]) => {
     try {
       localStorage.setItem(OFFLINE_SHOPPING_LIST_KEY, JSON.stringify(itemsToCache));
       const timestamp = new Date().toLocaleString(locale);
       localStorage.setItem(SHOPPING_LIST_TIMESTAMP_KEY, timestamp);
       setLastSyncTime(timestamp);
-      console.log('[SHOPPING] Saved to cache:', itemsToCache.length, 'items');
     } catch (e) {
       console.error('[SHOPPING] Failed to save cache:', e);
     }
-  }, []);
+  }, [locale]);
 
-  // Auto-save bei Änderungen
   useEffect(() => {
     if (items.length > 0) {
       saveToCache(items);
@@ -246,9 +428,7 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const updatePurchasedState = useCallback((id: string, purchased: boolean | ((current: boolean) => boolean)) => {
     const now = Date.now();
     const lastToggleAt = lastToggleAtRef.current[id] ?? 0;
-    if (now - lastToggleAt < 160) {
-      return;
-    }
+    if (now - lastToggleAt < 160) return;
     lastToggleAtRef.current[id] = now;
 
     setItems((prev) => {
@@ -266,10 +446,6 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     });
   }, []);
 
-  const setPurchased = (id: string, purchased: boolean) => {
-    updatePurchasedState(id, purchased);
-  };
-
   const toggleItem = (id: string) => {
     updatePurchasedState(id, (current) => !current);
   };
@@ -277,34 +453,38 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const toggleCategory = (category: IngredientCategory) => {
     setExpandedCategories((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(category)) {
-        newSet.delete(category);
-      } else {
-        newSet.add(category);
-      }
+      if (newSet.has(category)) newSet.delete(category);
+      else newSet.add(category);
       return newSet;
     });
   };
 
-  /**
-   * Smart ingredient matching: compares detected ingredient with shopping list
-   * Uses fuzzy matching to find similar ingredients
-   */
-  const findMatchingItems = (detectedIngredient: string): ShoppingItem[] => {
-    const normalized = detectedIngredient.toLowerCase().trim();
+  const toggleCollapsedCompleted = (key: string) => {
+    setCollapsedCompleted((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
-    return items.filter(item => {
-      const itemName = item.name.toLowerCase();
+  // Add a manually typed item
+  const addManualItem = (name: string) => {
+    const id = `manual-${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+    const newItem: ShoppingItem = { id, name, amount: '', price: 0, purchased: false };
+    setItems((prev) => [newItem, ...prev]);
+  };
 
-      // Exact match
-      if (itemName === normalized) return true;
-
-      // Substring match (e.g., "Eier" matches "Eier (3 Stück)")
-      if (itemName.includes(normalized) || normalized.includes(itemName)) return true;
-
-      // Similar enough match (at least 70% similar)
-      const similarity = calculateStringSimilarity(normalized, itemName);
-      return similarity > 0.7;
+  // Delete all completed items
+  const clearCompleted = () => {
+    setItems((prev) => {
+      const next = prev.filter((i) => !i.purchased);
+      const nextCheckedNames = new Set(
+        next.filter((item) => item.purchased).map((item) => normalizeShoppingName(item.name)),
+      );
+      writeCheckedShoppingNames(nextCheckedNames);
+      notifyFrigyStorageUpdated();
+      return next;
     });
   };
 
@@ -314,16 +494,11 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
   const calculateStringSimilarity = (a: string, b: string): number => {
     const longer = a.length > b.length ? a : b;
     const shorter = a.length > b.length ? b : a;
-
     if (longer.length === 0) return 1.0;
-
     const editDistance = getEditDistance(longer, shorter);
     return (longer.length - editDistance) / longer.length;
   };
 
-  /**
-   * Calculate Levenshtein distance between two strings
-   */
   const getEditDistance = (a: string, b: string): number => {
     const costs: number[] = [];
     for (let i = 0; i <= a.length; i++) {
@@ -345,18 +520,25 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     return costs[b.length];
   };
 
+  // Keep findMatchingItems for external use / future scanning features
+  const findMatchingItems = (detectedIngredient: string): ShoppingItem[] => {
+    const normalized = detectedIngredient.toLowerCase().trim();
+    return items.filter((item) => {
+      const itemName = item.name.toLowerCase();
+      if (itemName === normalized) return true;
+      if (itemName.includes(normalized) || normalized.includes(itemName)) return true;
+      return calculateStringSimilarity(normalized, itemName) > 0.7;
+    });
+  };
+  // Suppress unused warning in strict mode
+  void findMatchingItems;
+
   const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
-  const purchasedPrice = items
-    .filter((i) => i.purchased)
-    .reduce((sum, item) => sum + item.price, 0);
+  const purchasedPrice = items.filter((i) => i.purchased).reduce((sum, item) => sum + item.price, 0);
   const remainingPrice = totalPrice - purchasedPrice;
   const purchasedCount = items.filter((i) => i.purchased).length;
   const progressPct = items.length ? (purchasedCount / items.length) * 100 : 0;
 
-  // Get unpurchased items for ordering
-  const unpurchasedItems = items.filter((i) => !i.purchased).map((i) => i.name);
-
-  // Manuelles Sync zum Cache
   const forceSync = () => {
     saveToCache(items);
     toast({
@@ -365,198 +547,225 @@ export const ShoppingList = ({ mealPlan }: ShoppingListProps) => {
     });
   };
 
+  const groups = groupByCategory(items);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-8">
       {/* Offline-Banner */}
       {isOffline && (
-        <Card className="p-3 bg-amber-500/20 border-amber-500/50 flex items-center gap-3">
-          <WifiOff className="h-5 w-5 text-amber-500" />
-          <div className="flex-1">
-            <p className="font-medium text-amber-500">{t.shoppingListOfflineMode}</p>
-            <p className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+          <WifiOff className="h-4 w-4 text-amber-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-700">{t.shoppingListOfflineMode}</p>
+            <p className="text-xs text-amber-600 truncate">
               {lastSyncTime ? `${t.shoppingListLastSaved}: ${lastSyncTime}` : t.shoppingListCacheLoaded}
             </p>
           </div>
-        </Card>
+          <button onClick={forceSync} className="flex-shrink-0">
+            <RefreshCw className="h-4 w-4 text-amber-500 hover:text-amber-700 transition-colors" />
+          </button>
+        </div>
       )}
 
       {/* Summary Card */}
-      <Card className="p-4 bg-card/80 backdrop-blur-lg border-primary/20">
-        <div className="flex items-center justify-between mb-3">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/20">
-              <ShoppingCart className="h-5 w-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-[#75FBB2]/20 flex items-center justify-center">
+              <ShoppingCart className="h-5 w-5 text-[#39D47F]" />
             </div>
             <div>
-              <p className="font-semibold">{t.shoppingListTitle}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-semibold text-[#1F2937]">{t.shoppingListTitle}</p>
+              <p className="text-xs text-[#6B7280]">
                 {purchasedCount} {t.ofGoal} {items.length} {t.ofPurchased}
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-primary">€{totalPrice.toFixed(2)}</p>
-            <div className="space-y-0.5 text-xs text-muted-foreground">
+          {totalPrice > 0 && (
+            <div className="text-right">
+              <p className="text-xl font-bold text-[#1F2937]">€{totalPrice.toFixed(2)}</p>
+              <div className="text-xs text-[#6B7280] space-y-0.5">
                 <p>€{purchasedPrice.toFixed(2)} {t.spent}</p>
-              {remainingPrice > 0 && (
-                <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} {t.shoppingListStillNeeded}</p>
-              )}
+                {remainingPrice > 0 && (
+                  <p className="text-amber-600 font-medium">€{remainingPrice.toFixed(2)} {t.shoppingListStillNeeded}</p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Expand/Collapse All Controls */}
+        {/* Progress bar */}
         {items.length > 0 && (
-          <div className="flex gap-2 mb-3 text-xs">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExpandedCategories(new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges']))}
-              className="h-7 text-xs"
-            >
-              {t.shoppingListShowAll}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExpandedCategories(new Set())}
-              className="h-7 text-xs"
-            >
-              {t.shoppingListCollapseAll}
-            </Button>
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-4">
+            <motion.div
+              className="h-full rounded-full bg-[#75FBB2]"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            />
           </div>
         )}
-        
-        {/* Progress bar */}
-        <div className="mt-3 h-2 bg-background/50 rounded-full overflow-hidden">
-          <motion.div 
-            className="h-full origin-left bg-primary"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: progressPct / 100 }}
-            transition={{ duration: 0.3 }}
-          />
-        </div>
 
-        {/* Action Buttons */}
-        <div className="mt-4 flex gap-2">
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={forceSync}
-          >
-            <RefreshCw className="h-4 w-4" />
-            {t.shoppingListSaveOffline}
-          </Button>
-        </div>
+        {/* Expand / collapse controls */}
+        {items.length > 0 && (
+          <div className="flex gap-2 text-xs">
+            <button
+              onClick={() =>
+                setExpandedCategories(
+                  new Set(['Obst & Gemüse', 'Fleisch & Fisch', 'Milchprodukte', 'Brot & Getreide', 'Pantry', 'Sonstiges'])
+                )
+              }
+              className="px-3 py-1.5 rounded-lg bg-gray-50 text-[#6B7280] hover:bg-gray-100 transition-colors font-medium"
+            >
+              {t.shoppingListShowAll}
+            </button>
+            <button
+              onClick={() => setExpandedCategories(new Set())}
+              className="px-3 py-1.5 rounded-lg bg-gray-50 text-[#6B7280] hover:bg-gray-100 transition-colors font-medium"
+            >
+              {t.shoppingListCollapseAll}
+            </button>
+          </div>
+        )}
 
-        {/* Sync Status */}
+        {/* Sync timestamp */}
         {lastSyncTime && !isOffline && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          <p className="text-xs text-[#6B7280] mt-3">
             {t.shoppingListLastSaved}: {lastSyncTime}
           </p>
         )}
-      </Card>
-
-      {/* Items List - Grouped by Category */}
-      <div className="space-y-4">
-        {groupByCategory(items).map((group) => {
-          const isExpanded = expandedCategories.has(group.category);
-          const categoryPurchasedCount = group.items.filter(i => i.purchased).length;
-          const categoryTotalPrice = group.items.reduce((sum, item) => sum + item.price, 0);
-
-          return (
-            <div key={group.category} className="space-y-2">
-              {/* Category Header */}
-              <button
-                onClick={() => toggleCategory(group.category)}
-                className={`w-full p-3 rounded-lg border transition-all duration-200 flex items-center justify-between ${getCategoryColor(group.category)}`}
-              >
-                <div className="flex items-center gap-3 flex-1 text-left">
-                  <span className="text-xl">{getCategoryEmoji(group.category)}</span>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{getShoppingCategoryLabel(t, group.category)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {categoryPurchasedCount} {t.shoppingListOfCount} {group.items.length} • €{categoryTotalPrice.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-                <motion.div
-                  animate={{ rotate: isExpanded ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </motion.div>
-              </button>
-
-              {/* Category Items */}
-              <motion.div
-                initial={false}
-                animate={isMobile ? undefined : {
-                  height: isExpanded ? 'auto' : 0,
-                  opacity: isExpanded ? 1 : 0,
-                  marginBottom: isExpanded ? 16 : 0
-                }}
-                transition={{ duration: 0.2 }}
-                className={isMobile ? (isExpanded ? "space-y-2 pb-4" : "hidden") : "overflow-hidden space-y-2"}
-              >
-                {group.items.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={isMobile ? false : { opacity: 0, x: -10 }}
-                    animate={isMobile ? undefined : { opacity: 1, x: 0 }}
-                    transition={isMobile ? { duration: 0 } : { delay: index * 0.02 }}
-                  >
-                    <Card
-                      className={`p-3 cursor-pointer touch-manipulation select-none transition-all duration-200 ${
-                        item.purchased
-                          ? 'bg-primary/10 border-primary/30'
-                          : 'bg-card/60 border-primary/10 hover:border-primary/30'
-                      }`}
-                      onClick={() => toggleItem(item.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={item.purchased}
-                          onCheckedChange={(checked) => setPurchased(item.id, checked === true)}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onPointerUp={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
-                        <div className="flex-1">
-                          <p className={`font-medium text-sm ${item.purchased ? 'line-through text-muted-foreground' : ''}`}>
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatShoppingListAmount(item.name, item.amount)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`font-semibold text-sm ${item.purchased ? 'text-muted-foreground' : 'text-primary'}`}>
-                            €{item.price.toFixed(2)}
-                          </span>
-                          {item.purchased && (
-                            <Check className="h-4 w-4 text-primary" />
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </div>
-          );
-        })}
       </div>
 
-      {items.length === 0 && (
-        <Card className="p-8 text-center bg-card/60 border-primary/10">
-          <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground mb-2">{t.generateMealPlanForList}</p>
-          <p className="text-xs text-muted-foreground/60">
-            {t.mealPlans}: {mealPlan?.length > 0 ? formatTranslation(t.shoppingListDayCount, { count: mealPlan.length }) : t.shoppingListNotGenerated}
+      {/* "Aus Plan importieren" — shown prominently when list is empty */}
+      {items.length === 0 && mealPlan?.length === 0 && (
+        <div className="bg-white rounded-2xl border border-dashed border-[#75FBB2]/60 p-8 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#75FBB2]/10 flex items-center justify-center mx-auto mb-4">
+            <ShoppingCart className="h-8 w-8 text-[#39D47F]" />
+          </div>
+          <p className="font-medium text-[#1F2937] mb-1">{t.generateMealPlanForList}</p>
+          <p className="text-sm text-[#6B7280]">
+            Füge Zutaten hinzu oder lass den Wochenplan sie importieren
           </p>
-        </Card>
+        </div>
+      )}
+
+      {/* Grouped items */}
+      {groups.length > 0 && (
+        <div className="space-y-3">
+          {groups.map((group) => {
+            const isExpanded = expandedCategories.has(group.category);
+            const unchecked = group.items.filter((i) => !i.purchased);
+            const checked = group.items.filter((i) => i.purchased);
+            const categoryTotalPrice = group.items.reduce((sum, item) => sum + item.price, 0);
+            const completedKey = group.category;
+            const completedCollapsed = collapsedCompleted.has(completedKey);
+
+            return (
+              <div key={group.category} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Category Header */}
+                <button
+                  onClick={() => toggleCategory(group.category)}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg leading-none">{getCategoryEmoji(group.category)}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-[#1F2937]">
+                        {getShoppingCategoryLabel(t, group.category)}
+                      </p>
+                      <p className="text-xs text-[#6B7280]">
+                        {checked.length} {t.shoppingListOfCount} {group.items.length}
+                        {categoryTotalPrice > 0 && ` · €${categoryTotalPrice.toFixed(2)}`}
+                      </p>
+                    </div>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: isExpanded ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-[#6B7280]"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </motion.div>
+                </button>
+
+                {/* Items */}
+                {isExpanded && (
+                  <div className="px-3 pb-3 space-y-2">
+                    {/* Unchecked items */}
+                    {unchecked.map((item) => (
+                      <SwipeableItem key={item.id} item={item} onToggle={toggleItem} />
+                    ))}
+
+                    {/* Completed sub-section */}
+                    {checked.length > 0 && (
+                      <div className="pt-1">
+                        <button
+                          onClick={() => toggleCollapsedCompleted(completedKey)}
+                          className="w-full flex items-center gap-2 px-1 py-1.5 text-xs font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors"
+                        >
+                          <span>
+                            {checked.length} erledigt
+                          </span>
+                          <motion.div
+                            animate={{ rotate: completedCollapsed ? 0 : 180 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                          </motion.div>
+                        </button>
+                        {!completedCollapsed && (
+                          <div className="space-y-2">
+                            {checked.map((item) => (
+                              <SwipeableItem key={item.id} item={item} onToggle={toggleItem} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Quick-add bar */}
+      {(items.length > 0 || mealPlan?.length > 0) && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <QuickAddBar onAdd={addManualItem} />
+        </div>
+      )}
+
+      {/* Empty state when plan exists but no gaps */}
+      {items.length === 0 && (mealPlan?.length ?? 0) > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-[#75FBB2]/20 flex items-center justify-center mx-auto mb-3">
+            <Check className="h-6 w-6 text-[#39D47F]" />
+          </div>
+          <p className="font-medium text-[#1F2937] mb-1">Alles im Kühlschrank!</p>
+          <p className="text-sm text-[#6B7280]">
+            {t.mealPlans}: {formatTranslation(t.shoppingListDayCount, { count: mealPlan.length })}
+          </p>
+        </div>
+      )}
+
+      {/* Floating "clear completed" button */}
+      {purchasedCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+        >
+          <button
+            onClick={clearCompleted}
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#1F2937] text-white text-sm font-medium shadow-lg hover:bg-gray-800 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+            Alle erledigt löschen ({purchasedCount})
+          </button>
+        </motion.div>
       )}
     </div>
   );

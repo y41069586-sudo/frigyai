@@ -1,4 +1,4 @@
-import type { OnboardingStep } from "@/components/onboarding/types";
+import { onboardingSteps, type OnboardingStep } from "@/components/onboarding/types";
 
 const KEY_IN_PROGRESS = "frigy_onboarding_in_progress";
 const KEY_RESUME_STEP = "frigy_onboarding_resume_step";
@@ -109,4 +109,32 @@ export function clearOnboardingOAuthPending(): void {
   } catch {
     // ignore
   }
+}
+
+/** User is still in questionnaire flow — don't hijack to paywall after background auth. */
+export function shouldDeferAuthPaywallRedirect(step?: OnboardingStep | null): boolean {
+  if (!isOnboardingInProgress()) return false;
+
+  const resolved = step ?? getOnboardingResumeStep();
+  if (!resolved) return true;
+
+  const stepIndex = onboardingSteps.indexOf(resolved);
+  const saveProgressIndex = onboardingSteps.indexOf("save-progress");
+  if (stepIndex < 0 || saveProgressIndex < 0) return false;
+
+  return stepIndex < saveProgressIndex;
+}
+
+/** User already passed the first onboarding screen — don't reset to gender. */
+export function shouldDeferAuthOnboardingStartRedirect(step?: OnboardingStep | null): boolean {
+  if (!isOnboardingInProgress()) return false;
+
+  const resolved = step ?? getOnboardingResumeStep();
+  if (!resolved) return false;
+
+  const stepIndex = onboardingSteps.indexOf(resolved);
+  const genderIndex = onboardingSteps.indexOf("gender");
+  if (stepIndex < 0 || genderIndex < 0) return false;
+
+  return stepIndex > genderIndex;
 }

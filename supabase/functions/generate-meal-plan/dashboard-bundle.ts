@@ -1335,6 +1335,172 @@ export function isGenericPortionAmount(amount: string): boolean {
   return t === "1 portion" || t === "1 port." || t === "portion" || t === "—" || t === "-";
 }
 
+// ----- mealCalorieHints.ts -----
+/** Normalize dish names for keyword matching (ä → a, etc.). */
+export function normalizeDishName(name: string): string {
+  return String(name || "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+type DishTier = "heavy" | "main" | "light" | "snack" | "default";
+
+const HEAVY_DISH =
+  /\b(leberkase|leberkaese|schnitzel|currywurst|bratwurst|burger|cheeseburger|pizza|lasagne|carbonara|bolo|baguette|panini|doner|döner|doener|gyros|burrito|quesadilla)\b/;
+
+const BREAD_DISH =
+  /\b(semmel|brotchen|broetchen|sandwich|wrap|bagel|toast|brot mit|belegtes brot|klappbrotdchen)\b/;
+
+const LIGHT_DISH =
+  /\b(salat|salad|gemuse|gemüse|suppe|soup|gurke|tomate mozz|beeren|obstsalat)\b/;
+
+const SNACK_DISH =
+  /\b(joghurt|yogurt|apfel|banane|obst|müsliriegel|muesliriegel|riegel|kefir|shake|smoothie|nussmix)\b/;
+
+const PROTEIN_LIGHT =
+  /\b(hahnchen|hähnchen|haehnchen|chicken|pute|turkey|thunfisch|tuna|lachs|salmon)\b/;
+
+export function dishCalorieTier(name: string, mealType = ""): DishTier {
+  const n = normalizeDishName(name);
+  const type = normalizeDishName(mealType);
+  if (SNACK_DISH.test(n) || type.includes("snack")) return "snack";
+  if (HEAVY_DISH.test(n) || BREAD_DISH.test(n)) return "heavy";
+  if (LIGHT_DISH.test(n) && !PROTEIN_LIGHT.test(n)) return "light";
+  if (/\b(reis|nudel|pasta|spaghetti|kartoffel|pfanne|auflauf|omelett|frikadelle|hack|geschnetzel|fischfilet)\b/.test(n)) {
+    return "main";
+  }
+  return "default";
+}
+
+/** Relative share of daily calories this dish should receive. */
+export function dishCalorieWeightHint(
+  name: string,
+  mealType: string,
+  slotIndex: number,
+  mealsPerDay: number,
+): number {
+  const tier = dishCalorieTier(name, mealType);
+  const isBreakfast = slotIndex === 0;
+  const isMainSlot = mealsPerDay >= 4 ? slotIndex === 1 || slotIndex === 3 : slotIndex === 1;
+
+  switch (tier) {
+    case "heavy":
+      return isMainSlot ? 0.38 : isBreakfast ? 0.3 : 0.28;
+    case "main":
+      return isMainSlot ? 0.34 : isBreakfast ? 0.26 : 0.22;
+    case "light":
+      return isMainSlot ? 0.22 : 0.14;
+    case "snack":
+      return 0.1;
+    default:
+      if (isMainSlot) return 0.32;
+      if (isBreakfast) return 0.24;
+      return 0.14;
+  }
+}
+
+/** Minimum realistic kcal for a dish name — 0 means no floor. */
+export function dishMinimumKcal(
+  name: string,
+  mealType: string,
+  dailyCalories: number,
+  mealsPerDay: number,
+): number {
+  const tier = dishCalorieTier(name, mealType);
+  const perMealAvg = dailyCalories / Math.max(mealsPerDay, 1);
+
+  switch (tier) {
+    case "heavy":
+      return Math.max(480, Math.round(perMealAvg * 1.15));
+    case "main":
+      return Math.max(380, Math.round(perMealAvg * 0.95));
+    case "light":
+      return 0;
+    case "snack":
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+/** Maximum realistic kcal for light dishes/snacks. */
+export function dishMaximumKcal(
+  name: string,
+  mealType: string,
+  dailyCalories: number,
+): number {
+  const tier = dishCalorieTier(name, mealType);
+  if (tier === "snack") return Math.min(320, Math.round(dailyCalories * 0.18));
+  if (tier === "light") return Math.min(420, Math.round(dailyCalories * 0.24));
+  return Number.POSITIVE_INFINITY;
+}
+
+const MAX_MEAL_SHARE_BY_MPD: Record<number, number> = {
+  3: 0.48,
+  4: 0.42,
+  5: 0.36,
+  6: 0.32,
+};
+
+/** Heavy dishes (wrap, schnitzel, …) cannot fit an unrealistically small daily budget. */
+export function dishFitsDailyBudget(
+  name: string,
+  mealType: string,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  const min = dishMinimumKcal(name, mealType, dailyCalories, mealsPerDay);
+  const maxShare = MAX_MEAL_SHARE_BY_MPD[mealsPerDay] ?? 0.4;
+  return min <= dailyCalories * maxShare + 20;
+}
+
+export function mealCaloriesUnrealisticForDish(
+  meal: { name?: string; type?: string; calories?: number; protein?: number; carbs?: number; fat?: number },
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  const kcal =
+    typeof meal.calories === "number" && meal.calories > 0
+      ? meal.calories
+      : (Number(meal.protein) || 0) * 4 + (Number(meal.carbs) || 0) * 4 + (Number(meal.fat) || 0) * 9;
+  const min = dishMinimumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay);
+  const max = dishMaximumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories);
+  if (min > 0 && kcal < min * 0.9) return true;
+  if (Number.isFinite(max) && kcal > max * 1.12) return true;
+  if (!dishFitsDailyBudget(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay)) {
+    return true;
+  }
+  return false;
+}
+
+export function mealsViolateDishRealism(
+  meals: Array<{ name?: string; type?: string; calories?: number; protein?: number; carbs?: number; fat?: number }>,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  return meals.some((meal) => mealCaloriesUnrealisticForDish(meal, dailyCalories, mealsPerDay));
+}
+
+export function aiMacrosUnrealisticForDishes(
+  meals: Array<{ name?: string; type?: string; protein?: number; carbs?: number; fat?: number }>,
+  dailyCalories: number,
+  mealsPerDay: number,
+): boolean {
+  return meals.some((meal) => {
+    const protein = Math.max(0, Number(meal.protein) || 0);
+    const carbs = Math.max(0, Number(meal.carbs) || 0);
+    const fat = Math.max(0, Number(meal.fat) || 0);
+    const kcal = protein * 4 + carbs * 4 + fat * 9;
+    const min = dishMinimumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories, mealsPerDay);
+    const max = dishMaximumKcal(String(meal.name || ""), String(meal.type || ""), dailyCalories);
+    if (min > 0 && kcal < min * 0.9) return true;
+    if (Number.isFinite(max) && kcal > max * 1.15) return true;
+    return false;
+  });
+}
+
 // ----- macros.ts -----
 export function macroKcal(p: number, c: number, f: number) {
   return p * 4 + c * 4 + f * 9;
@@ -1366,26 +1532,13 @@ export function reconcileTargets(raw: MacroTargets): ReconcileResult {
 
   const rawRatio = stated / implied;
   if (rawRatio < RECONCILE_RATIO_MIN || rawRatio > RECONCILE_RATIO_MAX) {
-    const targets = harmonizeTargets({ dailyProtein: protein, dailyCarbs: carbs, dailyFat: fat, dailyCalories: implied });
-    console.warn("[MEAL-PLAN] kcal/macro mismatch — macros kept as primary", { stated, implied });
-    return {
-      macroAuthority: "macros",
-      targets,
-      warning: {
-        type: "macros_primary",
-        statedKcal: stated,
-        impliedKcal: implied,
-        appliedKcal: targets.dailyCalories,
-        message: `Angegebene ${stated} kcal wichen zu stark von den Makros ab (${implied} kcal). Plan nutzt Makro-basierte ${targets.dailyCalories} kcal.`,
-      },
-    };
+    console.warn("[MEAL-PLAN] kcal/macro mismatch — scaling macros to stated kcal", { stated, implied });
   }
 
-  const ratio = rawRatio;
   const scaled = harmonizeTargets({
-    dailyProtein: Math.min(MACRO_CAPS.protein, Math.max(1, Math.round(protein * ratio))),
-    dailyCarbs: Math.min(MACRO_CAPS.carbs, Math.max(1, Math.round(carbs * ratio))),
-    dailyFat: Math.min(MACRO_CAPS.fat, Math.max(1, Math.round(fat * ratio))),
+    dailyProtein: Math.min(MACRO_CAPS.protein, Math.max(1, Math.round(protein * rawRatio))),
+    dailyCarbs: Math.min(MACRO_CAPS.carbs, Math.max(1, Math.round(carbs * rawRatio))),
+    dailyFat: Math.min(MACRO_CAPS.fat, Math.max(1, Math.round(fat * rawRatio))),
     dailyCalories: stated,
   });
   return {
@@ -1439,29 +1592,9 @@ export function recalcMeal(m: MealLike): Meal {
   };
 }
 
-/** Structure from AI/fallback. Macros assigned only in syncDay. */
+/** Preserve AI-provided macros; calories recalculated as 4P+4C+9F. */
 export function normalizeMealStructure(m: MealLike): Meal {
-  const ingredients = Array.isArray(m?.ingredients)
-    ? m.ingredients
-        .map((i) => sanitizeIngredient(i || {}))
-        .filter((i): i is NonNullable<typeof i> => i !== null)
-        .slice(0, 6)
-    : [];
-  const instructions = sanitizeMealInstructions(m?.instructions);
-  return {
-    type: String(m?.type || "Mahlzeit").trim(),
-    name: String(m?.name || "Gericht").trim(),
-    prepTime: Math.max(5, Math.round(Number(m.prepTime) || 20)),
-    ingredients,
-    instructions,
-    allergenTags: Array.isArray(m?.allergenTags)
-      ? m.allergenTags.map((t) => String(t).trim()).filter(Boolean).slice(0, 12)
-      : [],
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    calories: 0,
-  };
+  return recalcMeal(m);
 }
 
 function slotWeights(mealsPerDay: number): number[] {
@@ -1528,25 +1661,67 @@ export function correctSyncedDayDrift(meals: Meal[], targets: MacroTargets): Mea
   return adjusted;
 }
 
-/** Per-meal kcal weights: AI ratios when present, else slot + day + dish name (not identical every day). */
-function mealKcalWeights(meals: Meal[], mealsPerDay: number, dayIndex: number): number[] {
+/** Per-meal kcal weights: dish-aware hints, AI ratios only when realistic, else slot + day jitter. */
+function mealKcalWeights(
+  meals: Meal[],
+  mealsPerDay: number,
+  dayIndex: number,
+  dailyCalories: number,
+): number[] {
   const baseSlot = slotWeights(mealsPerDay);
   return meals.map((m, i) => {
     const p = Math.max(0, Number(m.protein) || 0);
     const c = Math.max(0, Number(m.carbs) || 0);
     const f = Math.max(0, Number(m.fat) || 0);
     const aiKcal = macroKcal(p, c, f);
-    if (aiKcal >= 80) return aiKcal;
+    const minKcal = dishMinimumKcal(m.name, m.type, dailyCalories, mealsPerDay);
+    const maxKcal = dishMaximumKcal(m.name, m.type, dailyCalories);
+    const aiRealistic = minKcal === 0 || aiKcal >= minKcal * 0.85;
+    const aiWithinMax = !Number.isFinite(maxKcal) || aiKcal <= maxKcal * 1.1;
+    if (aiKcal >= 80 && aiRealistic && aiWithinMax) return aiKcal;
 
+    const dishHint = dishCalorieWeightHint(m.name, m.type, i, mealsPerDay);
     const slot = mealSlotForSync(i, mealsPerDay);
     const slotHint = slot === "b" ? 0.2 : slot === "m" ? 0.36 : 0.12;
     const base = baseSlot[i] ?? slotHint;
+    let weight = Math.max(dishHint * dailyCalories, base * dailyCalories * 0.85);
+    if (minKcal > 0) weight = Math.max(weight, minKcal);
+    if (Number.isFinite(maxKcal)) weight = Math.min(weight, maxKcal);
+
     const name = String(m.name || "");
     let h = (dayIndex + 1) * 7919;
     for (let j = 0; j < name.length; j++) h = (Math.imul(h, 31) + name.charCodeAt(j)) >>> 0;
-    const jitter = 0.62 + (h % 76) / 100;
-    return Math.max(0.05, base * jitter);
+    const jitter = 0.88 + (h % 24) / 100;
+    return Math.max(0.05, weight * jitter);
   });
+}
+
+const MAX_MEAL_KCAL_SHARE: Record<number, number> = {
+  3: 0.48,
+  4: 0.42,
+  5: 0.36,
+};
+
+function mealExceedsDailyShare(meals: Meal[], dailyKcal: number, mealsPerDay: number): boolean {
+  const maxShare = MAX_MEAL_KCAL_SHARE[mealsPerDay] ?? 0.4;
+  const maxKcal = dailyKcal * maxShare;
+  return meals.some((m) => m.calories > maxKcal + 25);
+}
+
+function distributeMealsBySlotWeights(
+  meals: Meal[],
+  targets: MacroTargets,
+  mealsPerDay: number,
+  dayIndex: number,
+): Meal[] {
+  const t = harmonizeTargets(targets);
+  const w = mealKcalWeights(meals, mealsPerDay, dayIndex, t.dailyCalories);
+  const proteins = distributeIntegers(t.dailyProtein, w);
+  const carbs = distributeIntegers(t.dailyCarbs, w);
+  const fats = distributeIntegers(t.dailyFat, w);
+  return meals.map((m, i) =>
+    recalcMeal({ ...m, protein: proteins[i]!, carbs: carbs[i]!, fat: fats[i]! }),
+  );
 }
 
 function scaleMealsToDailyTargets(meals: Meal[], targets: MacroTargets): Meal[] {
@@ -1569,7 +1744,8 @@ function scaleMealsToDailyTargets(meals: Meal[], targets: MacroTargets): Meal[] 
 }
 
 /**
- * Daily totals exact; per-meal size varies by dish (not the same kcal on every weekday for slot 1..N).
+ * Keep AI-provided macros as-is (they reflect real nutritional values).
+ * Only falls back to slot-weight distribution when the AI gave no macros at all.
  */
 export function syncDay(
   day: DayPlan,
@@ -1578,27 +1754,17 @@ export function syncDay(
   dayIndex = 0,
 ): DayPlan {
   const t = harmonizeTargets(targets);
-  let meals = (day.meals || []).map((m) => normalizeMealStructure({ ...m }));
+  // recalcMeal preserves protein/carbs/fat from the AI and recalculates calories as 4P+4C+9F.
+  let meals = (day.meals || []).map((m) => recalcMeal(m));
   if (!meals.length) return { ...day, meals };
 
   const sum = sumMeals(meals);
-  const aiTotals = sum.protein + sum.carbs + sum.fat;
-  const kcalSpread = meals.map((m) => macroKcal(Number(m.protein) || 0, Number(m.carbs) || 0, Number(m.fat) || 0));
-  const distinctKcals = new Set(kcalSpread.map((k) => Math.round(k / 40))).size;
-
-  if (aiTotals > 0 && distinctKcals >= Math.min(3, meals.length)) {
-    meals = scaleMealsToDailyTargets(meals, t);
-  } else {
-    const w = mealKcalWeights(meals, mealsPerDay, dayIndex);
-    const proteins = distributeIntegers(t.dailyProtein, w);
-    const carbs = distributeIntegers(t.dailyCarbs, w);
-    const fats = distributeIntegers(t.dailyFat, w);
-    meals = meals.map((m, i) =>
-      recalcMeal({ ...m, protein: proteins[i]!, carbs: carbs[i]!, fat: fats[i]! }),
-    );
+  // Fallback: AI returned no macros (placeholder/fallback plan) — distribute by slot weights.
+  if (sum.protein + sum.carbs + sum.fat === 0) {
+    meals = distributeMealsBySlotWeights(meals, t, mealsPerDay, dayIndex);
+    meals = correctSyncedDayDrift(meals, t);
   }
 
-  meals = correctSyncedDayDrift(meals, t);
   return { ...day, meals };
 }
 
@@ -2133,13 +2299,14 @@ function buildCompactSystemPrompt(params: {
     `Nutrition expert. JSON only (${L.lang}). Exactly 7 days: ${L.days.join(", ")}.`,
     `Exactly ${params.mealsPerDay} meals per day. Complete week — no empty days.`,
     buildSimpleFoodStyleBlock(params.lang, params.mealsPerDay),
+    buildCalorieAwareDishBlock(params.targets.dailyCalories, params.mealsPerDay, params.lang),
     `Per meal: type, name, protein, carbs, fat, prepTime, ingredients[{name,amount,price}], instructions[], allergenTags[].`,
     `Ingredient amounts MUST be realistic purchase units (e.g. "150g", "200ml", "2 Stück") — never only "1 Portion".`,
     `Ingredient price = estimated EUR cost for that exact amount in a German supermarket (typically €0.20–€4.50 per line).`,
     `Max ${params.maxIngredients} ingredients per meal. instructions MUST be [] (empty array) — never "no food" / "kein essen".`,
     `Every meal needs a REAL everyday dish name (e.g. "${buildEverydayDishExample(params.lang)}") — NEVER "Friday Meal 3", "Meal 2", "Hauptgericht 1", "Mahlzeit 2", or any numbered slot label.`,
     `allergenTags: gluten,lactose,milk,nuts,treeNuts,peanuts,soy,eggs,fish,shellfish,none.`,
-    `Daily targets ~${params.targets.dailyProtein}P/${params.targets.dailyCarbs}C/${params.targets.dailyFat}F. No smoothies.`,
+    `ACCURATE MACROS REQUIRED: each meal's protein/carbs/fat must reflect REAL nutritional values for the exact ingredient amounts listed — not estimates adjusted to hit a number. Choose portion sizes so all meals together sum to: ${params.targets.dailyProtein}g protein / ${params.targets.dailyCarbs}g carbs / ${params.targets.dailyFat}g fat (${params.targets.dailyCalories} kcal/day). Snacks ~150–350 kcal, main meals ~450–750 kcal. No smoothies.`,
     buildNoPorkConstraintBlock(params.lang),
     params.dietBlock,
     params.bannedBlock,
@@ -2200,10 +2367,10 @@ async function callOpenAIOnce(params: {
     : regen
     ? buildRegenerationUserPrompt(params.mealsPerDay, params.lang)
     : params.lang === "de"
-      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte.${varietyHint} Normale Hausmannskost passend zu den Küchen-Vorgaben — nicht exotisch. Makros pro Mahlzeit variieren (Snacks kleiner, Hauptmahlzeiten größer). Allergene taggen. Zutatenmengen in g/ml/Stück angeben und realistische Einkaufspreise pro Zutat in EUR setzen.`
+      ? `Erstelle einen vollen 7-Tage-Plan (${params.mealsPerDay} Mahlzeiten/Tag). Jeden Tag andere Gerichte.${varietyHint} Normale Hausmannskost — nicht exotisch. GENAUE Nährwerte: protein/carbs/fat pro Mahlzeit basierend auf echten Lebensmitteldaten für die angegebenen Portionsgrößen. Portionsmengen so wählen, dass die Tagessumme das Makroziel trifft. Snacks 150–350 kcal, Hauptmahlzeiten 450–750 kcal. Allergene taggen. Zutatenmengen in g/ml/Stück, realistische EUR-Preise.`
       : params.lang === "fr"
         ? `Crée un plan 7 jours (${params.mealsPerDay} repas/jour). Plats différents chaque jour.${varietyHint} Cuisine maison selon les cuisines choisies. Varie les macros par repas. Tag allergènes. Quantités réalistes et prix EUR.`
-        : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day.${varietyHint} Everyday home cooking matching chosen cuisines. Vary protein/carbs/fat per meal (snacks smaller, mains larger). Tag allergens. Use realistic ingredient amounts (g/ml/pieces) and EUR supermarket prices per ingredient line.`;
+        : `Create a full 7-day plan (${params.mealsPerDay} meals/day). Different dish names each day.${varietyHint} Everyday home cooking. ACCURATE macros: protein/carbs/fat per meal must match real nutritional data for the exact portions listed. Size portions so daily totals hit the macro target. Snacks 150–350 kcal, mains 450–750 kcal. Tag allergens. Realistic ingredient amounts (g/ml/pieces) and EUR prices.`;
 
   const openAiKey = getOpenAIKey();
   if (!openAiKey) throw new Error("OPENAI_API_KEY not configured");
@@ -2758,7 +2925,9 @@ function alignPlanIngredientsToTitles(
       const need = titleParts.length >= 2 ? 2 : 1;
       if (matched >= need) return meal;
       const slot = mealSlot(si, mealsPerDay);
-      return buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      const rebuilt = buildMealFromDishTitle(String(meal.name), slot, lang, ctx);
+      // Preserve AI-provided macros — only the ingredient list is being fixed.
+      return { ...rebuilt, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, calories: meal.calories };
     }),
   }));
 }
@@ -2841,6 +3010,16 @@ export async function buildPlan(
     varietySeed: input.varietySeed,
     mealPlanPrefs: input.mealPlanPrefs,
   });
+  plan = swapUnrealisticDishNames(
+    plan,
+    input.targets,
+    input.mealsPerDay,
+    input.lang,
+    input.prefs,
+    input.safetyCtx,
+    input.varietySeed ?? "",
+    input.mealPlanPrefs,
+  );
   let finalPlan = finishPlan(plan, input.targets, input.mealsPerDay, input.lang) ?? plan;
   finalPlan = alignPlanIngredientsToTitles(finalPlan, input.lang, input.safetyCtx, input.mealsPerDay);
   finalPlan = finishPlan(finalPlan, input.targets, input.mealsPerDay, input.lang) ?? finalPlan;
@@ -3621,6 +3800,41 @@ export function buildEverydayDishExample(lang: Lang): string {
   if (lang === "de") return "Reis mit Hackfleisch";
   if (lang === "fr") return "Riz bœuf haché";
   return "Chicken and rice";
+}
+
+export function buildCalorieAwareDishBlock(
+  dailyCalories: number,
+  mealsPerDay: number,
+  lang: Lang,
+): string {
+  const perMeal = Math.round(dailyCalories / Math.max(mealsPerDay, 1));
+  if (lang === "de") {
+    if (dailyCalories <= 1400) {
+      return [
+        `KALORIEN-BUDGET: Nur ${dailyCalories} kcal/Tag (~${perMeal} kcal/Mahlzeit).`,
+        "Wähle LEICHTE Gerichte: Suppe, Salat, Joghurt, Obst, Omelett, Gemüsepfanne.",
+        "VERBOTEN bei diesem Budget: Wrap, Burger, Schnitzel, Pizza, Pasta große Portion, Leberkäse-Semmel.",
+        "Jedes Gericht muss zum Budget passen — nicht denselben Wrap mit unrealistisch wenigen kcal.",
+      ].join(" ");
+    }
+    if (dailyCalories <= 1800) {
+      return [
+        `KALORIEN-BUDGET: ${dailyCalories} kcal/Tag (~${perMeal} kcal/Mahlzeit).`,
+        "Hauptmahlzeiten moderat (Salat, Reis mit Gemüse, Omelett, leichte Pfanne).",
+        "Keine doppelten schweren Gerichte (max. 1× Wrap/Burger/Schnitzel pro Woche).",
+      ].join(" ");
+    }
+    return [
+      `KALORIEN-BUDGET: ${dailyCalories} kcal/Tag.`,
+      "Hauptmahlzeiten dürfen kräftiger sein (450–750 kcal), Snacks leichter (150–350 kcal).",
+      "Gerichtname und Portionsgröße müssen zusammenpassen — keine Fantasie-kcal.",
+    ].join(" ");
+  }
+  return [
+    `CALORIE BUDGET: ${dailyCalories} kcal/day (~${perMeal} kcal/meal).`,
+    "Pick dishes that realistically fit the budget — no heavy wrap/burger on a 1200 kcal day.",
+    "Snack smaller, main meals larger; dish names must match portion realism.",
+  ].join(" ");
 }
 
 export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {

@@ -1,8 +1,10 @@
 import { isAppLinkHost } from "@/lib/chottuLinkConfig";
 import { extractRefFromSearch } from "@/lib/referralAttribution";
+import { FRIGY_APP_SCHEME } from "@/lib/appScheme";
 
-/** Custom URL scheme — must match iOS Info.plist & Android intent-filter */
-export const FRIGY_APP_SCHEME = "frigy";
+// Re-exported for backward compatibility — defined in its own leaf module to
+// avoid the appDeepLink <-> chottuLinkConfig circular import.
+export { FRIGY_APP_SCHEME };
 
 /**
  * Deep link after successful subscription checkout (native App).

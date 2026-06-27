@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT="${CM_BUILD_DIR:-$(pwd)}"
 CANDIDATES=(
+  "$ROOT/ios-swiftui/build/ios/ipa"
   "$ROOT/ios/App/build/ios/ipa"
   "$ROOT/build/ios/ipa"
   "$HOME/build/ios/ipa"
@@ -19,7 +20,7 @@ for dir in "${CANDIDATES[@]}"; do
       if [ -f "$ipa" ]; then
         FOUND="$ipa"
         echo "OK: $ipa ($(du -h "$ipa" | awk '{print $1}'))"
-        IOS_MIN_BUILD="${IOS_MIN_BUILD:-21}"
+        IOS_MIN_BUILD="${IOS_MIN_BUILD:-25}"
         BUNDLE_VERSION=""
         if command -v unzip >/dev/null && command -v plutil >/dev/null; then
           INFO_PLIST="$(mktemp)"

@@ -86,7 +86,7 @@ serve(async (req) => {
       const { data: recentPayments } = await supabase
         .from("affiliate_payments")
         .select(
-          "id, affiliate_slug, amount_cents, commission_cents, commission_status, currency, created_at, user_id",
+          "id, affiliate_slug, amount_cents, commission_cents, commission_status, currency, created_at, user_id, payment_source, store_name",
         )
         .order("created_at", { ascending: false })
         .limit(50);

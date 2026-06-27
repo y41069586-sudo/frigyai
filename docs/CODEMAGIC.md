@@ -3,7 +3,8 @@
 | Workflow | Zweck |
 |----------|--------|
 | **Android Build** | Play Store (`.aab`) + Test-APK (`.apk`) |
-| **iOS Build** | App Store / TestFlight (`.ipa`) |
+| **iOS Build** | Capacitor WKWebView → App Store / TestFlight (`.ipa`) |
+| **iOS Native SwiftUI Build** | Native `ios-swiftui/` → TestFlight (`.ipa`) — siehe `docs/NATIVE_IOS_TESTFLIGHT_TASKS.md` |
 | **iOS Build (Ad Hoc)** | Direkt auf registrierte Test-iPhones (optional) |
 
 ---

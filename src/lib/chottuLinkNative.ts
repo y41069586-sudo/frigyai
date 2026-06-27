@@ -30,10 +30,36 @@ export type ChottuLinkHandleLinkOptions = {
   url: string;
 };
 
+export type ChottuLinkIdentifyOptions = {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  emailSha256?: string;
+  phoneSha256?: string;
+};
+
+export type ChottuLinkTrackConversionOptions = {
+  revenue: number;
+  currency?: string;
+  eventName?: string;
+  productId?: string;
+  transactionId?: string;
+  metadata?: Record<string, string | number | boolean | null>;
+};
+
+export type ChottuLinkTrackEventOptions = {
+  name: string;
+  data?: Record<string, string | number | boolean | null>;
+};
+
 export interface ChottuLinkPlugin {
   initialize(options: ChottuLinkInitializeOptions): Promise<void>;
   handleLink(options: ChottuLinkHandleLinkOptions): Promise<void>;
   getAppLinkDataFromUrl(options: ChottuLinkHandleLinkOptions): Promise<ChottuLinkResolvedLink>;
+  identify(options: ChottuLinkIdentifyOptions): Promise<void>;
+  trackConversion(options: ChottuLinkTrackConversionOptions): Promise<void>;
+  trackEvent(options: ChottuLinkTrackEventOptions): Promise<void>;
   addListener(
     eventName: "initializationSuccess",
     listenerFunc: (event: ChottuLinkInitSuccessEvent) => void,

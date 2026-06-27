@@ -80,6 +80,41 @@ export function buildEverydayDishExample(lang: Lang): string {
   return "Chicken and rice";
 }
 
+export function buildCalorieAwareDishBlock(
+  dailyCalories: number,
+  mealsPerDay: number,
+  lang: Lang,
+): string {
+  const perMeal = Math.round(dailyCalories / Math.max(mealsPerDay, 1));
+  if (lang === "de") {
+    if (dailyCalories <= 1400) {
+      return [
+        `KALORIEN-BUDGET: Nur ${dailyCalories} kcal/Tag (~${perMeal} kcal/Mahlzeit).`,
+        "Wähle LEICHTE Gerichte: Suppe, Salat, Joghurt, Obst, Omelett, Gemüsepfanne.",
+        "VERBOTEN bei diesem Budget: Wrap, Burger, Schnitzel, Pizza, Pasta große Portion, Leberkäse-Semmel.",
+        "Jedes Gericht muss zum Budget passen — nicht denselben Wrap mit unrealistisch wenigen kcal.",
+      ].join(" ");
+    }
+    if (dailyCalories <= 1800) {
+      return [
+        `KALORIEN-BUDGET: ${dailyCalories} kcal/Tag (~${perMeal} kcal/Mahlzeit).`,
+        "Hauptmahlzeiten moderat (Salat, Reis mit Gemüse, Omelett, leichte Pfanne).",
+        "Keine doppelten schweren Gerichte (max. 1× Wrap/Burger/Schnitzel pro Woche).",
+      ].join(" ");
+    }
+    return [
+      `KALORIEN-BUDGET: ${dailyCalories} kcal/Tag.`,
+      "Hauptmahlzeiten dürfen kräftiger sein (450–750 kcal), Snacks leichter (150–350 kcal).",
+      "Gerichtname und Portionsgröße müssen zusammenpassen — keine Fantasie-kcal.",
+    ].join(" ");
+  }
+  return [
+    `CALORIE BUDGET: ${dailyCalories} kcal/day (~${perMeal} kcal/meal).`,
+    "Pick dishes that realistically fit the budget — no heavy wrap/burger on a 1200 kcal day.",
+    "Snack smaller, main meals larger; dish names must match portion realism.",
+  ].join(" ");
+}
+
 export function buildSimpleFoodStyleBlock(lang: Lang, mealsPerDay: number): string {
   const total = 7 * mealsPerDay;
   if (lang === "de") {

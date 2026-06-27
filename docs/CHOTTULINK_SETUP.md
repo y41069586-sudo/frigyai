@@ -147,10 +147,33 @@ frigy://callback?subscription=success
 3. iOS Simulator: `xcrun simctl openurl booted "frigy://signup?ref=TEST01"`
 4. ChottuLink Deep Link Tester im Dashboard
 
+## Affiliate-Umsatz (Apple / Google Abos)
+
+Frigy verbindet ChottuLink-Attribution mit RevenueCat Store-Abos:
+
+| Schritt | Was passiert |
+|---------|----------------|
+| 1. Link-Klick | ChottuLink speichert Klick + `?ref=` |
+| 2. Registrierung | `sync-affiliate-attribution` ordnet User dem Partner zu (First-Touch) |
+| 3. Abo-Kauf | RevenueCat Webhook → Provision in `affiliate_payments` |
+| 4. ChottuLink Dashboard | App feuert `trackConversion` nach erfolgreichem Kauf |
+
+**Provisionen** werden bei `INITIAL_PURCHASE`, `RENEWAL` und `NON_RENEWING_PURCHASE` gebucht (keine Trials, kein Sandbox).
+
+**Deploy nach Änderungen:**
+
+```bash
+supabase db push
+supabase functions deploy revenuecat-webhook --no-verify-jwt
+```
+
+RevenueCat Webhook muss auf `https://<project>.supabase.co/functions/v1/revenuecat-webhook` zeigen (`REVENUECAT_WEBHOOK_AUTH`).
+
 ## Code-Übersicht
 
 - `src/lib/chottuLinkConfig.ts` — Domains, Destination-URL-Vorlagen
 - `src/lib/chottuLinkNative.ts` — Capacitor-Bridge zum nativen ChottuLink-SDK
+- `src/lib/chottuLinkAnalytics.ts` — identify + Conversion nach Store-Kauf
 - `src/lib/appDeepLink.ts` — URL → Route
 - `src/lib/referralAttribution.ts` — Ref speichern / deferred
 - `src/components/AppDeepLinkListener.tsx` — Native

@@ -40,6 +40,8 @@ import {
   markOnboardingInProgress,
   markOnboardingOAuthPending,
   setOnboardingResumeStep,
+  shouldDeferAuthOnboardingStartRedirect,
+  shouldDeferAuthPaywallRedirect,
 } from "@/lib/onboardingSession";
 
 import { 
@@ -83,7 +85,6 @@ import { AllergiesSelectStep } from "./onboarding/components/AllergiesSelectStep
 import { WeeklyPlanPreviewStep } from "./onboarding/components/WeeklyPlanPreviewStep";
 import { FridgeScanStep } from "./onboarding/components/FridgeScanStep";
 import { ShoppingListStep } from "./onboarding/components/ShoppingListStep";
-import { DataConsentStep } from "./onboarding/components/DataConsentStep";
 import { ReferralCodeStep } from "./onboarding/components/ReferralCodeStep";
 import {
   isEmailNotConfirmed,
@@ -98,7 +99,8 @@ import { waitForPremiumAfterPurchase } from "@/lib/subscriptionRefresh";
 import { markEverPremium, resolveTrialEligibleFromLocal } from "@/lib/trialEligibility";
 import { scheduleTrialEndingReminder } from "@/lib/notifications";
 import { useStoreOfferingPrices } from "@/hooks/useStoreOfferingPrices";
-import { prefetchStoreOfferingPrices } from "@/lib/storeBilling";
+import { useStorePromoRedeem } from "@/hooks/useStorePromoRedeem";
+import { prefetchStoreOfferingPrices, restoreStorePurchases } from "@/lib/storeBilling";
 import { supabase } from "@/integrations/supabase/client";
 import { isAppleSignInAvailable, waitForAppleSignInSession } from "@/lib/appleSignIn";
 import {
@@ -538,14 +540,6 @@ const SplashScreen = ({ onNext }: { onNext: () => void }) => {
 
                     <button
                       type="button"
-                      onClick={() => navigate("/auth?mode=login")}
-                      className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-[#39D47F] hover:underline"
-                    >
-                      {t.signInBtn}
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setShowLoginOptions(false)}
                       className="mx-auto block pt-1 text-[12px] font-medium tracking-[-0.02em] text-neutral-400 underline-offset-2 transition-colors hover:text-neutral-600 hover:underline"
                     >
@@ -735,6 +729,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   /** Apple: native on iOS, OAuth fallback on Android/web — always offer in onboarding. */
   const showAppleSignIn = true;
   const [paywallCheckoutLoading, setPaywallCheckoutLoading] = useState(false);
+  const [paywallRestoreLoading, setPaywallRestoreLoading] = useState(false);
   const authSubmitLockRef = useRef(false);
   const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
   
@@ -863,9 +858,9 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
   }, [initialStepOverride]);
 
   useEffect(() => {
-    if (initialStepOverride === "paywall" && currentStep !== "paywall") {
-      setCurrentStep("paywall");
-    }
+    if (initialStepOverride !== "paywall" || currentStep === "paywall") return;
+    if (shouldDeferAuthPaywallRedirect(currentStep)) return;
+    setCurrentStep("paywall");
   }, [initialStepOverride, currentStep]);
 
   const finishOnboardingExit = useCallback(async () => {
@@ -890,6 +885,20 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     navigate(FIRST_WEEK_PLAN_ROUTE, { replace: true });
   }, [navigate, userData]);
 
+  const {
+    startRedeem: startPaywallPromoRedeem,
+    loading: paywallPromoRedeemLoading,
+    promoCodeDialog,
+  } = useStorePromoRedeem({
+    accessToken: session?.access_token,
+    userId: user?.id,
+    checkSubscription,
+    onSuccess: () => {
+      markEverPremium();
+      exitToFirstWeekPlan();
+    },
+  });
+
   const goToPaywall = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session?.user) {
@@ -911,6 +920,17 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     return subscribeAuthFlow(() => {
       const { result, navigation } = getAuthFlowSnapshot();
       if (result.status !== "success" || !navigation.executed || authRouteHandledRef.current) {
+        return;
+      }
+
+      if (
+        result.routePhase === "onboarding_start" &&
+        shouldDeferAuthOnboardingStartRedirect(currentStep)
+      ) {
+        return;
+      }
+
+      if (result.routePhase === "onboarding_paywall" && shouldDeferAuthPaywallRedirect(currentStep)) {
         return;
       }
 
@@ -1011,18 +1031,47 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
     }
   };
 
-  const goAfterSignup = useCallback(async (sessionReady = false) => {
-    saveOnboardingAfterSignup(userData);
-
-    const { data } = await supabase.auth.getSession();
-    if (authMode === "signup" && data.session?.user) {
-      goToPaywall();
-      void tryFinishOnboardingWithAccess(true);
+  const handlePaywallRestore = async () => {
+    if (paywallRestoreLoading) return;
+    lightTap();
+    if (!session?.access_token) {
+      toast({
+        title: t.error,
+        description: t.onboardingPleaseLoginToProceed,
+        variant: "destructive",
+      });
       return;
     }
+    setPaywallRestoreLoading(true);
+    try {
+      const result = await restoreStorePurchases(session.access_token);
+      const active = await waitForPremiumAfterPurchase(
+        checkSubscription,
+        session.access_token,
+        4,
+      );
+      if (result.ok || active) {
+        markEverPremium();
+        localStorage.setItem("onboardingComplete", "true");
+        exitToFirstWeekPlan();
+        return;
+      }
+      if (result.message) {
+        toast({
+          title: t.error,
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setPaywallRestoreLoading(false);
+    }
+  };
 
+  const goAfterSignup = useCallback(async (sessionReady = false) => {
+    saveOnboardingAfterSignup(userData);
     await tryFinishOnboardingWithAccess(sessionReady);
-  }, [authMode, goToPaywall, tryFinishOnboardingWithAccess, userData]);
+  }, [tryFinishOnboardingWithAccess, userData]);
 
   const goNext = () => {
     // Check if user can proceed from current step before allowing navigation
@@ -1924,14 +1973,6 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
           <ShoppingListStep
             userData={userData}
             setUserData={setUserData}
-            onBack={currentIndex > 0 ? goBack : undefined}
-            onNext={goNext}
-          />
-        );
-
-      case "data-consent":
-        return (
-          <DataConsentStep
             onBack={currentIndex > 0 ? goBack : undefined}
             onNext={goNext}
           />
@@ -4237,20 +4278,31 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
 
       case "paywall":
         return (
-          <OnboardingPaywallStep
-            language={language}
-            onBack={goBack}
-            onCheckout={handlePaywallCheckout}
-            onSignOut={async () => {
-              await signOut();
-            }}
-            isCheckoutLoading={paywallCheckoutLoading}
-            storePrices={storePrices}
-            storePricesLoading={storePricesLoading}
-            storePricesError={storePricesError}
-            onReloadStorePrices={reloadStorePrices}
-            trialEligible={resolveTrialEligibleFromLocal()}
-          />
+          <>
+            {promoCodeDialog}
+            <OnboardingPaywallStep
+              language={language}
+              onBack={goBack}
+              onCheckout={handlePaywallCheckout}
+              onRestorePurchases={handlePaywallRestore}
+              onRedeemPromoCode={() => {
+                lightTap();
+                startPaywallPromoRedeem();
+              }}
+              onSignOut={async () => {
+                await signOut();
+              }}
+              isCheckoutLoading={paywallCheckoutLoading}
+              isRestoreLoading={paywallRestoreLoading}
+              isPromoRedeemLoading={paywallPromoRedeemLoading}
+              storePrices={storePrices}
+              storePricesLoading={storePricesLoading}
+              storePricesError={storePricesError}
+              onReloadStorePrices={reloadStorePrices}
+              trialEligible={resolveTrialEligibleFromLocal()}
+              showRestorePurchases
+            />
+          </>
         );
 
       case "premium-hint": {
@@ -4646,7 +4698,7 @@ export const OnboardingFlow = ({ onComplete, initialStep: initialStepOverride }:
               </div>
             </motion.div>
           )}
-          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "data-consent", "referral-code", "macro-preview"].includes(currentStep) && (
+          {!["name-input", "welcome", "fridge-intro", "scan-feedback", "weekly-plan", "premium-hint", "celebration", "done", "analyzing", "tutorial", "save-progress", "paywall", "splash", "gender", "birthdate", "weight", "height", "activity", "main-goal", "target-weight", "goal-preview", "speed-select", "health-goals", "dietary-preferences", "allergies", "weekly-plan-preview", "scan-fridge", "shopping-list", "notification-prefs", "referral-code", "macro-preview"].includes(currentStep) && (
             <motion.div
               className="w-full max-w-md shrink-0 px-4 pt-2 pb-8"
               initial={{ opacity: 0, y: 24 }}

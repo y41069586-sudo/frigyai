@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   savePendingReferralCode,
   redeemReferralCode,
@@ -32,7 +31,6 @@ type StepPhase = "input" | "validating" | "check" | "success";
 
 export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
   const { language } = useLanguage();
-  const { session, checkSubscription } = useAuth();
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [phase, setPhase] = useState<StepPhase>("input");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -65,6 +63,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       title: "EIN FREUND LÄDT DICH EIN",
       label: "Empfehlungscode",
       invalid: "Ungültig",
+      empty: "Bitte Code eingeben oder „Nicht jetzt“ wählen",
       successTitle: "Code erkannt!",
       successBody: "Dein Partner wurde gespeichert. Als Nächstes wählst du dein Premium-Abo.",
       skip: "Nicht jetzt",
@@ -75,6 +74,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       title: "A FRIEND INVITED YOU",
       label: "Referral code",
       invalid: "Invalid",
+      empty: "Enter a code or choose “Not now”",
       successTitle: "Code recognized!",
       successBody: "Your partner was saved. Next, choose your Premium subscription.",
       skip: "Not now",
@@ -85,6 +85,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       title: "UN AMI T'INVITE",
       label: "Code de parrainage",
       invalid: "Invalide",
+      empty: "Saisis un code ou choisis « Pas maintenant »",
       successTitle: "Code reconnu !",
       successBody: "Ton partenaire est enregistré. Ensuite, choisis ton abonnement Premium.",
       skip: "Pas maintenant",
@@ -127,22 +128,23 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
       savePendingReferralCode(value);
       const partner = result.influencer_name;
 
-      if (session?.access_token) {
-        const redeem = await redeemReferralCode(session.access_token, value);
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (accessToken) {
+        const redeem = await redeemReferralCode(accessToken, value);
         validatingRef.current = false;
         if (!redeem.success && !redeem.already_redeemed) {
           setPhase("input");
           setFieldError(t.invalid);
           return;
         }
-        void checkSubscription();
       } else {
         validatingRef.current = false;
       }
 
       runSuccessFlow(partner);
     },
-    [session?.access_token, runSuccessFlow, t.invalid, checkSubscription],
+    [runSuccessFlow, t.invalid],
   );
 
   useEffect(() => {
@@ -151,10 +153,21 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
     }
   }, [codeValue, phase, fieldError, validateAndProceed]);
 
+  const handleSkip = () => {
+    if (phase === "success" || phase === "check" || phase === "validating") return;
+    setFieldError(null);
+    onNext?.();
+  };
+
   const handleWeiter = () => {
     if (phase === "success" || phase === "check" || phase === "validating") return;
 
-    if (codeValue.length === 0 || codeValue.length < CODE_LENGTH) {
+    if (codeValue.length === 0) {
+      setFieldError(t.empty);
+      return;
+    }
+
+    if (codeValue.length < CODE_LENGTH) {
       setFieldError(t.invalid);
       return;
     }
@@ -364,7 +377,7 @@ export function ReferralCodeStep({ onBack, onNext }: ReferralCodeStepProps) {
           <div className="flex w-full overflow-hidden rounded-[25px] border-[3px] border-neutral-950 bg-white">
             <button
               type="button"
-              onClick={onNext}
+              onClick={handleSkip}
               disabled={phase === "validating" || phase === "check"}
               className="flex h-[54px] min-w-0 flex-1 items-center justify-center bg-white px-3 text-[17px] font-medium tracking-[-0.02em] text-neutral-950 disabled:opacity-50"
             >

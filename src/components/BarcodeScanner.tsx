@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Camera, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { notifyOverlayOpen } from '@/lib/overlayEvents';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { supabase } from '@/integrations/supabase/client';
+import { fileToCompressedBase64, dataUrlToBase64Payload } from '@/lib/compressImage';
 
 type QuaggaApi = typeof import('@ericblade/quagga2').default;
 
@@ -52,6 +54,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [statusHint, setStatusHint] = useState<string | null>(null);
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
   const quaggaRef = useRef<QuaggaApi | null>(null);
   const detectionLockRef = useRef(false);
   const detectionHandlerRef = useRef<((data: { codeResult?: { code?: string } }) => void) | null>(null);
@@ -67,7 +70,11 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const recoverInFlightRef = useRef(false);
   const productDataRef = useRef(productData);
   const isLoadingRef = useRef(false);
+  const onFoodScannedRef = useRef(onFoodScanned);
   const startScannerRef = useRef<(options?: { silent?: boolean }) => Promise<void>>(async () => {});
+  const wasOpenRef = useRef(false);
+  const lastFailedBarcodeRef = useRef<string | null>(null);
+  const aiCameraInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     productDataRef.current = productData;
@@ -81,6 +88,10 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     isOpenRef.current = isOpen;
     notifyOverlayOpen(isOpen);
   }, [isOpen]);
+
+  useEffect(() => {
+    onFoodScannedRef.current = onFoodScanned;
+  }, [onFoodScanned]);
 
   const clearRetryTimer = useCallback(() => {
     if (retryTimerRef.current != null) {
@@ -191,67 +202,57 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     }
   }, [clearRetryTimer]);
 
-  const lookupBarcode = useCallback(
-    async (normalizedBarcode: string): Promise<NutritionInfo | null> => {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 10_000);
-        try {
-          const response = await fetch(
-            `https://world.openfoodfacts.org/api/v0/product/${normalizedBarcode}.json`,
-            { signal: controller.signal },
-          );
-          window.clearTimeout(timeoutId);
-          if (!response.ok) {
-            if (attempt === 0) {
-              await sleep(500);
-              continue;
-            }
-            return null;
-          }
-
-          const data = await response.json();
-          if (data.status !== 1 || !data.product) return null;
-
-          const p = data.product;
-          const productName = String(p.product_name_de || p.product_name || '').trim();
-          const isPowder =
-            /\b(kakaopulver|kakao|cocoa|pulver|powder|backpulver|matcha)\b/i.test(productName) &&
-            !/\b(getränk|drink|milch|milk|saft|juice)\b/i.test(productName);
-          let servingSize = Number(p.serving_quantity) || 0;
-          if (servingSize <= 0 || servingSize > 250) {
-            servingSize = isPowder ? 8 : 100;
-          } else if (isPowder && servingSize >= 40) {
-            servingSize = 8;
-          }
-          const multiplier = servingSize / 100;
-          const nutriments = p.nutriments || {};
-
-          const displayName = isPowder && /\bkakao\b/i.test(productName)
-            ? 'Kakaopulver (1 EL)'
-            : (productName || t.barcodeUnknownProduct);
-
-          return {
-            name: displayName,
-            calories: Math.round((nutriments['energy-kcal_100g'] || 0) * multiplier),
-            protein: Math.round((nutriments.proteins_100g || 0) * multiplier),
-            carbs: Math.round((nutriments.carbohydrates_100g || 0) * multiplier),
-            fat: Math.round((nutriments.fat_100g || 0) * multiplier),
-            image: p.image_front_small_url || p.image_url,
-            brand: p.brands,
-            barcode: normalizedBarcode,
-          };
-        } catch (err) {
-          window.clearTimeout(timeoutId);
-          console.warn('[BarcodeScanner] Product lookup failed:', err);
-          if (attempt === 0) {
-            await sleep(500);
-            continue;
-          }
-          return null;
-        }
-      }
+  const captureVideoFrame = useCallback((): string | null => {
+    const video = readerRef.current?.querySelector('video') as HTMLVideoElement | null;
+    if (!video || video.videoWidth < 1 || video.videoHeight < 1) return null;
+    try {
+      const maxEdge = 1280;
+      const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
+      const w = Math.round(video.videoWidth * scale);
+      const h = Math.round(video.videoHeight * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(video, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      return dataUrlToBase64Payload(dataUrl);
+    } catch {
       return null;
+    }
+  }, []);
+
+  const analyzeProductWithAI = useCallback(
+    async (barcode: string, imageBase64: string | null): Promise<NutritionInfo | null> => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined;
+
+        const body: { food?: string; imageBase64?: string } = {
+          food: `Barcode: ${barcode}`,
+        };
+        if (imageBase64) body.imageBase64 = imageBase64;
+
+        const { data, error } = await supabase.functions.invoke('analyze-food', { body, headers });
+
+        if (error || !data || data.not_found || data.error) return null;
+
+        return {
+          name: String(data.name || t.barcodeUnknownProduct),
+          calories: Number(data.calories) || 0,
+          protein: Number(data.protein) || 0,
+          carbs: Number(data.carbs) || 0,
+          fat: Number(data.fat) || 0,
+          image: data.image_url || undefined,
+          barcode,
+        };
+      } catch (err) {
+        console.warn('[BarcodeScanner] AI analysis failed:', err);
+        return null;
+      }
     },
     [t.barcodeUnknownProduct],
   );
@@ -259,7 +260,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
   const handleBarcodeDetected = useCallback(
     async (barcode: string) => {
       const normalizedBarcode = String(barcode || '').replace(/\s+/g, '').trim();
-      if (!normalizedBarcode || normalizedBarcode.length < 6 || detectionLockRef.current || productData) return;
+      if (
+        !normalizedBarcode ||
+        normalizedBarcode.length < 6 ||
+        detectionLockRef.current ||
+        productDataRef.current
+      ) {
+        return;
+      }
 
       if (lastDetectedCodeRef.current === normalizedBarcode) {
         lastDetectedHitsRef.current += 1;
@@ -275,30 +283,35 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
       let foundProduct = false;
       try {
+        // Capture the current camera frame before pausing
+        const imageBase64 = captureVideoFrame();
+
         pauseScanner();
         setIsLoading(true);
-        setStatusHint(t.barcodeLoadingProduct);
+        setStatusHint(t.barcodeAiAnalyzing);
 
-        const nutritionInfo = await lookupBarcode(normalizedBarcode);
+        if (!imageBase64) {
+          // Camera frame unavailable → show manual photo prompt
+          lastFailedBarcodeRef.current = normalizedBarcode;
+          setShowAiPrompt(true);
+          foundProduct = true;
+          return;
+        }
+
+        const nutritionInfo = await analyzeProductWithAI(normalizedBarcode, imageBase64);
 
         if (nutritionInfo) {
           foundProduct = true;
           productDataRef.current = nutritionInfo;
           setProductData(nutritionInfo);
           setStatusHint(null);
-          toast({
-            title: `✅ ${t.barcodeProductRecognized}`,
-            description: `${nutritionInfo.name} - ${nutritionInfo.calories} kcal`,
-          });
-          void onFoodScanned(nutritionInfo);
           return;
         }
 
-        setStatusHint(t.barcodeNotInDatabase);
-        toast({
-          title: t.barcodeProductNotFound,
-          description: t.barcodeHoldInFrame,
-        });
+        // AI couldn't identify → show manual photo prompt
+        lastFailedBarcodeRef.current = normalizedBarcode;
+        setShowAiPrompt(true);
+        foundProduct = true;
       } finally {
         detectionLockRef.current = false;
         setIsLoading(false);
@@ -308,7 +321,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         }
       }
     },
-    [lookupBarcode, onFoodScanned, pauseScanner, productData, resumeScanner, scheduleScannerRetry, t],
+    [analyzeProductWithAI, captureVideoFrame, pauseScanner, productData, resumeScanner, scheduleScannerRetry, t],
   );
 
   const startScanner = useCallback(
@@ -446,15 +459,14 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
           const needsNudge =
             video.videoWidth < 1 ||
-            video.readyState < 2 ||
-            !streamLive ||
-            (video.paused && document.visibilityState === 'visible');
+            (video.readyState < 2 && !streamLive) ||
+            (!streamLive && document.visibilityState === 'visible');
 
           if (needsNudge) {
             healthFailCountRef.current += 1;
             void video.play().catch(() => undefined);
             prepareMobileVideo();
-            if (healthFailCountRef.current >= 6 && !recoverInFlightRef.current) {
+            if (healthFailCountRef.current >= 10 && !recoverInFlightRef.current) {
               recoverInFlightRef.current = true;
               healthFailCountRef.current = 0;
               void (async () => {
@@ -478,7 +490,7 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
         if (generation !== startGenerationRef.current) return;
         console.warn('[BarcodeScanner] Scanner init retry:', err);
         setIsScannerActive(false);
-        setIsInitializing(true);
+        setIsInitializing(false);
         scheduleScannerRetry(retryAttempt);
       }
     },
@@ -509,11 +521,17 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
 
   useEffect(() => {
     if (!isOpen) {
+      wasOpenRef.current = false;
       void stopScanner();
       return undefined;
     }
 
+    const justOpened = !wasOpenRef.current;
+    wasOpenRef.current = true;
+    if (!justOpened) return undefined;
+
     setProductData(null);
+    productDataRef.current = null;
     setIsLoading(false);
     setIsScannerActive(false);
     setIsInitializing(true);
@@ -523,30 +541,74 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
     lastDetectedCodeRef.current = null;
     lastDetectedHitsRef.current = 0;
 
-    void startScanner();
+    void startScannerRef.current();
 
     return () => {
       void stopScanner();
     };
-  }, [isOpen, startScanner, stopScanner]);
+  }, [isOpen, stopScanner]);
+
+  const analyzeWithPhoto = async (file: File) => {
+    setShowAiPrompt(false);
+    setIsLoading(true);
+    setStatusHint(t.barcodeAiAnalyzing);
+    try {
+      const dataUrl = await fileToCompressedBase64(file, 1536, 0.88);
+      if (!dataUrl) throw new Error('compress_failed');
+      const imageBase64 = dataUrlToBase64Payload(dataUrl);
+      const nutritionInfo = await analyzeProductWithAI(
+        lastFailedBarcodeRef.current ?? '',
+        imageBase64,
+      );
+      if (nutritionInfo) {
+        productDataRef.current = nutritionInfo;
+        setProductData(nutritionInfo);
+        setStatusHint(null);
+      } else {
+        toast({ title: t.barcodeProductNotFound });
+        setStatusHint(null);
+        const resumed = await resumeScanner();
+        if (!resumed) scheduleScannerRetry(0);
+      }
+    } catch {
+      toast({ title: t.barcodeProductNotFound });
+      setStatusHint(null);
+      const resumed = await resumeScanner();
+      if (!resumed) scheduleScannerRetry(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleScanAnother = async () => {
     detectionLockRef.current = false;
+    productDataRef.current = null;
     setProductData(null);
     setIsLoading(false);
     setStatusHint(null);
+    setShowAiPrompt(false);
+    lastFailedBarcodeRef.current = null;
     const resumed = await resumeScanner();
     if (!resumed) await startScanner({ silent: true });
   };
 
+  const handleConfirmAdd = () => {
+    if (!productData) return;
+    void onFoodScanned(productData);
+  };
+
   const handleClose = () => {
+    productDataRef.current = null;
+    setProductData(null);
+    setShowAiPrompt(false);
+    lastFailedBarcodeRef.current = null;
     void stopScanner();
     onClose();
   };
 
   if (!isOpen) return null;
 
-  const showScanner = !productData;
+  const showScanner = !productData && !showAiPrompt;
   const showBusyOverlay = isLoading || isInitializing;
 
   return (
@@ -615,8 +677,15 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
                 </p>
               </div>
               <Button
-                onClick={handleScanAnother}
+                onClick={handleConfirmAdd}
                 className="w-full bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A]"
+              >
+                {t.addToTrackerBtn}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => void handleScanAnother()}
+                className="w-full"
               >
                 🔄 {t.barcodeScanNewProduct}
               </Button>
@@ -765,8 +834,56 @@ export const BarcodeScanner = ({ isOpen, onClose, onFoodScanned }: BarcodeScanne
             >
               <Loader2 className="mb-4 h-16 w-16 animate-spin text-[#75FBB2]" />
               <p className="px-6 text-center font-semibold text-white">
-                {statusHint ?? (isLoading ? t.barcodeLoadingProduct : t.barcodeHoldInFrame)}
+                {statusHint ?? (isLoading ? t.barcodeAiAnalyzing : t.barcodeHoldInFrame)}
               </p>
+            </motion.div>
+          )}
+
+          {/* AI Photo Fallback Prompt */}
+          {showAiPrompt && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 px-6"
+            >
+              <div className="w-full max-w-sm rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 p-6 flex flex-col items-center gap-4">
+                <div className="h-14 w-14 rounded-full bg-[#75FBB2]/20 flex items-center justify-center">
+                  <Camera className="h-7 w-7 text-[#75FBB2]" />
+                </div>
+                <p className="text-white font-semibold text-center text-base">
+                  {t.barcodeProductNotFound}
+                </p>
+                <p className="text-white/70 text-sm text-center">
+                  {t.barcodeAiPhotoHint}
+                </p>
+                <input
+                  ref={aiCameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void analyzeWithPhoto(file);
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  onClick={() => aiCameraInputRef.current?.click()}
+                  className="w-full bg-[#75FBB2] font-bold text-[#082013] hover:bg-[#57EE9A] h-12"
+                >
+                  <Camera className="mr-2 h-5 w-5" />
+                  {t.barcodeAiAnalyze}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => void handleScanAnother()}
+                  className="w-full text-white/70 hover:text-white hover:bg-white/10 h-10"
+                >
+                  <ScanLine className="mr-2 h-4 w-4" />
+                  {t.barcodeScanNewProduct}
+                </Button>
+              </div>
             </motion.div>
           )}
         </motion.div>

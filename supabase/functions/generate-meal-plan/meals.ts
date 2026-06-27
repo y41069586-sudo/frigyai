@@ -1,6 +1,6 @@
 import { LANG } from "./constants.ts";
 import { normNameKey } from "./normalize.ts";
-import { normalizeMealStructure, syncPlan } from "./macros.ts";
+import { normalizeMealStructure, syncDay, syncPlan } from "./macros.ts";
 import type { Lang, MacroTargets, MealPlan } from "./types.ts";
 
 export function mealSlot(si: number, mpd: number): "b" | "m" | "s" {

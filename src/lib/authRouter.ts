@@ -15,7 +15,11 @@ import {
   type AuthResult,
   type RunAuthCompletionInput,
 } from "@/lib/authCompletion";
-import { clearOnboardingOAuthPending } from "@/lib/onboardingSession";
+import {
+  clearOnboardingOAuthPending,
+  shouldDeferAuthOnboardingStartRedirect,
+  shouldDeferAuthPaywallRedirect,
+} from "@/lib/onboardingSession";
 import { peekStashedOAuthCallbackUrl } from "@/lib/oauthCallbackRecovery";
 import { isStoreBillingConfigured, prefetchStoreOfferingPrices } from "@/lib/storeBilling";
 import { usesStoreBilling } from "@/lib/billingPlatform";
@@ -95,6 +99,44 @@ export function executeAuthNavigation(
 
     if (
       result.status === "success" &&
+      result.routePhase === "onboarding_paywall" &&
+      shouldDeferAuthPaywallRedirect()
+    ) {
+      setAuthNavigationState({
+        executing: false,
+        executed: true,
+        failed: false,
+        targetRoute: null,
+        startedAt: null,
+      });
+      void supabase.auth.getSession().then(({ data }) => {
+        markAuthFlowSettled(data.session?.user?.id ?? null);
+      });
+      window.setTimeout(() => resetAuthFlow(), 0);
+      return true;
+    }
+
+    if (
+      result.status === "success" &&
+      result.routePhase === "onboarding_start" &&
+      shouldDeferAuthOnboardingStartRedirect()
+    ) {
+      setAuthNavigationState({
+        executing: false,
+        executed: true,
+        failed: false,
+        targetRoute: null,
+        startedAt: null,
+      });
+      void supabase.auth.getSession().then(({ data }) => {
+        markAuthFlowSettled(data.session?.user?.id ?? null);
+      });
+      window.setTimeout(() => resetAuthFlow(), 0);
+      return true;
+    }
+
+    if (
+      result.status === "success" &&
       (result.routePhase === "onboarding_paywall" ||
         result.routePhase === "standalone_paywall" ||
         result.routePhase === "onboarding_start") &&
@@ -164,13 +206,28 @@ export async function runStashedOAuthCompletion(options: {
   });
 }
 
+let stashedOAuthRetryTimers: number[] = [];
+let stashedOAuthRetryScheduled = false;
+
+export function clearStashedOAuthRetryTimers(): void {
+  for (const timerId of stashedOAuthRetryTimers) {
+    window.clearTimeout(timerId);
+  }
+  stashedOAuthRetryTimers = [];
+  stashedOAuthRetryScheduled = false;
+}
+
 export function scheduleStashedOAuthRetry(options: {
   checkSubscription: () => Promise<SubscriptionStatusLike | null>;
   navigate: NavigateFunction;
 }): void {
+  if (stashedOAuthRetryScheduled) return;
+  if (!peekStashedOAuthCallbackUrl()) return;
+
+  stashedOAuthRetryScheduled = true;
   const delays = [400, 1200, 2800];
   for (const delayMs of delays) {
-    window.setTimeout(() => {
+    const timerId = window.setTimeout(() => {
       if (!peekStashedOAuthCallbackUrl()) return;
       if (isAuthFlowRecentlySettled()) return;
       const { navigation, result } = getAuthFlowSnapshot();
@@ -179,7 +236,14 @@ export function scheduleStashedOAuthRetry(options: {
       if (isAuthCompletionPending()) return;
       void runStashedOAuthCompletion(options);
     }, delayMs);
+    stashedOAuthRetryTimers.push(timerId);
   }
+
+  const lastDelay = delays[delays.length - 1] ?? 2800;
+  window.setTimeout(() => {
+    stashedOAuthRetryScheduled = false;
+    stashedOAuthRetryTimers = [];
+  }, lastDelay + 500);
 }
 
 /** Skip duplicate redirect while pipeline or navigation is in flight. */

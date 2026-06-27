@@ -10,6 +10,8 @@ import { WeeklyPlanWidget } from "./WeeklyPlanWidget";
 import { TrackerWidget } from "./TrackerWidget";
 import { WaterWidget } from "./WaterWidget";
 import { AiChatPromptWidget } from "./AiChatPromptWidget";
+import { DailyCoachCard } from "@/components/DailyCoachCard";
+import { QuickReLogCard, type RecentMeal } from "@/components/QuickReLogCard";
 import type { MealFocusKey } from "@/lib/mealFocus";
 import { confettiBurst } from "@/lib/mobileEffects";
 import { ML_PER_WATER_GLASS } from "@/lib/waterUnits";
@@ -31,10 +33,14 @@ export type HealthDashboardProps = {
   /** Tagesziel in ml (wie auf der Wasser-Seite, Standard 2000) */
   waterGoalMl?: number;
   onWaterGlassesChange: (glasses: number) => void;
-  /** Premium: Schnellfrage unter „Heute eintragen“, öffnet den KI-Chat */
+  /** Premium: Schnellfrage unter „Heute eintragen”, öffnet den KI-Chat */
   aiChatEnabled?: boolean;
   onAiChatPromptSubmit?: (message: string) => void;
   targetsReady?: boolean;
+  /** Opens the AI chat with an optional bootstrap message */
+  onOpenChat?: (message: string) => void;
+  /** Recent food entries for QuickReLogCard */
+  recentMeals?: RecentMeal[];
 };
 
 export function HealthDashboard({
@@ -53,15 +59,17 @@ export function HealthDashboard({
   aiChatEnabled = false,
   onAiChatPromptSubmit,
   targetsReady = true,
+  onOpenChat,
+  recentMeals = [],
 }: HealthDashboardProps) {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const storageVersion = useFrigyStorageSnapshot();
-  const lng = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
+  const safeLanguage = (["de", "en", "fr"] as const).includes(language as "de" | "en" | "fr")
     ? (language as "de" | "en" | "fr")
     : "de";
+  const storageVersion = useFrigyStorageSnapshot();
 
-  const weekPreview = useMemo(() => getWeekPlanPreviewFromStorage(lng), [storageVersion, lng]);
+  const weekPreview = useMemo(() => getWeekPlanPreviewFromStorage(safeLanguage), [storageVersion, safeLanguage]);
   const currentWaterMl = waterGlasses * ML_PER_GLASS;
 
   const handleAddWater250 = useCallback(() => {
@@ -126,6 +134,29 @@ export function HealthDashboard({
             onAddMeal={(slot) => notifyOpenLogMeal(slot)}
             targetsReady={targetsReady}
           />
+
+          {onOpenChat && (
+            <DailyCoachCard
+              caloriesEaten={caloriesEaten}
+              targetCalories={targetCalories}
+              proteinEaten={proteinEaten}
+              targetProtein={targetProtein}
+              carbsEaten={carbsEaten}
+              targetCarbs={targetCarbs}
+              fatEaten={fatEaten}
+              targetFat={targetFat}
+              onOpenChat={onOpenChat}
+              language={safeLanguage}
+            />
+          )}
+
+          {recentMeals.length > 0 && (
+            <QuickReLogCard
+              recentMeals={recentMeals}
+              onReLog={(meal) => notifyOpenLogMeal((meal.meal_type as MealFocusKey | undefined) ?? "snack")}
+              language={safeLanguage}
+            />
+          )}
         </div>
 
         <WeeklyPlanWidget

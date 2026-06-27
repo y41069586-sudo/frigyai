@@ -106,6 +106,28 @@ public class ChottuLinkPlugin extends Plugin {
         }
     }
 
+    /**
+     * Analytics APIs are not available in com.chottulink:android-sdk 1.1.x.
+     * Deep links + server-side RevenueCat affiliate tracking still work on Android.
+     */
+    @PluginMethod
+    public void identify(PluginCall call) {
+        Log.d(TAG, "identify skipped — not supported by ChottuLink Android SDK 1.1.x");
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void trackConversion(PluginCall call) {
+        Log.d(TAG, "trackConversion skipped — not supported by ChottuLink Android SDK 1.1.x");
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void trackEvent(PluginCall call) {
+        Log.d(TAG, "trackEvent skipped — not supported by ChottuLink Android SDK 1.1.x");
+        call.resolve();
+    }
+
     private void handleDynamicLink(Intent intent) {
         final String originalUrl = intent != null && intent.getData() != null
             ? intent.getData().toString()

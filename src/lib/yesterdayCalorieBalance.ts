@@ -65,7 +65,7 @@ export function computeTodayAdjustedTargets(
   base: DailyMacroTargets,
   yesterdayDelta: number,
 ): DailyMacroTargets {
-  const adjustedCalories = Math.max(1200, Math.round(base.dailyCalories - yesterdayDelta));
+  const adjustedCalories = Math.max(800, Math.round(base.dailyCalories - yesterdayDelta));
   if (adjustedCalories === base.dailyCalories) {
     return harmonizeDailyTargets(base);
   }

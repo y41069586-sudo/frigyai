@@ -211,6 +211,9 @@ export interface ExtendedTranslations {
   barcodeCarbsLabel: string;
   barcodeFatLabel: string;
   barcodeProteinLabel: string;
+  barcodeAiAnalyze: string;
+  barcodeAiAnalyzing: string;
+  barcodeAiPhotoHint: string;
 
   scanResultGeneratePlan: string;
   scanResultGeneratePlanDesc: string;
@@ -794,6 +797,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     barcodeCarbsLabel: "Kohlenhydrate:",
     barcodeFatLabel: "Fett:",
     barcodeProteinLabel: "Protein:",
+    barcodeAiAnalyze: "Per KI analysieren",
+    barcodeAiAnalyzing: "KI analysiert Produkt…",
+    barcodeAiPhotoHint: "Foto des Produkts oder der Verpackung machen",
 
     scanResultGeneratePlan: "Wochenplan generieren",
     scanResultGeneratePlanDesc: "Aus deinen analysierten Zutaten und Makrozielen.",
@@ -1397,6 +1403,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     barcodeCarbsLabel: "Carbs:",
     barcodeFatLabel: "Fat:",
     barcodeProteinLabel: "Protein:",
+    barcodeAiAnalyze: "Analyze with AI",
+    barcodeAiAnalyzing: "AI is analyzing product…",
+    barcodeAiPhotoHint: "Take a photo of the product or packaging",
 
     scanResultGeneratePlan: "Generate weekly plan",
     scanResultGeneratePlanDesc: "From your analyzed ingredients and macro goals.",
@@ -2003,6 +2012,9 @@ export const extendedTranslations: Record<Language, ExtendedTranslations> = {
     barcodeCarbsLabel: "Glucides :",
     barcodeFatLabel: "Lipides :",
     barcodeProteinLabel: "Protéines :",
+    barcodeAiAnalyze: "Analyser avec l'IA",
+    barcodeAiAnalyzing: "L'IA analyse le produit…",
+    barcodeAiPhotoHint: "Prenez une photo du produit ou de l'emballage",
 
     scanResultGeneratePlan: "Générer le plan hebdo",
     scanResultGeneratePlanDesc: "À partir de tes ingrédients analysés et de tes objectifs macros.",
