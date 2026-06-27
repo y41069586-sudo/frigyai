@@ -185,8 +185,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
         let result = try await GIDSignIn.sharedInstance.signIn(
             withPresenting: rootVC,
             hint: nil,
-            additionalScopes: nil,
-            nonce: hashedNonce
+            additionalScopes: nil
         )
         guard let idToken = result.user.idToken?.tokenString else {
             throw AuthServiceError.missingAppleIdentityToken
