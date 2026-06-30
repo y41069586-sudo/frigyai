@@ -14,6 +14,8 @@ struct HeightStepView: View {
 
     private let cmPerInch = 2.54
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -35,13 +37,13 @@ struct HeightStepView: View {
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Wie groß bist du?")
+            FrigyMascotQuestion(lang.t("Wie groß bist du?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
 
             MintSegmentedControl(
-                options: [("metric", "Metrisch"), ("imperial", "Imperial")],
+                options: [("metric", lang.t("Metrisch")), ("imperial", lang.t("Imperial"))],
                 selected: isMetric ? "metric" : "imperial"
             ) { id in
                 let wasMetric = isMetric

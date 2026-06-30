@@ -11,6 +11,8 @@ struct MacroPreviewStepView: View {
     @State private var appeared = false
     @State private var ringDraw: Double = 0
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft,
          progress: Double,
          onBack: (() -> Void)?,
@@ -33,7 +35,7 @@ struct MacroPreviewStepView: View {
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Dein täglicher\nErnährungsplan")
+            FrigyMascotQuestion(lang.t("Dein täglicher\nErnährungsplan"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
@@ -54,7 +56,7 @@ struct MacroPreviewStepView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 13, weight: .semibold))
-                            Text("Werte anpassen")
+                            Text(lang.t("Werte anpassen"))
                                 .font(.system(size: 14, weight: .semibold))
                         }
                         .foregroundColor(FrigyBrand.primaryDeep)
@@ -71,7 +73,7 @@ struct MacroPreviewStepView: View {
                         Image(systemName: "sparkles")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
-                        Text("KI-berechnet · Basierend auf deinen Angaben")
+                        Text(lang.t("KI-berechnet · Basierend auf deinen Angaben"))
                             .font(.system(size: 13))
                             .foregroundColor(FrigyBrand.textMuted)
                     }
@@ -97,7 +99,7 @@ struct MacroPreviewStepView: View {
                         startPoint: .top, endPoint: .bottom
                     )
                     .frame(height: 32)
-                    OnboardingContinueButton("Plan starten") { onNext(draft) }
+                    OnboardingContinueButton(lang.t("Plan starten")) { onNext(draft) }
                         .padding(.horizontal, 24)
                         .padding(.bottom, 40)
                         .background(FrigyBrand.bg)
@@ -152,7 +154,7 @@ struct MacroPreviewStepView: View {
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
                         .contentTransition(.numericText())
-                    Text("kcal / Tag")
+                    Text(lang.t("kcal / Tag"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
@@ -160,11 +162,11 @@ struct MacroPreviewStepView: View {
 
             // Macro chips row
             HStack(spacing: 0) {
-                macroChip("Protein", value: draft.dailyProtein, color: Color(hex: "#FF6B6B"))
+                macroChip(lang.t("Protein"), value: draft.dailyProtein, color: Color(hex: "#FF6B6B"))
                 Divider().frame(height: 38)
-                macroChip("Kohlenhydrate", value: draft.dailyCarbs, color: Color(hex: "#FFD93D"))
+                macroChip(lang.t("Kohlenhydrate"), value: draft.dailyCarbs, color: Color(hex: "#FFD93D"))
                 Divider().frame(height: 38)
-                macroChip("Fett", value: draft.dailyFat, color: FrigyBrand.primary)
+                macroChip(lang.t("Fett"), value: draft.dailyFat, color: FrigyBrand.primary)
             }
         }
         .padding(.top, 24)
@@ -209,19 +211,19 @@ struct MacroPreviewStepView: View {
     private var macroBreakdownCard: some View {
         VStack(spacing: 0) {
             macroBarRow(
-                "Protein", icon: "flame.fill",
+                lang.t("Protein"), icon: "flame.fill",
                 value: draft.dailyProtein, pct: proteinPct,
                 color: Color(hex: "#FF6B6B"), delay: 0.38
             )
             Divider().padding(.leading, 58)
             macroBarRow(
-                "Kohlenhydrate", icon: "bolt.fill",
+                lang.t("Kohlenhydrate"), icon: "bolt.fill",
                 value: draft.dailyCarbs, pct: carbsPct,
                 color: Color(hex: "#FFD93D"), delay: 0.50
             )
             Divider().padding(.leading, 58)
             macroBarRow(
-                "Fett", icon: "drop.fill",
+                lang.t("Fett"), icon: "drop.fill",
                 value: draft.dailyFat, pct: fatPct,
                 color: FrigyBrand.primary, delay: 0.62
             )
@@ -264,7 +266,7 @@ struct MacroPreviewStepView: View {
                     Text("g")
                         .font(.system(size: 12))
                         .foregroundColor(FrigyBrand.textMuted)
-                    Text("· \(Int(pct * 100))%")
+                    Text(lang.t("· %@%%").replacingOccurrences(of: "%@", with: "\(Int(pct * 100))"))
                         .font(.system(size: 12))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
@@ -293,6 +295,7 @@ struct MacroPreviewStepView: View {
 private struct MacroEditorSheet: View {
     @Binding var draft: UserProfileDraft
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     @State private var calories: Int = 0
     @State private var protein: Int = 0
@@ -306,10 +309,10 @@ private struct MacroEditorSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    inputRow(title: "Kalorien", unit: "kcal", value: $calories, range: 800...6000, color: FrigyBrand.primaryDeep, field: .calories)
-                    inputRow(title: "Protein", unit: "g", value: $protein, range: 0...500, color: Color(hex: "#FF6B6B"), field: .protein)
-                    inputRow(title: "Kohlenhydrate", unit: "g", value: $carbs, range: 0...800, color: Color(hex: "#E0B400"), field: .carbs)
-                    inputRow(title: "Fett", unit: "g", value: $fat, range: 0...300, color: FrigyBrand.primaryDeep, field: .fat)
+                    inputRow(title: lang.t("Kalorien"), unit: "kcal", value: $calories, range: 800...6000, color: FrigyBrand.primaryDeep, field: .calories)
+                    inputRow(title: lang.t("Protein"), unit: "g", value: $protein, range: 0...500, color: Color(hex: "#FF6B6B"), field: .protein)
+                    inputRow(title: lang.t("Kohlenhydrate"), unit: "g", value: $carbs, range: 0...800, color: Color(hex: "#E0B400"), field: .carbs)
+                    inputRow(title: lang.t("Fett"), unit: "g", value: $fat, range: 0...300, color: FrigyBrand.primaryDeep, field: .fat)
 
                     Button {
                         var p = draft
@@ -320,7 +323,7 @@ private struct MacroEditorSheet: View {
                         carbs = p.dailyCarbs
                         fat = p.dailyFat
                     } label: {
-                        Text("Auf empfohlene Werte zurücksetzen")
+                        Text(lang.t("Auf empfohlene Werte zurücksetzen"))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDeep)
                     }
@@ -333,19 +336,19 @@ private struct MacroEditorSheet: View {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Fertig") { focusedField = nil }
+                    Button(lang.t("Fertig")) { focusedField = nil }
                         .fontWeight(.semibold)
                 }
             }
             .background(FrigyBrand.bg.ignoresSafeArea())
-            .navigationTitle("Plan anpassen")
+            .navigationTitle(lang.t("Plan anpassen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(lang.t("Abbrechen")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") {
+                    Button(lang.t("Fertig")) {
                         draft.dailyCalories = calories
                         draft.dailyProtein = protein
                         draft.dailyCarbs = carbs
@@ -400,6 +403,8 @@ private struct MacroEditorSheet: View {
 // MARK: - Scientific sources card
 
 private struct MacroSourcesCard: View {
+    @Environment(LanguageManager.self) private var lang
+
     private struct Source: Identifiable {
         let id = UUID()
         let name: String
@@ -407,16 +412,18 @@ private struct MacroSourcesCard: View {
         let url: String
     }
 
-    private let sources: [Source] = [
-        Source(name: "Mifflin-St Jeor Formel (BMR)", desc: "Grundumsatz-Berechnung", url: "https://pubmed.ncbi.nlm.nih.gov/2305711/"),
-        Source(name: "TDEE Aktivitätsfaktoren", desc: "Gesamtenergieverbrauch", url: "https://pubmed.ncbi.nlm.nih.gov/8878356/"),
-        Source(name: "Protein: 2g/kg Körpergewicht", desc: "ISSN Protein-Empfehlung", url: "https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8"),
-        Source(name: "Defizit: 7700 kcal/kg", desc: "Energiebilanz-Regel", url: "https://pubmed.ncbi.nlm.nih.gov/21872751/"),
-    ]
+    private var sources: [Source] {
+        [
+            Source(name: "Mifflin-St Jeor Formel (BMR)", desc: lang.t("Grundumsatz-Berechnung"), url: "https://pubmed.ncbi.nlm.nih.gov/2305711/"),
+            Source(name: lang.t("TDEE Aktivitätsfaktoren"), desc: lang.t("Gesamtenergieverbrauch"), url: "https://pubmed.ncbi.nlm.nih.gov/8878356/"),
+            Source(name: lang.t("Protein: 2g/kg Körpergewicht"), desc: lang.t("ISSN Protein-Empfehlung"), url: "https://jissn.biomedcentral.com/articles/10.1186/s12970-017-0177-8"),
+            Source(name: lang.t("Defizit: 7700 kcal/kg"), desc: lang.t("Energiebilanz-Regel"), url: "https://pubmed.ncbi.nlm.nih.gov/21872751/"),
+        ]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Berechnung basiert auf folgenden wissenschaftlichen Formeln:")
+            Text(lang.t("Berechnung basiert auf folgenden wissenschaftlichen Formeln:"))
                 .font(.system(size: 13))
                 .foregroundColor(FrigyBrand.textMuted)
                 .fixedSize(horizontal: false, vertical: true)

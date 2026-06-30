@@ -5,6 +5,8 @@ struct HowItWorksStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
@@ -20,11 +22,11 @@ struct HowItWorksStepView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("Wie es funktioniert")
+                    Text(lang.t("Wie es funktioniert"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
-                    Text("Frigy kombiniert KI-Technologie mit deinen persönlichen Daten für perfekte Ergebnisse.")
+                    Text(lang.t("Frigy kombiniert KI-Technologie mit deinen persönlichen Daten für perfekte Ergebnisse."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -33,10 +35,10 @@ struct HowItWorksStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    stepRow("1", "Profil erstellen", "Teile deine Ziele und Körperdaten")
-                    stepRow("2", "KI analysiert dich", "Frigy berechnet deine optimalen Nährwerte")
-                    stepRow("3", "Plan erhalten",   "Personalisierter Wochenplan in Sekunden")
-                    stepRow("4", "Fortschritt sehen", "Tracke täglich und erreiche dein Ziel")
+                    stepRow("1", lang.t("Profil erstellen"), lang.t("Teile deine Ziele und Körperdaten"))
+                    stepRow("2", lang.t("KI analysiert dich"), lang.t("Frigy berechnet deine optimalen Nährwerte"))
+                    stepRow("3", lang.t("Plan erhalten"),   lang.t("Personalisierter Wochenplan in Sekunden"))
+                    stepRow("4", lang.t("Fortschritt sehen"), lang.t("Tracke täglich und erreiche dein Ziel"))
                 }
                 .padding(.horizontal, 24)
             }

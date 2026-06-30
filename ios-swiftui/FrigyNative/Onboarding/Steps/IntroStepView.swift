@@ -5,6 +5,8 @@ struct IntroStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
@@ -23,11 +25,11 @@ struct IntroStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    Text("Willkommen bei Frigy")
+                    Text(lang.t("Willkommen bei Frigy"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
-                    Text("Dein persönlicher KI-Ernährungsassistent für eine gesündere Lebensweise.")
+                    Text(lang.t("Dein persönlicher KI-Ernährungsassistent für eine gesündere Lebensweise."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -36,17 +38,17 @@ struct IntroStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    pillRow("Personalisierte Ernährungspläne")
-                    pillRow("KI-gestützte Kühlschrank-Erkennung")
-                    pillRow("Automatische Einkaufsliste")
-                    pillRow("Kalorien & Makros tracken")
+                    pillRow(lang.t("Personalisierte Ernährungspläne"))
+                    pillRow(lang.t("KI-gestützte Kühlschrank-Erkennung"))
+                    pillRow(lang.t("Automatische Einkaufsliste"))
+                    pillRow(lang.t("Kalorien & Makros tracken"))
                 }
                 .padding(.horizontal, 24)
             }
 
             Spacer()
 
-            OnboardingContinueButton("Jetzt starten", action: onNext)
+            OnboardingContinueButton(lang.t("Jetzt starten"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }

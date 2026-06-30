@@ -7,6 +7,8 @@ struct LanguageSelectStepView: View {
 
     @State private var selected = "de"
 
+    @Environment(LanguageManager.self) private var lang
+
     private let languages = [
         ("de", "🇩🇪", "Deutsch"),
         ("en", "🇬🇧", "English"),
@@ -28,7 +30,7 @@ struct LanguageSelectStepView: View {
                             .font(.system(size: 34, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
-                    Text("Sprache wählen")
+                    Text(lang.t("Sprache wählen"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                 }
