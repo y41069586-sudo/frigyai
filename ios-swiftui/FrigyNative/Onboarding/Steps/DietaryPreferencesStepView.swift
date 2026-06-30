@@ -8,6 +8,8 @@ struct DietaryPreferencesStepView: View {
 
     @State private var draft: UserProfileDraft
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -16,14 +18,16 @@ struct DietaryPreferencesStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private let options: [(id: String, emoji: String, title: String)] = [
-        ("balanced",     "🥗", "Ausgewogene Ernährung"),
-        ("vegan",        "🌱", "Vegan"),
-        ("vegetarian",   "🧀", "Vegetarisch"),
-        ("keto",         "🥩", "Keto-Diät"),
-        ("low-carb",     "🥑", "Kohlenhydratarme Diät"),
-        ("paleo",        "🍖", "Paleo-Diät"),
-    ]
+    private var options: [(id: String, emoji: String, title: String)] {
+        [
+            ("balanced",     "🥗", lang.t("Ausgewogene Ernährung")),
+            ("vegan",        "🌱", lang.t("Vegan")),
+            ("vegetarian",   "🧀", lang.t("Vegetarisch")),
+            ("keto",         "🥩", lang.t("Keto-Diät")),
+            ("low-carb",     "🥑", lang.t("Kohlenhydratarme Diät")),
+            ("paleo",        "🍖", lang.t("Paleo-Diät")),
+        ]
+    }
 
     private var selectedId: String? { draft.dietaryPreferences.first }
     private var canProceed: Bool { selectedId != nil }
@@ -31,7 +35,7 @@ struct DietaryPreferencesStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            FrigyMascotQuestion("Wie ist dein Ernährungsziel?")
+            FrigyMascotQuestion(lang.t("Wie ist dein Ernährungsziel?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

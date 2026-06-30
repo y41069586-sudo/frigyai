@@ -7,49 +7,51 @@ struct GenericInfoStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     private var title: String {
         switch step {
-        case .welcome:          return "Willkommen bei Frigy!"
-        case .goal:             return "Was ist dein Ziel?"
-        case .motivation:       return "Was motiviert dich?"
-        case .successStats:     return "Andere schaffen es — du auch!"
-        case .tutorialTransition: return "So funktioniert Frigy"
-        case .fridgeIntro:      return "Dein Kühlschrank"
-        case .scanFeedback:     return "KI-Scan Feedback"
-        case .howItWorks:       return "Wie es funktioniert"
-        case .permissions:      return "Berechtigungen"
-        case .notificationPrefs: return "Erinnerungen"
-        case .weeklyPlan:       return "Dein Wochenplan"
-        case .comparison:       return "Vergleich"
-        case .transformation:   return "Deine Transformation"
-        case .tutorial:         return "Kurzes Tutorial"
-        case .trackerIntro:     return "Mahlzeiten tracken"
-        case .bodyBasics:       return "Körperdaten"
-        case .intro:            return "Einführung"
-        case .weeklyPlanPreview: return "Dein Plan ist bereit"
-        case .scanFridge:       return "Kühlschrank scannen"
-        case .shoppingList:     return "Einkaufsliste"
-        case .cookingTime:      return "Wie viel Zeit zum Kochen?"
-        case .cookingExperience: return "Kochkenntnisse"
-        case .planningSetup:    return "Planung einrichten"
-        case .goalMode:         return "Ziel-Modus"
-        case .goalSelection:    return "Zielauswahl"
-        case .appModeChoice:    return "Modus wählen"
-        case .spontanMode1, .spontanMode2: return "Spontan-Modus"
-        case .structuredMode1, .structuredMode2, .structuredMode3: return "Strukturierter Modus"
-        case .profileSetup:     return "Profil einrichten"
-        case .premiumHint:      return "Frigy Premium"
-        case .languageSelect:   return "Sprache wählen"
+        case .welcome:          return lang.t("Willkommen bei Frigy!")
+        case .goal:             return lang.t("Was ist dein Ziel?")
+        case .motivation:       return lang.t("Was motiviert dich?")
+        case .successStats:     return lang.t("Andere schaffen es — du auch!")
+        case .tutorialTransition: return lang.t("So funktioniert Frigy")
+        case .fridgeIntro:      return lang.t("Dein Kühlschrank")
+        case .scanFeedback:     return lang.t("KI-Scan Feedback")
+        case .howItWorks:       return lang.t("Wie es funktioniert")
+        case .permissions:      return lang.t("Berechtigungen")
+        case .notificationPrefs: return lang.t("Erinnerungen")
+        case .weeklyPlan:       return lang.t("Dein Wochenplan")
+        case .comparison:       return lang.t("Vergleich")
+        case .transformation:   return lang.t("Deine Transformation")
+        case .tutorial:         return lang.t("Kurzes Tutorial")
+        case .trackerIntro:     return lang.t("Mahlzeiten tracken")
+        case .bodyBasics:       return lang.t("Körperdaten")
+        case .intro:            return lang.t("Einführung")
+        case .weeklyPlanPreview: return lang.t("Dein Plan ist bereit")
+        case .scanFridge:       return lang.t("Kühlschrank scannen")
+        case .shoppingList:     return lang.t("Einkaufsliste")
+        case .cookingTime:      return lang.t("Wie viel Zeit zum Kochen?")
+        case .cookingExperience: return lang.t("Kochkenntnisse")
+        case .planningSetup:    return lang.t("Planung einrichten")
+        case .goalMode:         return lang.t("Ziel-Modus")
+        case .goalSelection:    return lang.t("Zielauswahl")
+        case .appModeChoice:    return lang.t("Modus wählen")
+        case .spontanMode1, .spontanMode2: return lang.t("Spontan-Modus")
+        case .structuredMode1, .structuredMode2, .structuredMode3: return lang.t("Strukturierter Modus")
+        case .profileSetup:     return lang.t("Profil einrichten")
+        case .premiumHint:      return lang.t("Frigy Premium")
+        case .languageSelect:   return lang.t("Sprache wählen")
         default:                return step.rawValue.capitalized
         }
     }
 
     private var subtitle: String? {
         switch step {
-        case .welcome:      return "Lass uns gemeinsam deine Ernährung verbessern."
-        case .successStats: return "Tausende Nutzer haben bereits ihr Ziel erreicht."
-        case .weeklyPlan, .weeklyPlanPreview: return "KI erstellt deinen personalisierten Wochenplan."
-        case .scanFridge:   return "Scanne deinen Kühlschrank und wir schlagen Rezepte vor."
+        case .welcome:      return lang.t("Lass uns gemeinsam deine Ernährung verbessern.")
+        case .successStats: return lang.t("Tausende Nutzer haben bereits ihr Ziel erreicht.")
+        case .weeklyPlan, .weeklyPlanPreview: return lang.t("KI erstellt deinen personalisierten Wochenplan.")
+        case .scanFridge:   return lang.t("Scanne deinen Kühlschrank und wir schlagen Rezepte vor.")
         default:            return nil
         }
     }

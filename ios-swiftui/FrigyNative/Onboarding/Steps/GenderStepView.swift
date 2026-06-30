@@ -8,6 +8,8 @@ struct GenderStepView: View {
 
     @State private var draft: UserProfileDraft
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -20,7 +22,7 @@ struct GenderStepView: View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question header
             VStack(alignment: .leading, spacing: 0) {
-                FrigyMascotQuestion("Was ist dein biologisches Geschlecht?")
+                FrigyMascotQuestion(lang.t("Was ist dein biologisches Geschlecht?"))
                     .padding(.horizontal, 20)
                     .padding(.top, 4)
                     .padding(.bottom, 12)
@@ -33,13 +35,13 @@ struct GenderStepView: View {
                 genderCard(
                     id: "male",
                     symbol: "♂",
-                    label: "Männlich",
+                    label: lang.t("Männlich"),
                     badgeColors: [Color(hex: "#7DD3FC"), Color(hex: "#3B82F6")]
                 )
                 genderCard(
                     id: "female",
                     symbol: "♀",
-                    label: "Weiblich",
+                    label: lang.t("Weiblich"),
                     badgeColors: [Color(hex: "#FBCFE8"), Color(hex: "#EC4899")]
                 )
             }
@@ -139,7 +141,7 @@ struct GenderStepView: View {
                         .foregroundColor(.white)
                 }
 
-                Text("Non-Binär / Divers")
+                Text(lang.t("Non-Binär / Divers"))
                     .font(.system(size: 15, weight: selected ? .bold : .semibold))
                     .foregroundColor(FrigyBrand.text.opacity(selected ? 1.0 : 0.8))
                     .tracking(-0.3)
