@@ -1586,7 +1586,7 @@ struct ChatbotView: View {
     private func clearHistory() {
         UserDefaults.standard.removeObject(forKey: Self.historyKey)
         contextSent = false
-        messages = [("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?")]
+        messages = [("assistant", lang.t("Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?"))]
     }
 
     private func loadNutritionContext() async {
@@ -1652,7 +1652,7 @@ struct ChatbotView: View {
             isTyping = false
             messages.append((
                 "assistant",
-                reply ?? "Ich konnte gerade keine Antwort laden. Bitte prüfe deine Verbindung und versuche es erneut."
+                reply ?? lang.t("Ich konnte gerade keine Antwort laden. Bitte prüfe deine Verbindung und versuche es erneut.")
             ))
             saveHistory()
         }
@@ -1738,31 +1738,35 @@ struct BadgeCatalogItem: Identifiable {
 }
 
 struct BadgesView: View {
-    private let catalog: [BadgeCatalogItem] = [
-        .init(id: "streak_3",  icon: "flame.fill",          name: "3-Tage-Serie",     desc: "3 Tage in Folge aktiv"),
-        .init(id: "streak_7",  icon: "bolt.fill",           name: "7-Tage-Serie",     desc: "Eine ganze Woche!"),
-        .init(id: "streak_14", icon: "flame.circle.fill",   name: "14-Tage-Serie",    desc: "Zwei starke Wochen"),
-        .init(id: "streak_30", icon: "trophy.fill",         name: "30-Tage-Serie",    desc: "Ein ganzer Monat!"),
-        .init(id: "water_goal", icon: "drop.fill",          name: "Wasserziel",       desc: "Tagesziel Wasser erreicht"),
-        .init(id: "water_week", icon: "drop.circle.fill",   name: "Hydration-Held",   desc: "7 Tage Wasserziel"),
-        .init(id: "first_scan", icon: "camera.fill",        name: "Erster Scan",      desc: "Erste Mahlzeit gescannt"),
-        .init(id: "meal_logged", icon: "fork.knife",        name: "Erste Mahlzeit",   desc: "Erste Mahlzeit getrackt"),
-        .init(id: "weight_tracked", icon: "scalemass.fill", name: "Gewicht getrackt", desc: "Erstes Gewicht erfasst"),
-        .init(id: "calorie_goal_3", icon: "target",         name: "3 Tage im Ziel",  desc: "3 Tage im Kalorienbudget"),
-        .init(id: "calorie_goal_7", icon: "diamond.fill",   name: "7 Tage im Ziel",  desc: "7 Tage im Kalorienbudget"),
-        .init(id: "protein_champion", icon: "bolt.heart.fill", name: "Protein-Champion", desc: "5× Proteinziel erreicht"),
-        .init(id: "scanner_pro", icon: "iphone",            name: "Scanner-Profi",    desc: "20 Mahlzeiten gescannt"),
-        .init(id: "weight_loss_1", icon: "arrow.down.circle.fill", name: "Erstes Kilo", desc: "1 kg abgenommen"),
-        .init(id: "weight_loss_5", icon: "medal.fill",      name: "Fünf Kilo",        desc: "5 kg abgenommen"),
-        .init(id: "calorie_week_perfect", icon: "sparkles", name: "Perfekte Woche",   desc: "7 Tage in Folge im Budget"),
-        .init(id: "comeback",   icon: "arrow.clockwise",    name: "Comeback",         desc: "Nach Pause zurück"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var catalog: [BadgeCatalogItem] {
+        [
+            .init(id: "streak_3",  icon: "flame.fill",          name: lang.t("3-Tage-Serie"),     desc: lang.t("3 Tage in Folge aktiv")),
+            .init(id: "streak_7",  icon: "bolt.fill",           name: lang.t("7-Tage-Serie"),     desc: lang.t("Eine ganze Woche!")),
+            .init(id: "streak_14", icon: "flame.circle.fill",   name: lang.t("14-Tage-Serie"),    desc: lang.t("Zwei starke Wochen")),
+            .init(id: "streak_30", icon: "trophy.fill",         name: lang.t("30-Tage-Serie"),    desc: lang.t("Ein ganzer Monat!")),
+            .init(id: "water_goal", icon: "drop.fill",          name: lang.t("Wasserziel"),       desc: lang.t("Tagesziel Wasser erreicht")),
+            .init(id: "water_week", icon: "drop.circle.fill",   name: lang.t("Hydration-Held"),   desc: lang.t("7 Tage Wasserziel")),
+            .init(id: "first_scan", icon: "camera.fill",        name: lang.t("Erster Scan"),      desc: lang.t("Erste Mahlzeit gescannt")),
+            .init(id: "meal_logged", icon: "fork.knife",        name: lang.t("Erste Mahlzeit"),   desc: lang.t("Erste Mahlzeit getrackt")),
+            .init(id: "weight_tracked", icon: "scalemass.fill", name: lang.t("Gewicht getrackt"), desc: lang.t("Erstes Gewicht erfasst")),
+            .init(id: "calorie_goal_3", icon: "target",         name: lang.t("3 Tage im Ziel"),  desc: lang.t("3 Tage im Kalorienbudget")),
+            .init(id: "calorie_goal_7", icon: "diamond.fill",   name: lang.t("7 Tage im Ziel"),  desc: lang.t("7 Tage im Kalorienbudget")),
+            .init(id: "protein_champion", icon: "bolt.heart.fill", name: lang.t("Protein-Champion"), desc: lang.t("5× Proteinziel erreicht")),
+            .init(id: "scanner_pro", icon: "iphone",            name: lang.t("Scanner-Profi"),    desc: lang.t("20 Mahlzeiten gescannt")),
+            .init(id: "weight_loss_1", icon: "arrow.down.circle.fill", name: lang.t("Erstes Kilo"), desc: lang.t("1 kg abgenommen")),
+            .init(id: "weight_loss_5", icon: "medal.fill",      name: lang.t("Fünf Kilo"),        desc: lang.t("5 kg abgenommen")),
+            .init(id: "calorie_week_perfect", icon: "sparkles", name: lang.t("Perfekte Woche"),   desc: lang.t("7 Tage in Folge im Budget")),
+            .init(id: "comeback",   icon: "arrow.clockwise",    name: lang.t("Comeback"),         desc: lang.t("Nach Pause zurück")),
+        ]
+    }
 
     @State private var unlockedTypes: Set<String> = []
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Abzeichen")
+            FrigyNavBar(title: lang.t("Abzeichen"))
 
             ScrollView(showsIndicators: false) {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
@@ -1812,10 +1816,11 @@ struct FoodEntryView: View {
     let entryId: String
     @State private var entry: LoggedMeal? = nil
     @State private var isLoading = true
+    @Environment(LanguageManager.self) private var lang
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Eintrag")
+            FrigyNavBar(title: lang.t("Eintrag"))
 
             if isLoading {
                 Spacer()
@@ -1842,10 +1847,10 @@ struct FoodEntryView: View {
                         .padding(.top, 12)
 
                         HStack(spacing: 10) {
-                            entryMacroChip("Kalorien", value: "\(meal.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
-                            entryMacroChip("Protein",  value: "\(meal.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
-                            entryMacroChip("Carbs",    value: "\(meal.carbs)",    unit: "g",    color: Color(hex: "#FBBF24"))
-                            entryMacroChip("Fett",     value: "\(meal.fat)",      unit: "g",    color: Color(hex: "#F87171"))
+                            entryMacroChip(lang.t("Kalorien"), value: "\(meal.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                            entryMacroChip(lang.t("Protein"),  value: "\(meal.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
+                            entryMacroChip(lang.t("Kohlenhydrate"), value: "\(meal.carbs)", unit: "g",  color: Color(hex: "#FBBF24"))
+                            entryMacroChip(lang.t("Fett"),     value: "\(meal.fat)",      unit: "g",    color: Color(hex: "#F87171"))
                         }
                         .padding(.horizontal, 20)
 
@@ -1858,10 +1863,10 @@ struct FoodEntryView: View {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.system(size: 44))
                         .foregroundColor(FrigyBrand.cardBorder)
-                    Text("Eintrag nicht verfügbar")
+                    Text(lang.t("Eintrag nicht verfügbar"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Dieser Lebensmitteleintrag konnte nicht geladen werden.")
+                    Text(lang.t("Dieser Lebensmitteleintrag konnte nicht geladen werden."))
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -1904,6 +1909,7 @@ struct MealDetailView: View {
     @State private var isSaving = false
     @State private var hasLogged = false
     @Environment(MainTabCoordinator.self) private var tabCoordinator
+    @Environment(LanguageManager.self) private var lang
 
     /// Generated week-plan meals are looked up by UUID from the persisted plan.
     /// Falls back to the static `FoodTemplate` lookup-by-name for any other callers.
@@ -1936,23 +1942,23 @@ struct MealDetailView: View {
                                 .multilineTextAlignment(.center)
                             HStack(spacing: 5) {
                                 Image(systemName: "clock").font(.system(size: 11))
-                                Text("\(meal.duration) Min.").font(.system(size: 13, weight: .medium))
+                                Text("\(meal.duration) \(lang.t("Min."))").font(.system(size: 13, weight: .medium))
                             }
                             .foregroundColor(FrigyBrand.textMuted)
                         }
                         .frame(maxWidth: .infinity).padding(.top, 12)
 
                         HStack(spacing: 10) {
-                            mealDetailMacroChip("Kalorien", value: "\(meal.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
-                            mealDetailMacroChip("Protein",  value: "\(meal.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
-                            mealDetailMacroChip("Carbs",    value: "\(meal.carbs)",    unit: "g",    color: Color(hex: "#FBBF24"))
-                            mealDetailMacroChip("Fett",     value: "\(meal.fat)",      unit: "g",    color: Color(hex: "#F87171"))
+                            mealDetailMacroChip(lang.t("Kalorien"), value: "\(meal.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                            mealDetailMacroChip(lang.t("Protein"),  value: "\(meal.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
+                            mealDetailMacroChip(lang.t("Kohlenhydrate"), value: "\(meal.carbs)", unit: "g",  color: Color(hex: "#FBBF24"))
+                            mealDetailMacroChip(lang.t("Fett"),     value: "\(meal.fat)",      unit: "g",    color: Color(hex: "#F87171"))
                         }
                         .padding(.horizontal, 20)
 
                         if !meal.ingredients.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
-                                Label("Zutaten", systemImage: "basket")
+                                Label(lang.t("Zutaten"), systemImage: "basket")
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(FrigyBrand.text)
                                 VStack(alignment: .leading, spacing: 6) {
@@ -1971,7 +1977,7 @@ struct MealDetailView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("Zubereitung", systemImage: "list.bullet")
+                            Label(lang.t("Zubereitung"), systemImage: "list.bullet")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
                             VStack(alignment: .leading, spacing: 14) {
@@ -1987,7 +1993,7 @@ struct MealDetailView: View {
                                                 Text(step.phase)
                                                     .font(.system(size: 10, weight: .bold))
                                                     .foregroundColor(FrigyBrand.primaryDark)
-                                                Text("· \(step.minutes) Min.")
+                                                Text("· \(step.minutes) \(lang.t("Min."))")
                                                     .font(.system(size: 10, weight: .medium))
                                                     .foregroundColor(FrigyBrand.textMuted)
                                             }
@@ -1996,7 +2002,7 @@ struct MealDetailView: View {
                                                 .foregroundColor(FrigyBrand.text)
                                                 .fixedSize(horizontal: false, vertical: true)
                                             if let tip = step.tip {
-                                                Text("Tipp: \(tip)")
+                                                Text("\(lang.t("Tipp")): \(tip)")
                                                     .font(.system(size: 12))
                                                     .foregroundColor(FrigyBrand.textMuted)
                                                     .fixedSize(horizontal: false, vertical: true)
@@ -2027,7 +2033,7 @@ struct MealDetailView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 if isSaving { ProgressView().tint(.white) }
-                                Text(isSaving ? "Wird gespeichert…" : (hasLogged ? "Geloggt ✓" : "Zu Tagebuch hinzufügen"))
+                                Text(isSaving ? lang.t("Wird gespeichert…") : (hasLogged ? lang.t("Geloggt ✓") : lang.t("Zu Tagebuch hinzufügen")))
                                     .font(.system(size: 16, weight: .bold))
                             }
                             .foregroundColor(.white)
@@ -2053,15 +2059,15 @@ struct MealDetailView: View {
                         .frame(maxWidth: .infinity).padding(.top, 12)
 
                         HStack(spacing: 10) {
-                            mealDetailMacroChip("Kalorien", value: "\(tpl.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
-                            mealDetailMacroChip("Protein",  value: "\(tpl.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
-                            mealDetailMacroChip("Carbs",    value: "\(tpl.carbs)",    unit: "g",    color: Color(hex: "#FBBF24"))
-                            mealDetailMacroChip("Fett",     value: "\(tpl.fat)",      unit: "g",    color: Color(hex: "#F87171"))
+                            mealDetailMacroChip(lang.t("Kalorien"), value: "\(tpl.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                            mealDetailMacroChip(lang.t("Protein"),  value: "\(tpl.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
+                            mealDetailMacroChip(lang.t("Kohlenhydrate"), value: "\(tpl.carbs)", unit: "g",  color: Color(hex: "#FBBF24"))
+                            mealDetailMacroChip(lang.t("Fett"),     value: "\(tpl.fat)",      unit: "g",    color: Color(hex: "#F87171"))
                         }
                         .padding(.horizontal, 20)
 
                         VStack(alignment: .leading, spacing: 10) {
-                            Label("Zubereitung", systemImage: "list.bullet")
+                            Label(lang.t("Zubereitung"), systemImage: "list.bullet")
                                 .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
                             Text(tpl.recipe)
@@ -2079,14 +2085,14 @@ struct MealDetailView: View {
                                 await TrackerDataService.shared.addFoodEntry(
                                     name: tpl.name, calories: tpl.calories,
                                     protein: tpl.protein, carbs: tpl.carbs, fat: tpl.fat,
-                                    portion: "1 Portion", category: .current()
+                                    portion: lang.t("1 Portion"), category: .current()
                                 )
                                 isSaving = false
                             }
                         } label: {
                             HStack(spacing: 8) {
                                 if isSaving { ProgressView().tint(.white) }
-                                Text(isSaving ? "Wird gespeichert…" : "Zu Tagebuch hinzufügen")
+                                Text(isSaving ? lang.t("Wird gespeichert…") : lang.t("Zu Tagebuch hinzufügen"))
                                     .font(.system(size: 16, weight: .bold))
                             }
                             .foregroundColor(.white)
@@ -2102,7 +2108,7 @@ struct MealDetailView: View {
                                 .foregroundColor(FrigyBrand.cardBorder)
                             Text(id).font(.system(size: 20, weight: .bold))
                                 .foregroundColor(FrigyBrand.text).multilineTextAlignment(.center)
-                            Text("Füge diese Mahlzeit über den + Button zu deinem Tagebuch hinzu.")
+                            Text(lang.t("Füge diese Mahlzeit über den + Button zu deinem Tagebuch hinzu."))
                                 .font(.system(size: 14)).foregroundColor(FrigyBrand.textMuted)
                                 .multilineTextAlignment(.center).padding(.horizontal, 24)
                         }
