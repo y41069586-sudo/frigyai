@@ -5,12 +5,16 @@ struct TutorialTransitionStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let features = [
-        ("1", "camera.viewfinder",   "Kühlschrank scannen",       "Foto machen – KI erkennt alle Zutaten"),
-        ("2", "calendar",            "Wochenplan erhalten",        "Personalisierte Mahlzeiten für 7 Tage"),
-        ("3", "cart.fill",           "Einkaufsliste",              "Fehlende Zutaten werden automatisch ergänzt"),
-        ("4", "chart.bar.fill",      "Fortschritt tracken",        "Kalorien & Makros im Blick behalten"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var features: [(String, String, String, String)] {
+        [
+            ("1", "camera.viewfinder",   lang.t("Kühlschrank scannen"),       lang.t("Foto machen – KI erkennt alle Zutaten")),
+            ("2", "calendar",            lang.t("Wochenplan erhalten"),        lang.t("Personalisierte Mahlzeiten für 7 Tage")),
+            ("3", "cart.fill",           lang.t("Einkaufsliste"),              lang.t("Fehlende Zutaten werden automatisch ergänzt")),
+            ("4", "chart.bar.fill",      lang.t("Fortschritt tracken"),        lang.t("Kalorien & Makros im Blick behalten")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -26,7 +30,7 @@ struct TutorialTransitionStepView: View {
                             .font(.system(size: 32, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
-                    Text("So funktioniert Frigy")
+                    Text(lang.t("So funktioniert Frigy"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
@@ -70,7 +74,7 @@ struct TutorialTransitionStepView: View {
 
             Spacer()
 
-            OnboardingContinueButton("Jetzt loslegen", action: onNext)
+            OnboardingContinueButton(lang.t("Jetzt loslegen"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }

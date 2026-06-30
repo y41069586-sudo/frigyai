@@ -7,19 +7,23 @@ struct TutorialStepView: View {
 
     @State private var currentPage = 0
 
-    private let pages: [(String, String, String)] = [
-        ("house.fill",          "Home-Dashboard",    "Tägliche Übersicht deiner Kalorien & Makros auf einen Blick."),
-        ("calendar",            "Wochenplan",        "Dein personalisierter Ernährungsplan für die ganze Woche."),
-        ("camera.viewfinder",   "Kühlschrank",       "Scanne Zutaten und erhalte passende Rezeptvorschläge."),
-        ("cart.fill",           "Einkaufsliste",     "Automatisch generierte Liste mit allem was du brauchst."),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var pages: [(String, String, String)] {
+        [
+            ("house.fill",          lang.t("Home-Dashboard"),    lang.t("Tägliche Übersicht deiner Kalorien & Makros auf einen Blick.")),
+            ("calendar",            lang.t("Wochenplan"),        lang.t("Dein personalisierter Ernährungsplan für die ganze Woche.")),
+            ("camera.viewfinder",   lang.t("Kühlschrank"),       lang.t("Scanne Zutaten und erhalte passende Rezeptvorschläge.")),
+            ("cart.fill",           lang.t("Einkaufsliste"),     lang.t("Automatisch generierte Liste mit allem was du brauchst.")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
 
             VStack(spacing: 28) {
-                Text("Kurzes Tutorial")
+                Text(lang.t("Kurzes Tutorial"))
                     .font(.system(size: 26, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
 

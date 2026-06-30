@@ -5,12 +5,16 @@ struct TrackerIntroStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let macros: [(String, String, Color)] = [
-        ("Kalorien",     "1.850 / 1.850",  FrigyBrand.primaryDark),
-        ("Protein",      "120 / 140g",     Color(hex: "#3B82F6")),
-        ("Kohlenhydrate","185 / 210g",     Color(hex: "#F59E0B")),
-        ("Fett",         "55 / 62g",       Color(hex: "#EF4444")),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var macros: [(String, String, Color)] {
+        [
+            (lang.t("Kalorien"),     "1.850 / 1.850",  FrigyBrand.primaryDark),
+            (lang.t("Protein"),      "120 / 140g",     Color(hex: "#3B82F6")),
+            (lang.t("Kohlenhydrate"),"185 / 210g",     Color(hex: "#F59E0B")),
+            (lang.t("Fett"),         "55 / 62g",       Color(hex: "#EF4444")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -26,10 +30,10 @@ struct TrackerIntroStepView: View {
                             .font(.system(size: 34, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
-                    Text("Mahlzeiten tracken")
+                    Text(lang.t("Mahlzeiten tracken"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Behalte deine Nährwerte mühelos im Blick.")
+                    Text(lang.t("Behalte deine Nährwerte mühelos im Blick."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -46,7 +50,7 @@ struct TrackerIntroStepView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "barcode.viewfinder")
                         .foregroundColor(FrigyBrand.primaryDark)
-                    Text("Barcode scannen oder Gericht suchen")
+                    Text(lang.t("Barcode scannen oder Gericht suchen"))
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
                 }

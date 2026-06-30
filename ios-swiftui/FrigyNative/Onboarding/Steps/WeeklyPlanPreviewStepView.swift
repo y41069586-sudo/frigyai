@@ -7,22 +7,26 @@ struct WeeklyPlanPreviewStepView: View {
 
     @State private var appeared = false
 
-    private let days: [(short: String, meals: [String])] = [
-        ("Mo", ["🥗 Quinoa-Bowl", "🍗 Hähnchen-Wrap"]),
-        ("Di", ["🥑 Avocado-Toast", "🍓 Beeren-Smoothie"]),
-        ("Mi", ["🐟 Lachs & Reis", "🥦 Gemüse-Curry"]),
-        ("Do", ["🍳 Rührei & Toast", "🥩 Steak-Salat"]),
-        ("Fr", ["🌯 Veggie-Wrap", "🍝 Pasta bolognese"]),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var days: [(short: String, meals: [String])] {
+        [
+            (lang.t("Mo"), [lang.t("🥗 Quinoa-Bowl"), lang.t("🍗 Hähnchen-Wrap")]),
+            (lang.t("Di"), [lang.t("🥑 Avocado-Toast"), lang.t("🍓 Beeren-Smoothie")]),
+            (lang.t("Mi"), [lang.t("🐟 Lachs & Reis"), lang.t("🥦 Gemüse-Curry")]),
+            (lang.t("Do"), [lang.t("🍳 Rührei & Toast"), lang.t("🥩 Steak-Salat")]),
+            (lang.t("Fr"), [lang.t("🌯 Veggie-Wrap"), lang.t("🍝 Pasta bolognese")]),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Dein Wochenplan, perfekt auf dich abgestimmt.")
+            FrigyMascotQuestion(lang.t("Dein Wochenplan, perfekt auf dich abgestimmt."))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 4)
 
-            Text("KI plant deine Mahlzeiten basierend auf deinem Ziel und Geschmack.")
+            Text(lang.t("KI plant deine Mahlzeiten basierend auf deinem Ziel und Geschmack."))
                 .font(.system(size: 14))
                 .foregroundColor(FrigyBrand.textMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,10 +70,10 @@ struct WeeklyPlanPreviewStepView: View {
                         .foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Mein Wochenplan")
+                    Text(lang.t("Mein Wochenplan"))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("KI-generiert · Diese Woche")
+                    Text(lang.t("KI-generiert · Diese Woche"))
                         .font(.system(size: 12))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
@@ -78,7 +82,7 @@ struct WeeklyPlanPreviewStepView: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(FrigyBrand.primaryDeep)
-                    Text("Dein Plan")
+                    Text(lang.t("Dein Plan"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(FrigyBrand.primaryDeep)
                 }

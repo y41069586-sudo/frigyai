@@ -5,12 +5,16 @@ struct TransformationStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let timeline: [(String, String, String)] = [
-        ("Woche 1",  "Gewohnheiten aufbauen",      "sparkles"),
-        ("Woche 2",  "Erste Veränderungen spüren",  "bolt.fill"),
-        ("Woche 4",  "Sichtbare Ergebnisse",         "chart.line.uptrend.xyaxis"),
-        ("Woche 8",  "Ziel erreicht!",              "trophy.fill"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var timeline: [(String, String, String)] {
+        [
+            (lang.t("Woche 1"),  lang.t("Gewohnheiten aufbauen"),      "sparkles"),
+            (lang.t("Woche 2"),  lang.t("Erste Veränderungen spüren"),  "bolt.fill"),
+            (lang.t("Woche 4"),  lang.t("Sichtbare Ergebnisse"),         "chart.line.uptrend.xyaxis"),
+            (lang.t("Woche 8"),  lang.t("Ziel erreicht!"),              "trophy.fill"),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -26,10 +30,10 @@ struct TransformationStepView: View {
                             .font(.system(size: 36, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
-                    Text("Deine Transformation")
+                    Text(lang.t("Deine Transformation"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Schritt für Schritt zu deinem Ziel")
+                    Text(lang.t("Schritt für Schritt zu deinem Ziel"))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
@@ -70,7 +74,7 @@ struct TransformationStepView: View {
 
             Spacer()
 
-            OnboardingContinueButton("Ich bin dabei!", action: onNext)
+            OnboardingContinueButton(lang.t("Ich bin dabei!"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }
