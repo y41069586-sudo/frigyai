@@ -179,27 +179,39 @@ final class SupabaseAuthService: AuthServiceProtocol {
         // Supabase re-hashes the raw nonce we pass and compares. Both sides must
         // either supply a nonce or neither — otherwise Supabase rejects the token
         // with "passed nonce and nonce in id_token should either both exist or not".
+        // Only the completion-handler signIn overload exposes the `nonce:` argument
+        // (the async-bridged variant does not), so we wrap it in a continuation.
         let rawNonce = randomNonceString()
         let hashedNonce = sha256(rawNonce)
 
-        let result = try await GIDSignIn.sharedInstance.signIn(
-            withPresenting: rootVC,
-            hint: nil,
-            additionalScopes: nil
-        )
+        let result: GIDSignInResult = try await withCheckedThrowingContinuation { continuation in
+            GIDSignIn.sharedInstance.signIn(
+                withPresenting: rootVC,
+                hint: nil,
+                additionalScopes: nil,
+                nonce: hashedNonce
+            ) { signInResult, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let signInResult {
+                    continuation.resume(returning: signInResult)
+                } else {
+                    continuation.resume(throwing: AuthServiceError.oauthStartFailed)
+                }
+            }
+        }
         guard let idToken = result.user.idToken?.tokenString else {
             throw AuthServiceError.missingAppleIdentityToken
         }
         let accessToken = result.user.accessToken.tokenString
 
         _ = try await client.auth.signInWithIdToken(
-    credentials: OpenIDConnectCredentials(
-        provider: .google,
-        idToken: idToken,
-        accessToken: accessToken
-   
-
-             )
+            credentials: OpenIDConnectCredentials(
+                provider: .google,
+                idToken: idToken,
+                accessToken: accessToken,
+                nonce: rawNonce
+            )
         )
     }
 
