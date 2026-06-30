@@ -75,6 +75,7 @@ extension Notification.Name {
 
 struct MealPlansView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
+    @Environment(LanguageManager.self) private var lang
 
     @State private var weekPlan: [DayPlan] = Self.loadSavedPlan()
     @State private var isGenerating = false
@@ -194,10 +195,10 @@ struct MealPlansView: View {
 
     private var planTemplatesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Mahlzeit-Vorlagen")
+            Text(lang.t("Mahlzeit-Vorlagen"))
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(FrigyBrand.text)
-            Text("Tippe auf eine Vorlage, um das Rezept und Nährwerte zu sehen.")
+            Text(lang.t("Tippe auf eine Vorlage, um das Rezept und Nährwerte zu sehen."))
                 .font(.system(size: 12))
                 .foregroundColor(FrigyBrand.textMuted)
 

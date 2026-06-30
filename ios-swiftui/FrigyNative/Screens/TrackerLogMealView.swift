@@ -3,6 +3,7 @@ import UIKit
 
 struct TrackerLogMealView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     let preselectedCategory: MealCategory?
 
@@ -36,7 +37,7 @@ struct TrackerLogMealView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "xmark")
                             .font(.system(size: 15, weight: .semibold))
-                        Text("Schließen")
+                        Text(lang.t("Schließen"))
                             .font(.system(size: 15, weight: .medium))
                     }
                     .foregroundColor(FrigyBrand.primaryDark)
@@ -44,7 +45,7 @@ struct TrackerLogMealView: View {
                 .buttonStyle(.plain)
                 .frame(width: 100, alignment: .leading)
                 Spacer()
-                Text("\(selectedCategory.rawValue) tracken")
+                Text(lang.t(selectedCategory.rawValue) + " " + lang.t("tracken"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
@@ -58,7 +59,7 @@ struct TrackerLogMealView: View {
                 Image(systemName: isSearching ? "hourglass" : "magnifyingglass")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(FrigyBrand.textMuted)
-                TextField("Lebensmittel suchen...", text: $searchText)
+                TextField(lang.t("Lebensmittel suchen..."), text: $searchText)
                     .font(.system(size: 15))
                     .foregroundColor(FrigyBrand.text)
                 if !searchText.isEmpty {

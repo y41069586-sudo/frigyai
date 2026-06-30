@@ -106,6 +106,8 @@ enum ShoppingListStore {
 // MARK: - View
 
 struct ShoppingListView: View {
+    @Environment(LanguageManager.self) private var lang
+
     @State private var items: [ShoppingItem] = ShoppingListStore.load()
     @State private var newItemName = ""
     @State private var showAddSheet = false
@@ -123,7 +125,7 @@ struct ShoppingListView: View {
                 // Header
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Einkaufsliste")
+                        Text(lang.t("Einkaufsliste"))
                             .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundColor(FrigyBrand.text)
                         Text("\(unchecked.count) von \(items.count) Artikeln übrig")
@@ -136,7 +138,7 @@ struct ShoppingListView: View {
                             Text(String(format: "%.2f €", totalPrice))
                                 .font(.system(size: 20, weight: .black, design: .rounded))
                                 .foregroundColor(FrigyBrand.primaryDark)
-                            Text("geschätzt")
+                            Text(lang.t("geschätzt"))
                                 .font(.system(size: 11))
                                 .foregroundColor(FrigyBrand.textMuted)
                         }
@@ -163,7 +165,7 @@ struct ShoppingListView: View {
                 if !items.isEmpty {
                     VStack(spacing: 6) {
                         HStack {
-                            Text("\(Int(progress * 100))% erledigt")
+                            Text("\(Int(progress * 100))% " + lang.t("erledigt"))
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(FrigyBrand.primaryDark)
                             Spacer()
@@ -201,7 +203,7 @@ struct ShoppingListView: View {
                 // Checked items
                 if !checked.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Erledigt (\(checked.count))")
+                        Text(lang.t("Erledigt") + " (\(checked.count))")
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(FrigyBrand.textMuted)
                             .padding(.horizontal, 20)
@@ -217,7 +219,7 @@ struct ShoppingListView: View {
                             items.removeAll { $0.isChecked }
                             ShoppingListStore.saveAndSync(items)
                         } label: {
-                            Label("Erledigte entfernen", systemImage: "trash")
+                            Label(lang.t("Erledigte entfernen"), systemImage: "trash")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(hex: "#EF4444"))
                                 .padding(.horizontal, 14)
@@ -241,10 +243,10 @@ struct ShoppingListView: View {
                         Image(systemName: "cart.badge.checkmark")
                             .font(.system(size: 44))
                             .foregroundColor(FrigyBrand.cardBorder)
-                        Text("Einkaufsliste ist leer")
+                        Text(lang.t("Einkaufsliste ist leer"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(FrigyBrand.textMuted)
-                        Text("Tippe auf +, um Artikel hinzuzufügen, oder generiere eine Liste aus deinem Wochenplan.")
+                        Text(lang.t("Tippe auf +, um Artikel hinzuzufügen, oder generiere eine Liste aus deinem Wochenplan."))
                             .font(.system(size: 13))
                             .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)

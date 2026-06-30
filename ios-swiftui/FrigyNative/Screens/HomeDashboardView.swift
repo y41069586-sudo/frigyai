@@ -67,6 +67,7 @@ enum MealCategory: String, CaseIterable, Codable {
 struct HomeDashboardView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
     @Environment(AppRouter.self) private var router
+    @Environment(LanguageManager.self) private var lang
 
     @State private var meals: [LoggedMeal] = []
     // Macro targets loaded from Supabase (user_tracker_settings); default until loaded.
@@ -151,7 +152,7 @@ struct HomeDashboardView: View {
             let settings = await center.notificationSettings()
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
             let content = UNMutableNotificationContent()
-            content.title = "⚠️ Gestern warst du im Kalorienüberschuss"
+            content.title = lang.t("⚠️ Gestern warst du im Kalorienüberschuss")
             content.body = "Du hast gestern \(over) kcal zu viel gegessen. Passe deinen heutigen Plan an!"
             content.sound = .default
             var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
@@ -247,14 +248,14 @@ struct HomeDashboardView: View {
                     Image(systemName: "wifi.exclamationmark")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(Color(hex: "#EF4444"))
-                    Text("Daten konnten nicht geladen werden.")
+                    Text(lang.t("Daten konnten nicht geladen werden."))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(FrigyBrand.text)
                     Spacer()
                     Button {
                         Task { await reload() }
                     } label: {
-                        Text("Erneut")
+                        Text(lang.t("Erneut"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
@@ -326,7 +327,7 @@ struct HomeDashboardView: View {
     private var calorieCard: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Text("HEUTE")
+                Text(lang.t("HEUTE"))
                     .font(.system(size: 12, weight: .bold))
                     .tracking(1.5)
                     .foregroundColor(FrigyBrand.primaryDark.opacity(0.75))
@@ -347,8 +348,8 @@ struct HomeDashboardView: View {
                         .foregroundColor(isOverBudget ? surplusColor : FrigyBrand.text)
                 }
                 Text(isOverBudget
-                     ? "über dem Tagesziel von \(fmt(targets.calories)) kcal"
-                     : "übrig von \(fmt(targets.calories)) kcal")
+                     ? lang.t("über dem Tagesziel von") + " \(fmt(targets.calories)) kcal"
+                     : lang.t("übrig von") + " \(fmt(targets.calories)) kcal")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(isOverBudget ? surplusColor.opacity(0.75) : FrigyBrand.textMuted)
             }
@@ -376,12 +377,12 @@ struct HomeDashboardView: View {
                 .frame(height: 8)
 
                 HStack {
-                    Text("\(fmt(consumed.kcal)) Gegessen")
+                    Text("\(fmt(consumed.kcal)) " + lang.t("Gegessen"))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(isOverBudget ? surplusColor.opacity(0.75) : FrigyBrand.textMuted)
                     Spacer()
                     Text(isOverBudget
-                         ? (isLightSurplus ? "Leichter Überschuss" : "Überschuss!")
+                         ? (isLightSurplus ? lang.t("Leichter Überschuss") : lang.t("Überschuss!"))
                          : "\(caloriePct)%")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(isOverBudget ? surplusColor : FrigyBrand.primaryDark)
@@ -435,12 +436,12 @@ struct HomeDashboardView: View {
     private var mealSlotsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .lastTextBaseline) {
-                Text("Heute")
+                Text(lang.t("Heute"))
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
                 Button { tabCoordinator.openTracker() } label: {
-                    Text("Schnell hinzufügen")
+                    Text(lang.t("Schnell hinzufügen"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(FrigyBrand.textMuted)
                 }

@@ -234,7 +234,7 @@ struct ProfileView: View {
                     .padding(.horizontal, 20)
 
                     Button { showDeleteConfirm = true } label: {
-                        Text(isDeletingAccount ? "Wird gelöscht…" : lang.t("Konto löschen"))
+                        Text(isDeletingAccount ? lang.t("Wird gelöscht…") : lang.t("Konto löschen"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(FrigyBrand.textMuted)
                     }
@@ -259,11 +259,11 @@ struct ProfileView: View {
             }
         }
         .confirmationDialog(
-            "Konto wirklich löschen?",
+            lang.t("Konto wirklich löschen?"),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button("Konto löschen", role: .destructive) {
+            Button(lang.t("Konto löschen"), role: .destructive) {
                 Task {
                     isDeletingAccount = true
                     // Delete server-side account + data first (auth user, DB rows).
@@ -279,14 +279,14 @@ struct ProfileView: View {
                     }
                 }
             }
-            Button("Abbrechen", role: .cancel) {}
+            Button(lang.t("Abbrechen"), role: .cancel) {}
         } message: {
-            Text("Dein Konto und alle lokalen Daten werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.")
+            Text(lang.t("Dein Konto und alle lokalen Daten werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."))
         }
-        .alert("Serverdaten konnten nicht gelöscht werden", isPresented: $accountDeleteFailed) {
+        .alert(lang.t("Serverdaten konnten nicht gelöscht werden"), isPresented: $accountDeleteFailed) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Du wurdest abgemeldet und lokale Daten wurden entfernt, aber dein Konto auf dem Server konnte nicht gelöscht werden. Bitte versuche es später erneut oder kontaktiere den Support.")
+            Text(lang.t("Du wurdest abgemeldet und lokale Daten wurden entfernt, aber dein Konto auf dem Server konnte nicht gelöscht werden. Bitte versuche es später erneut oder kontaktiere den Support."))
         }
     }
 
