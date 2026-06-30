@@ -188,8 +188,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
             GIDSignIn.sharedInstance.signIn(
                 withPresenting: rootVC,
                 hint: nil,
-                additionalScopes: nil,
-                nonce: hashedNonce
+                additionalScopes: nil
             ) { signInResult, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -375,7 +374,7 @@ private enum AuthPresentationAnchor {
 }
 
 private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private nonisolated(unsafe) let completion: @Sendable (Result<ASAuthorizationAppleIDCredential, Error>) -> Void
+    private let completion: @Sendable (Result<ASAuthorizationAppleIDCredential, Error>) -> Void
 
     nonisolated init(completion: @escaping @Sendable (Result<ASAuthorizationAppleIDCredential, Error>) -> Void) {
         self.completion = completion
