@@ -6,6 +6,8 @@ struct CelebrationStepView: View {
     @State private var appeared = false
     @State private var particlePhase: Double = 0
 
+    @Environment(LanguageManager.self) private var lang
+
     private let particles: [Particle] = (0..<18).map { i in
         Particle(
             xOffset: CGFloat.random(in: -160...160),
@@ -91,12 +93,12 @@ struct CelebrationStepView: View {
 
                 // Text block
                 VStack(spacing: 12) {
-                    Text("Dein Plan ist fertig!")
+                    Text(lang.t("Dein Plan ist fertig!"))
                         .font(.system(size: 28, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
 
-                    Text("Alles ist eingerichtet. Starte jetzt\ndeine Reise zu einem gesünderen Ich.")
+                    Text(lang.t("Alles ist eingerichtet. Starte jetzt\ndeine Reise zu einem gesünderen Ich."))
                         .font(.system(size: 16))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -108,7 +110,7 @@ struct CelebrationStepView: View {
 
                 Spacer()
 
-                OnboardingContinueButton("Frigy starten", action: onNext)
+                OnboardingContinueButton(lang.t("Frigy starten"), action: onNext)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 48)
                     .opacity(appeared ? 1 : 0)

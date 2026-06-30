@@ -7,18 +7,22 @@ struct CookingExperienceStepView: View {
 
     @State private var selected: String? = nil
 
-    private let options = [
-        ("beginner",      "1.circle.fill",    "Anfänger",         "Einfache Rezepte mit wenigen Zutaten"),
-        ("intermediate",  "2.circle.fill",    "Fortgeschritten",  "Ich koche gerne & experimentiere"),
-        ("expert",        "3.circle.fill",    "Profi",            "Komplexe Gerichte & Techniken"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var options: [(String, String, String, String)] {
+        [
+            ("beginner",      "1.circle.fill",    lang.t("Anfänger"),         lang.t("Einfache Rezepte mit wenigen Zutaten")),
+            ("intermediate",  "2.circle.fill",    lang.t("Fortgeschritten"),  lang.t("Ich koche gerne & experimentiere")),
+            ("expert",        "3.circle.fill",    lang.t("Profi"),            lang.t("Komplexe Gerichte & Techniken")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
 
             VStack(spacing: 28) {
-                OnboardingQuestion(text: "Wie sind deine Kochkenntnisse?")
+                OnboardingQuestion(text: lang.t("Wie sind deine Kochkenntnisse?"))
 
                 VStack(spacing: 10) {
                     ForEach(options, id: \.0) { opt in

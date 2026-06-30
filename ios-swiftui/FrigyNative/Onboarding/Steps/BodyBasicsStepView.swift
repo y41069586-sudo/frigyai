@@ -5,6 +5,8 @@ struct BodyBasicsStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
@@ -20,10 +22,10 @@ struct BodyBasicsStepView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("Körperdaten")
+                    Text(lang.t("Körperdaten"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Damit Frigy deinen persönlichen Kalorienbedarf genau berechnen kann.")
+                    Text(lang.t("Damit Frigy deinen persönlichen Kalorienbedarf genau berechnen kann."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -32,17 +34,17 @@ struct BodyBasicsStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    dataRow("scalemass.fill",    "Aktuelles Gewicht",  "Ausgangspunkt für deinen Plan")
-                    dataRow("ruler.fill",         "Körpergröße",        "Für den BMI-Berechnung")
-                    dataRow("calendar.circle",    "Alter",              "Beeinflusst deinen Stoffwechsel")
-                    dataRow("person.fill",        "Geschlecht",         "Für genaue Kalorienberechnung")
+                    dataRow("scalemass.fill",    lang.t("Aktuelles Gewicht"),  lang.t("Ausgangspunkt für deinen Plan"))
+                    dataRow("ruler.fill",         lang.t("Körpergröße"),        lang.t("Für den BMI-Berechnung"))
+                    dataRow("calendar.circle",    lang.t("Alter"),              lang.t("Beeinflusst deinen Stoffwechsel"))
+                    dataRow("person.fill",        lang.t("Geschlecht"),         lang.t("Für genaue Kalorienberechnung"))
                 }
                 .padding(.horizontal, 24)
             }
 
             Spacer()
 
-            OnboardingContinueButton("Verstanden", action: onNext)
+            OnboardingContinueButton(lang.t("Verstanden"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }

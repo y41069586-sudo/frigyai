@@ -5,41 +5,43 @@ struct ComparisonStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
 
             VStack(spacing: 24) {
-                Text("Mit & ohne Frigy")
+                Text(lang.t("Mit & ohne Frigy"))
                     .font(.system(size: 26, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                     .multilineTextAlignment(.center)
 
                 HStack(spacing: 12) {
                     comparisonCard(
-                        title: "Ohne Frigy",
+                        title: lang.t("Ohne Frigy"),
                         color: Color(hex: "#EF4444"),
                         bgColor: Color(hex: "#FEF2F2"),
                         borderColor: Color(hex: "#FCA5A5"),
                         icon: "xmark.circle.fill",
                         items: [
-                            "Unstrukturiert essen",
-                            "Keine Übersicht",
-                            "Zeitaufwändiges Planen",
-                            "Lebensmittel vergessen",
+                            lang.t("Unstrukturiert essen"),
+                            lang.t("Keine Übersicht"),
+                            lang.t("Zeitaufwändiges Planen"),
+                            lang.t("Lebensmittel vergessen"),
                         ]
                     )
                     comparisonCard(
-                        title: "Mit Frigy",
+                        title: lang.t("Mit Frigy"),
                         color: FrigyBrand.primaryDark,
                         bgColor: FrigyBrand.selectedBg,
                         borderColor: FrigyBrand.borderMint,
                         icon: "checkmark.circle.fill",
                         items: [
-                            "Klarer Wochenplan",
-                            "Makros im Blick",
-                            "Automatisch planen",
-                            "Einkauf optimiert",
+                            lang.t("Klarer Wochenplan"),
+                            lang.t("Makros im Blick"),
+                            lang.t("Automatisch planen"),
+                            lang.t("Einkauf optimiert"),
                         ]
                     )
                 }

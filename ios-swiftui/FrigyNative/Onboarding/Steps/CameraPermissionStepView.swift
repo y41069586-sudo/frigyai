@@ -9,10 +9,12 @@ struct CameraPermissionStepView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var ringOpacity: Double = 0.3
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             VStack(spacing: 0) {
-                Text("Kamera-Zugriff")
+                Text(lang.t("Kamera-Zugriff"))
                     .font(.system(size: 19, weight: .semibold))
                     .foregroundColor(FrigyBrand.text)
                     .tracking(-0.5)
@@ -20,7 +22,7 @@ struct CameraPermissionStepView: View {
                     .padding(.top, 4)
                     .padding(.bottom, 4)
 
-                Text("Für den Kühlschrank-Scan und Barcode-Scanner braucht Frigy deine Kamera.")
+                Text(lang.t("Für den Kühlschrank-Scan und Barcode-Scanner braucht Frigy deine Kamera."))
                     .font(.system(size: 15))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -36,21 +38,21 @@ struct CameraPermissionStepView: View {
             Spacer()
 
             VStack(spacing: 16) {
-                featureRow("camera.viewfinder", "Kühlschrank scannen", "KI erkennt alle Zutaten per Foto")
-                featureRow("barcode.viewfinder", "Barcode-Scanner", "Nährwerte direkt aus dem Barcode")
+                featureRow("camera.viewfinder", lang.t("Kühlschrank scannen"), lang.t("KI erkennt alle Zutaten per Foto"))
+                featureRow("barcode.viewfinder", lang.t("Barcode-Scanner"), lang.t("Nährwerte direkt aus dem Barcode"))
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
 
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
-                OnboardingContinueButton("Kamera erlauben") {
+                OnboardingContinueButton(lang.t("Kamera erlauben")) {
                     requestAndContinue()
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
 
-                Button("Überspringen") { onNext() }
+                Button(lang.t("Überspringen")) { onNext() }
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(FrigyBrand.textMuted)
                     .padding(.top, 12)
