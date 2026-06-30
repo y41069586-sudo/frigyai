@@ -1158,6 +1158,7 @@ struct HelpView: View {
 // MARK: - Weight Progress
 
 struct WeightProgressView: View {
+    @Environment(LanguageManager.self) private var lang
     @State private var entries: [(date: String, kg: Double)] = []
     @State private var isLoading = true
     @State private var showAddWeight = false
@@ -1176,7 +1177,7 @@ struct WeightProgressView: View {
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(
-                title: "Gewichtsverlauf",
+                title: lang.t("Gewichtsverlauf"),
                 trailingIcon: "plus",
                 trailingAction: {
                     newWeightText = ""
@@ -1191,10 +1192,10 @@ struct WeightProgressView: View {
                             Image(systemName: "scalemass")
                                 .font(.system(size: 40))
                                 .foregroundColor(FrigyBrand.cardBorder)
-                            Text("Noch keine Gewichtseinträge")
+                            Text(lang.t("Noch keine Gewichtseinträge"))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(FrigyBrand.text)
-                            Text("Tippe auf +, um dein erstes Gewicht einzutragen.")
+                            Text(lang.t("Tippe auf +, um dein erstes Gewicht einzutragen."))
                                 .font(.system(size: 13))
                                 .foregroundColor(FrigyBrand.textMuted)
                                 .multilineTextAlignment(.center)
@@ -1206,17 +1207,17 @@ struct WeightProgressView: View {
 
                     if !entries.isEmpty {
                         HStack(spacing: 12) {
-                            statCard("Aktuell", value: String(format: "%.1f kg", entries.last?.kg ?? 0), icon: "scalemass.fill")
-                            statCard("Start", value: String(format: "%.1f kg", entries.first?.kg ?? 0), icon: "flag.fill")
+                            statCard(lang.t("Aktuell"), value: String(format: "%.1f kg", entries.last?.kg ?? 0), icon: "scalemass.fill")
+                            statCard(lang.t("Anfang"), value: String(format: "%.1f kg", entries.first?.kg ?? 0), icon: "flag.fill")
                             let diff = (entries.first?.kg ?? 0) - (entries.last?.kg ?? 0)
-                            statCard(diff >= 0 ? "Verlust" : "Zuwachs",
+                            statCard(diff >= 0 ? lang.t("Verlust") : lang.t("Zuwachs"),
                                      value: String(format: "%.1f kg", abs(diff)),
                                      icon: diff >= 0 ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
                         }
                         .padding(.horizontal, 20)
 
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Verlauf")
+                            Text(lang.t("Verlauf"))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
                                 .padding(.horizontal, 20)
@@ -1334,6 +1335,7 @@ struct WeightProgressView: View {
 
 struct AddWeightSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
     let onSave: (Double) -> Void
 
     @State private var text = ""
@@ -1343,12 +1345,12 @@ struct AddWeightSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Button("Abbrechen") { dismiss() }
+                Button(lang.t("Abbrechen")) { dismiss() }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDark)
                     .frame(width: 80, alignment: .leading)
                 Spacer()
-                Text("Gewicht")
+                Text(lang.t("Gewicht"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
@@ -1363,13 +1365,13 @@ struct AddWeightSheet: View {
                 Image(systemName: "scalemass.fill")
                     .font(.system(size: 40))
                     .foregroundColor(FrigyBrand.primaryDark)
-                Text("Gewicht eintragen")
+                Text(lang.t("Gewicht eintragen"))
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
             }
 
             HStack(spacing: 8) {
-                TextField("z.B. 74,5", text: $text)
+                TextField(lang.t("z.B. 74,5"), text: $text)
                     .keyboardType(.decimalPad)
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -1404,7 +1406,7 @@ struct AddWeightSheet: View {
     }
 
     private var weightSaveButton: some View {
-        let label: String = isSaving ? "Wird gespeichert…" : "Speichern"
+        let label: String = isSaving ? lang.t("Wird gespeichert…") : lang.t("Speichern")
         let gradColors: [Color] = text.isEmpty
             ? [FrigyBrand.cardBorder, FrigyBrand.cardBorder]
             : [FrigyBrand.primary, FrigyBrand.primaryDark]
@@ -1438,6 +1440,7 @@ struct AddWeightSheet: View {
 // MARK: - Chatbot
 
 struct ChatbotView: View {
+    @Environment(LanguageManager.self) private var lang
     var initialPrompt: String? = nil
 
     private static let historyKey = "frigy.chat.history.v1"
@@ -1451,17 +1454,19 @@ struct ChatbotView: View {
     @State private var contextSent = false
     @State private var nutritionContext = ""
 
-    private let quickPrompts = [
-        "Was soll ich heute noch essen?",
-        "Wie viel Protein fehlt mir noch?",
-        "Gesunde Snack-Ideen für heute",
-        "Bin ich auf Kurs mit meinen Zielen?"
-    ]
+    private var quickPrompts: [String] {
+        [
+            lang.t("Was soll ich heute noch essen?"),
+            lang.t("Wie viel Protein fehlt mir noch?"),
+            lang.t("Gesunde Snack-Ideen für heute"),
+            lang.t("Bin ich auf Kurs mit meinen Zielen?")
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(
-                title: "KI-Ernährungscoach",
+                title: lang.t("KI-Ernährungscoach"),
                 trailingIcon: "trash",
                 trailingAction: clearHistory
             )
@@ -1492,7 +1497,7 @@ struct ChatbotView: View {
             }
 
             HStack(spacing: 10) {
-                TextField("Frag mich etwas...", text: $inputText, axis: .vertical)
+                TextField(lang.t("Frag mich etwas..."), text: $inputText, axis: .vertical)
                     .lineLimit(1...4)
                     .font(.system(size: 15))
                     .padding(10)
@@ -1530,7 +1535,7 @@ struct ChatbotView: View {
 
     @ViewBuilder private var quickPromptsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("SCHNELLE FRAGEN")
+            Text(lang.t("SCHNELLE FRAGEN"))
                 .font(.system(size: 10, weight: .bold))
                 .tracking(1.5)
                 .foregroundColor(FrigyBrand.textMuted)
@@ -1567,7 +1572,7 @@ struct ChatbotView: View {
             messages = saved.map { ($0.role, $0.content) }
             contextSent = true
         } else {
-            messages = [("assistant", "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?")]
+            messages = [("assistant", lang.t("Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?"))]
         }
     }
 

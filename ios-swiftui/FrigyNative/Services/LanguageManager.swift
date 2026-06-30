@@ -828,5 +828,25 @@ enum Translations {
         "Gehe zu Profil → Ernährungsziele und passe die Werte mit den Schiebereglern an.": [.en: "Go to Profile → Nutrition Goals and adjust the values with the sliders.", .fr: "Va dans Profil → Objectifs nutritionnels et ajuste les valeurs avec les curseurs.", .es: "Ve a Perfil → Objetivos nutricionales y ajusta los valores con los controles deslizantes.", .it: "Vai su Profilo → Obiettivi nutrizionali e regola i valori con i cursori.", .hi: "प्रोफ़ाइल → पोषण लक्ष्य पर जाएं और स्लाइडर से मान समायोजित करें।"],
         "Kann ich Gewicht tracken?": [.en: "Can I track weight?", .fr: "Puis-je suivre mon poids ?", .es: "¿Puedo registrar mi peso?", .it: "Posso tracciare il peso?", .hi: "क्या मैं वजन ट्रैक कर सकता हूं?"],
         "Ja! Im Home-Tab auf 'Gewicht' tippen, dann auf + um ein neues Gewicht einzutragen.": [.en: "Yes! Tap 'Weight' in the Home tab, then + to log a new weight.", .fr: "Oui ! Touche « Poids » dans l'onglet Accueil, puis + pour enregistrer un nouveau poids.", .es: "¡Sí! Toca 'Peso' en la pestaña de Inicio, luego + para registrar un nuevo peso.", .it: "Sì! Tocca 'Peso' nella scheda Home, poi + per registrare un nuovo peso.", .hi: "हां! होम टैब में 'वजन' पर टैप करें, फिर नया वजन दर्ज करने के लिए + पर टैप करें।"],
+
+        // ===== PROFILE: WEIGHT PROGRESS =====
+        "Gewichtsverlauf": [.en: "Weight History", .fr: "Historique du poids", .es: "Historial de peso", .it: "Storico del peso", .hi: "वजन इतिहास"],
+        "Noch keine Gewichtseinträge": [.en: "No weight entries yet", .fr: "Aucune entrée de poids pour l'instant", .es: "Aún no hay registros de peso", .it: "Ancora nessuna voce di peso", .hi: "अभी तक कोई वजन प्रविष्टि नहीं"],
+        "Tippe auf +, um dein erstes Gewicht einzutragen.": [.en: "Tap + to log your first weight.", .fr: "Touche + pour enregistrer ton premier poids.", .es: "Toca + para registrar tu primer peso.", .it: "Tocca + per registrare il tuo primo peso.", .hi: "अपना पहला वजन दर्ज करने के लिए + पर टैप करें।"],
+        "Verlust": [.en: "Loss", .fr: "Perte", .es: "Pérdida", .it: "Perdita", .hi: "हानि"],
+        "Zuwachs": [.en: "Gain", .fr: "Gain", .es: "Ganancia", .it: "Aumento", .hi: "वृद्धि"],
+        "Gewicht eintragen": [.en: "Log weight", .fr: "Enregistrer le poids", .es: "Registrar peso", .it: "Registra peso", .hi: "वजन दर्ज करें"],
+        "z.B. 74,5": [.en: "e.g. 74.5", .fr: "p. ex. 74,5", .es: "p. ej. 74,5", .it: "es. 74,5", .hi: "जैसे, 74.5"],
+        "Wird gespeichert…": [.en: "Saving…", .fr: "Enregistrement…", .es: "Guardando…", .it: "Salvataggio…", .hi: "सहेजा जा रहा है…"],
+
+        // ===== HOME: CHATBOT =====
+        "KI-Ernährungscoach": [.en: "AI Nutrition Coach", .fr: "Coach nutrition IA", .es: "Entrenador nutricional de IA", .it: "Coach nutrizionale IA", .hi: "एआई पोषण कोच"],
+        "Was soll ich heute noch essen?": [.en: "What should I still eat today?", .fr: "Que devrais-je encore manger aujourd'hui ?", .es: "¿Qué debería comer hoy todavía?", .it: "Cosa dovrei ancora mangiare oggi?", .hi: "मुझे आज और क्या खाना चाहिए?"],
+        "Wie viel Protein fehlt mir noch?": [.en: "How much protein do I still need?", .fr: "Combien de protéines me manque-t-il encore ?", .es: "¿Cuánta proteína me falta todavía?", .it: "Quante proteine mi mancano ancora?", .hi: "मुझे अभी और कितने प्रोटीन की जरूरत है?"],
+        "Gesunde Snack-Ideen für heute": [.en: "Healthy snack ideas for today", .fr: "Idées de collations saines pour aujourd'hui", .es: "Ideas de snacks saludables para hoy", .it: "Idee di snack sani per oggi", .hi: "आज के लिए स्वस्थ नाश्ते के विचार"],
+        "Bin ich auf Kurs mit meinen Zielen?": [.en: "Am I on track with my goals?", .fr: "Suis-je sur la bonne voie pour mes objectifs ?", .es: "¿Voy bien con mis objetivos?", .it: "Sono sulla buona strada con i miei obiettivi?", .hi: "क्या मैं अपने लक्ष्यों के साथ सही दिशा में हूं?"],
+        "Frag mich etwas...": [.en: "Ask me something...", .fr: "Demande-moi quelque chose...", .es: "Pregúntame algo...", .it: "Chiedimi qualcosa...", .hi: "मुझसे कुछ पूछें..."],
+        "SCHNELLE FRAGEN": [.en: "QUICK QUESTIONS", .fr: "QUESTIONS RAPIDES", .es: "PREGUNTAS RÁPIDAS", .it: "DOMANDE RAPIDE", .hi: "त्वरित प्रश्न"],
+        "Hallo! Ich bin dein KI-Ernährungscoach. Wie kann ich dir heute helfen?": [.en: "Hi! I'm your AI nutrition coach. How can I help you today?", .fr: "Salut ! Je suis ton coach nutrition IA. Comment puis-je t'aider aujourd'hui ?", .es: "¡Hola! Soy tu entrenador nutricional de IA. ¿Cómo puedo ayudarte hoy?", .it: "Ciao! Sono il tuo coach nutrizionale IA. Come posso aiutarti oggi?", .hi: "नमस्ते! मैं आपका एआई पोषण कोच हूं। मैं आज आपकी कैसे मदद कर सकता हूं?"],
     ]
 }
