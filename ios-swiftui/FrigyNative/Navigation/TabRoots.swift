@@ -2697,6 +2697,7 @@ struct FlowLayout: Layout {
 
 struct MealPlanPreferencesView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     private static func loadMeals() -> Int {
         let v = UserDefaults.standard.integer(forKey: prefMealsKey)
@@ -2750,11 +2751,11 @@ struct MealPlanPreferencesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Plan-Einstellungen")
+            FrigyNavBar(title: lang.t("Plan-Einstellungen"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    sectionCard(title: "MAHLZEITEN PRO TAG") {
+                    sectionCard(title: lang.t("MAHLZEITEN PRO TAG")) {
                         HStack {
                             Button {
                                 if mealsPerDay > 3 { mealsPerDay -= 1 }
@@ -2768,7 +2769,7 @@ struct MealPlanPreferencesView: View {
                             .buttonStyle(.plain)
 
                             Spacer()
-                            Text("\(mealsPerDay) Mahlzeiten")
+                            Text("\(mealsPerDay) \(lang.t("Mahlzeiten"))")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
                             Spacer()
@@ -2786,7 +2787,7 @@ struct MealPlanPreferencesView: View {
                         }
                     }
 
-                    sectionCard(title: "KÜCHEN-STILE") {
+                    sectionCard(title: lang.t("KÜCHEN-STILE")) {
                         FlowLayout(spacing: 8) {
                             ForEach(mealPlanCuisineOptions) { opt in
                                 cuisineChip(opt)
@@ -2794,7 +2795,7 @@ struct MealPlanPreferencesView: View {
                         }
                     }
 
-                    sectionCard(title: "MAX. ZUBEREITUNGSZEIT") {
+                    sectionCard(title: lang.t("MAX. ZUBEREITUNGSZEIT")) {
                         FlowLayout(spacing: 8) {
                             ForEach(maxPrepTimeOptions, id: \.id) { opt in
                                 optionChip(id: opt.id, label: opt.label, selection: $maxPrepTime)
@@ -2802,7 +2803,7 @@ struct MealPlanPreferencesView: View {
                         }
                     }
 
-                    sectionCard(title: "KOCHHÄUFIGKEIT") {
+                    sectionCard(title: lang.t("KOCHHÄUFIGKEIT")) {
                         FlowLayout(spacing: 8) {
                             ForEach(cookFrequencyOptions, id: \.id) { opt in
                                 optionChip(id: opt.id, label: opt.label, selection: $cookFrequency)
@@ -2810,7 +2811,7 @@ struct MealPlanPreferencesView: View {
                         }
                     }
 
-                    sectionCard(title: "BUDGET") {
+                    sectionCard(title: lang.t("BUDGET")) {
                         FlowLayout(spacing: 8) {
                             ForEach(budgetOptions, id: \.id) { opt in
                                 optionChip(id: opt.id, label: opt.label, selection: $budget)
@@ -2818,7 +2819,7 @@ struct MealPlanPreferencesView: View {
                         }
                     }
 
-                    sectionCard(title: "ABWECHSLUNG") {
+                    sectionCard(title: lang.t("ABWECHSLUNG")) {
                         FlowLayout(spacing: 8) {
                             ForEach(varietyOptions, id: \.id) { opt in
                                 optionChip(id: opt.id, label: opt.label, selection: $variety)
@@ -2876,7 +2877,7 @@ struct MealPlanPreferencesView: View {
                 selectedCuisines.append(opt.id)
             }
         } label: {
-            Text(opt.label)
+            Text(lang.t(opt.label))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(isOn ? .white : FrigyBrand.text)
                 .padding(.horizontal, 14).padding(.vertical, 8)
@@ -2893,7 +2894,7 @@ struct MealPlanPreferencesView: View {
         return Button {
             selection.wrappedValue = id
         } label: {
-            Text(label)
+            Text(lang.t(label))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(isOn ? .white : FrigyBrand.text)
                 .padding(.horizontal, 14).padding(.vertical, 8)
@@ -2909,30 +2910,34 @@ struct MealPlanPreferencesView: View {
 // MARK: - Impressum
 
 struct ImpressumView: View {
-    private let sections: [(icon: String, color: String, title: String, text: String)] = [
-        ("building.2.fill",           "#60B4FF", "Anbieter",
-         "Doaa Attia\nWilhelm-Diess-Weg 3a\n94081 Fürstenzell\nDeutschland"),
-        ("envelope.fill",             "#34D399", "Kontakt",
-         "E-Mail: support@frigy.app\nWebsite: app.frigy.app"),
-        ("exclamationmark.circle.fill","#FBBF24", "Haftungsausschluss",
-         "Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität können wir keine Gewähr übernehmen. Als Diensteanbieter sind wir für eigene Inhalte nach den allgemeinen Gesetzen verantwortlich."),
-        ("c.circle.fill",             "#A78BFA", "Urheberrecht",
-         "Die durch die Seitenbetreiber erstellten Inhalte und Werke in dieser App unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet."),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var sections: [(icon: String, color: String, title: String, text: String)] {
+        [
+            ("building.2.fill",           "#60B4FF", lang.t("Anbieter"),
+             "Doaa Attia\nWilhelm-Diess-Weg 3a\n94081 Fürstenzell\n\(lang.t("Deutschland"))"),
+            ("envelope.fill",             "#34D399", lang.t("Kontakt"),
+             "E-Mail: support@frigy.app\nWebsite: app.frigy.app"),
+            ("exclamationmark.circle.fill","#FBBF24", lang.t("Haftungsausschluss"),
+             lang.t("Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität können wir keine Gewähr übernehmen. Als Diensteanbieter sind wir für eigene Inhalte nach den allgemeinen Gesetzen verantwortlich.")),
+            ("c.circle.fill",             "#A78BFA", lang.t("Urheberrecht"),
+             lang.t("Die durch die Seitenbetreiber erstellten Inhalte und Werke in dieser App unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als solche gekennzeichnet.")),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Impressum")
+            FrigyNavBar(title: lang.t("Impressum"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     legalBanner(icon: "building.2.fill", color: "#60B4FF",
-                                title: "Impressum",
-                                subtitle: "Angaben gemäß § 5 TMG")
+                                title: lang.t("Impressum"),
+                                subtitle: lang.t("Angaben gemäß § 5 TMG"))
 
                     legalCard(sections: sections)
 
-                    legalFooter("Stand: Januar 2025")
+                    legalFooter(lang.t("Stand: Januar 2025"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -2946,34 +2951,38 @@ struct ImpressumView: View {
 // MARK: - AGB
 
 struct AGBView: View {
-    private let sections: [(icon: String, color: String, title: String, text: String)] = [
-        ("doc.text.fill",         "#60B4FF", "§1 Geltungsbereich",
-         "Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der Frigy App und aller zugehörigen Dienste."),
-        ("sparkles",              "#A78BFA", "§2 Leistungsumfang",
-         "Frigy bietet eine Ernährungs-Tracking-App mit KI-gestützten Funktionen. Der genaue Leistungsumfang richtet sich nach dem gewählten Abonnement."),
-        ("creditcard.fill",       "#34D399", "§3 Abonnement & Zahlung",
-         "Premium-Abonnements werden über den Apple App Store abgewickelt. Das Abonnement verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ablauf der aktuellen Periode über die App-Store-Einstellungen gekündigt wird."),
-        ("arrow.uturn.backward",  "#FBBF24", "§4 Widerrufsrecht",
-         "Bei digitalen Inhalten erlischt das Widerrufsrecht, sobald die Ausführung begonnen hat und du ausdrücklich zugestimmt hast, dass der Vertrag vor Ablauf der Widerrufsfrist erfüllt wird."),
-        ("exclamationmark.shield.fill", "#F87171", "§5 Haftungsbeschränkung",
-         "Frigy haftet nicht für Schäden, die durch die Nutzung der App entstehen, soweit diese nicht auf Vorsatz oder grober Fahrlässigkeit beruhen. Die Nährwertangaben sind informativ und ersetzen keine medizinische Beratung."),
-        ("pencil.circle.fill",    "#9CA3AF", "§6 Änderungen der AGB",
-         "Frigy behält sich das Recht vor, diese AGB jederzeit zu ändern. Wesentliche Änderungen werden 30 Tage vor Inkrafttreten mitgeteilt."),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var sections: [(icon: String, color: String, title: String, text: String)] {
+        [
+            ("doc.text.fill",         "#60B4FF", lang.t("§1 Geltungsbereich"),
+             lang.t("Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung der Frigy App und aller zugehörigen Dienste.")),
+            ("sparkles",              "#A78BFA", lang.t("§2 Leistungsumfang"),
+             lang.t("Frigy bietet eine Ernährungs-Tracking-App mit KI-gestützten Funktionen. Der genaue Leistungsumfang richtet sich nach dem gewählten Abonnement.")),
+            ("creditcard.fill",       "#34D399", lang.t("§3 Abonnement & Zahlung"),
+             lang.t("Premium-Abonnements werden über den Apple App Store abgewickelt. Das Abonnement verlängert sich automatisch, sofern es nicht mindestens 24 Stunden vor Ablauf der aktuellen Periode über die App-Store-Einstellungen gekündigt wird.")),
+            ("arrow.uturn.backward",  "#FBBF24", lang.t("§4 Widerrufsrecht"),
+             lang.t("Bei digitalen Inhalten erlischt das Widerrufsrecht, sobald die Ausführung begonnen hat und du ausdrücklich zugestimmt hast, dass der Vertrag vor Ablauf der Widerrufsfrist erfüllt wird.")),
+            ("exclamationmark.shield.fill", "#F87171", lang.t("§5 Haftungsbeschränkung"),
+             lang.t("Frigy haftet nicht für Schäden, die durch die Nutzung der App entstehen, soweit diese nicht auf Vorsatz oder grober Fahrlässigkeit beruhen. Die Nährwertangaben sind informativ und ersetzen keine medizinische Beratung.")),
+            ("pencil.circle.fill",    "#9CA3AF", lang.t("§6 Änderungen der AGB"),
+             lang.t("Frigy behält sich das Recht vor, diese AGB jederzeit zu ändern. Wesentliche Änderungen werden 30 Tage vor Inkrafttreten mitgeteilt.")),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "AGB")
+            FrigyNavBar(title: lang.t("AGB"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     legalBanner(icon: "doc.badge.gearshape.fill", color: "#6366F1",
-                                title: "Allgemeine Geschäftsbedingungen",
-                                subtitle: "Nutzungsbedingungen für Frigy")
+                                title: lang.t("Allgemeine Geschäftsbedingungen"),
+                                subtitle: lang.t("Nutzungsbedingungen für Frigy"))
 
                     legalCard(sections: sections)
 
-                    legalFooter("Stand: Januar 2025\nEs gilt deutsches Recht.")
+                    legalFooter(lang.t("Stand: Januar 2025\nEs gilt deutsches Recht."))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
