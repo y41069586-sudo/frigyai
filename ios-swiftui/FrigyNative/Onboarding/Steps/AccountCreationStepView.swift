@@ -6,6 +6,7 @@ struct AccountCreationStepView: View {
     let onNext: () -> Void
 
     @Environment(AppRouter.self) private var router
+    @Environment(LanguageManager.self) private var lang
 
     @State private var isLoadingApple = false
     @State private var isLoadingGoogle = false
@@ -28,11 +29,11 @@ struct AccountCreationStepView: View {
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
 
-                    Text("Fortschritt speichern")
+                    Text(lang.t("Fortschritt speichern"))
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
 
-                    Text("Erstelle ein Konto, um deinen Plan\nauch auf anderen Geräten zu nutzen.")
+                    Text(lang.t("Erstelle ein Konto, um deinen Plan\nauch auf anderen Geräten zu nutzen."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -50,7 +51,7 @@ struct AccountCreationStepView: View {
                             } else {
                                 Image(systemName: "apple.logo")
                                     .font(.system(size: 18, weight: .semibold))
-                                Text("Mit Apple fortfahren")
+                                Text(lang.t("Mit Apple fortfahren"))
                                     .font(.system(size: 16, weight: .semibold))
                             }
                         }
@@ -74,7 +75,7 @@ struct AccountCreationStepView: View {
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 20, height: 20)
-                                Text("Mit Google fortfahren")
+                                Text(lang.t("Mit Google fortfahren"))
                                     .font(.system(size: 16, weight: .semibold))
                             }
                         }
@@ -97,7 +98,7 @@ struct AccountCreationStepView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "envelope.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("Mit E-Mail fortfahren")
+                            Text(lang.t("Mit E-Mail fortfahren"))
                                 .font(.system(size: 16, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity)
