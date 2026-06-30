@@ -22,6 +22,8 @@ struct HoldToContinueStepView: View {
     private let targetSeconds: Double = 3.5
     private let tick = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
 
+    @Environment(LanguageManager.self) private var lang
+
     // Ripple model
     struct Ripple: Identifiable {
         let id = UUID()
@@ -164,14 +166,14 @@ struct HoldToContinueStepView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                Text("Dein Erlebnis\nentsteht gerade")
+                Text(lang.t("Dein Erlebnis\nentsteht gerade"))
                     .font(.system(size: 28, weight: .bold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(ExperiencePalette.textPrimary)
                     .lineSpacing(2)
                     .shadow(color: ExperiencePalette.accentGlow.opacity(0.3 * deformDepth), radius: 16)
 
-                Text("Berühre den Bildschirm")
+                Text(lang.t("Berühre den Bildschirm"))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(ExperiencePalette.textMuted)
                     .opacity(ctaVisible ? 0 : 1)
@@ -188,7 +190,7 @@ struct HoldToContinueStepView: View {
 
             // CTA — appears after engagement threshold
             if ctaVisible {
-                ExperienceCTAButton(title: "Weiter", action: onNext)
+                ExperienceCTAButton(title: lang.t("Weiter"), action: onNext)
                     .padding(.horizontal, 28)
                     .padding(.bottom, 40)
                     .scaleEffect(ctaScale)

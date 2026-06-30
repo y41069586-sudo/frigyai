@@ -16,20 +16,24 @@ struct EnergySwipeStepView: View {
         let symbol: String
     }
 
-    private let zones: [Zone] = [
-        Zone(name: "Fokus",      description: "Klarheit & Konzentration",
-             tint: Color(hex: "#36D1FF"), secondary: Color(hex: "#0A6Cff"),
-             symbol: "scope"),
-        Zone(name: "Balance",    description: "Ruhe & Stabilität",
-             tint: Color(hex: "#75FBB2"), secondary: Color(hex: "#2EB56D"),
-             symbol: "circle.hexagongrid.fill"),
-        Zone(name: "Gelassen",   description: "Leichtigkeit & Flow",
-             tint: Color(hex: "#B69BFF"), secondary: Color(hex: "#6D3Cff"),
-             symbol: "cloud.fill"),
-        Zone(name: "Struktur",   description: "Ordnung & Energie",
-             tint: Color(hex: "#FF8A5B"), secondary: Color(hex: "#FF3D6E"),
-             symbol: "bolt.fill"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var zones: [Zone] {
+        [
+            Zone(name: lang.t("Fokus"),      description: lang.t("Klarheit & Konzentration"),
+                 tint: Color(hex: "#36D1FF"), secondary: Color(hex: "#0A6Cff"),
+                 symbol: "scope"),
+            Zone(name: lang.t("Balance"),    description: lang.t("Ruhe & Stabilität"),
+                 tint: Color(hex: "#75FBB2"), secondary: Color(hex: "#2EB56D"),
+                 symbol: "circle.hexagongrid.fill"),
+            Zone(name: lang.t("Gelassen"),   description: lang.t("Leichtigkeit & Flow"),
+                 tint: Color(hex: "#B69BFF"), secondary: Color(hex: "#6D3Cff"),
+                 symbol: "cloud.fill"),
+            Zone(name: lang.t("Struktur"),   description: lang.t("Ordnung & Energie"),
+                 tint: Color(hex: "#FF8A5B"), secondary: Color(hex: "#FF3D6E"),
+                 symbol: "bolt.fill"),
+        ]
+    }
 
     // 0...3 (can be fractional between zones)
     @State private var position: Double = 1.5
@@ -256,7 +260,7 @@ struct EnergySwipeStepView: View {
     @ViewBuilder
     private var ctaArea: some View {
         if committed {
-            ExperienceCTAButton(title: "Auswahl bestätigen", action: onNext)
+            ExperienceCTAButton(title: lang.t("Auswahl bestätigen"), action: onNext)
                 .padding(.horizontal, 28)
                 .scaleEffect(ctaScale)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7), value: ctaScale)
@@ -264,7 +268,7 @@ struct EnergySwipeStepView: View {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { ctaScale = 1.0 }
                 }
         } else {
-            Text(commitSeconds > 0.1 ? "Halte für Auswahl…" : "Wähle deinen Zustand")
+            Text(commitSeconds > 0.1 ? lang.t("Halte für Auswahl…") : lang.t("Wähle deinen Zustand"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(ExperiencePalette.textMuted)
                 .frame(height: 58)

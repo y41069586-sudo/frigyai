@@ -14,9 +14,11 @@ struct MomentumRevealStepView: View {
     @State private var intensity: Int = 1        // 0 Sanft / 1 Ausgewogen / 2 Intensiv
     @State private var focusArea: Int = 0        // 0 Ernährung / 1 Bewegung / 2 Beides
 
-    private let intensityLabels = ["Sanft", "Ausgewogen", "Intensiv"]
+    @Environment(LanguageManager.self) private var lang
+
+    private var intensityLabels: [String] { [lang.t("Sanft"), lang.t("Ausgewogen"), lang.t("Intensiv")] }
     private let intensityColors: [Color] = [Color(hex: "#75FBB2"), Color(hex: "#36D1FF"), Color(hex: "#FF8A5B")]
-    private let focusLabels = ["Ernährung", "Bewegung", "Beides"]
+    private var focusLabels: [String] { [lang.t("Ernährung"), lang.t("Bewegung"), lang.t("Beides")] }
 
     // Completion logic
     @State private var adjustmentCount: Int = 0
@@ -75,7 +77,7 @@ struct MomentumRevealStepView: View {
                 Color.clear.frame(width: 42, height: 42)
             }
             Spacer()
-            Text("Deine Vorschau")
+            Text(lang.t("Deine Vorschau"))
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(ExperiencePalette.textMuted)
         }
@@ -97,10 +99,10 @@ struct MomentumRevealStepView: View {
                         .foregroundStyle(accentTint)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("KI-Plan erstellt")
+                    Text(lang.t("KI-Plan erstellt"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(ExperiencePalette.textPrimary)
-                    Text("Passe es nach deinem Geschmack an")
+                    Text(lang.t("Passe es nach deinem Geschmack an"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(ExperiencePalette.textMuted)
                 }
@@ -117,7 +119,7 @@ struct MomentumRevealStepView: View {
     private var controlsCard: some View {
         VStack(spacing: 20) {
             // Mahlzeiten
-            controlRow(label: "Mahlzeiten pro Tag") {
+            controlRow(label: lang.t("Mahlzeiten pro Tag")) {
                 HStack(spacing: 0) {
                     ForEach(2...5, id: \.self) { v in
                         Button {
@@ -141,7 +143,7 @@ struct MomentumRevealStepView: View {
             Divider().background(Color.white.opacity(0.08))
 
             // Intensität
-            controlRow(label: "Intensität") {
+            controlRow(label: lang.t("Intensität")) {
                 HStack(spacing: 6) {
                     ForEach(intensityLabels.indices, id: \.self) { i in
                         Button {
@@ -166,7 +168,7 @@ struct MomentumRevealStepView: View {
             Divider().background(Color.white.opacity(0.08))
 
             // Fokus
-            controlRow(label: "Fokus") {
+            controlRow(label: lang.t("Fokus")) {
                 HStack(spacing: 6) {
                     ForEach(focusLabels.indices, id: \.self) { i in
                         Button {
@@ -207,14 +209,14 @@ struct MomentumRevealStepView: View {
 
     private var previewCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Dein Wochenplan")
+            Text(lang.t("Dein Wochenplan"))
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(ExperiencePalette.textPrimary)
 
             VStack(spacing: 10) {
                 ForEach(weekDays, id: \.self) { day in
                     HStack(spacing: 12) {
-                        Text(day)
+                        Text(lang.t(day))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(ExperiencePalette.textMuted)
                             .frame(width: 28, alignment: .leading)
@@ -266,8 +268,8 @@ struct MomentumRevealStepView: View {
         let isWorkout = focusArea != 0
         let workoutDays: Set<String> = intensity == 2
             ? ["Mo", "Di", "Mi", "Do", "Fr"] : ["Mo", "Mi", "Fr"]
-        if isWorkout && workoutDays.contains(day) { return "Training" }
-        return "\(mealCount)x Mahlzeit"
+        if isWorkout && workoutDays.contains(day) { return lang.t("Training") }
+        return lang.t("%@x Mahlzeit").replacingOccurrences(of: "%@", with: "\(mealCount)")
     }
 
     // MARK: - CTA
@@ -287,7 +289,7 @@ struct MomentumRevealStepView: View {
                 .animation(.linear(duration: 1.0 / 60.0), value: fraction)
             }
 
-            ExperienceCTAButton(title: "Plan übernehmen", action: onNext)
+            ExperienceCTAButton(title: lang.t("Plan übernehmen"), action: onNext)
                 .padding(.horizontal, 28)
                 .opacity(ctaOpacity)
                 .scaleEffect(0.94 + ctaOpacity * 0.06)
