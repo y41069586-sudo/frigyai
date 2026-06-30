@@ -83,6 +83,7 @@ struct ShoppingTabRoot: View {
 
 struct ProfileView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(LanguageManager.self) private var lang
     @State private var userEmail: String = ""
     @State private var isRestoring = false
     @State private var showDeleteConfirm = false
@@ -97,7 +98,7 @@ struct ProfileView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Profil")
+            FrigyNavBar(title: lang.t("Profil"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -110,7 +111,7 @@ struct ProfileView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(FrigyBrand.primaryDark)
                         }
-                        Text(userEmail.isEmpty ? "Mein Profil" : userEmail)
+                        Text(userEmail.isEmpty ? lang.t("Mein Profil") : userEmail)
                             .font(.system(size: userEmail.isEmpty ? 20 : 15, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                             .lineLimit(1)
@@ -118,7 +119,7 @@ struct ProfileView: View {
                         HStack(spacing: 5) {
                             Image(systemName: router.isPremium ? "crown.fill" : "leaf.fill")
                                 .font(.system(size: 11, weight: .bold))
-                            Text(router.isPremium ? "Premium aktiv" : "Kostenloser Plan")
+                            Text(router.isPremium ? lang.t("Premium aktiv") : lang.t("Kostenloser Plan"))
                                 .font(.system(size: 12, weight: .bold))
                         }
                         .foregroundColor(router.isPremium ? Color(hex: "#F59E0B") : FrigyBrand.primaryDark)
@@ -130,47 +131,52 @@ struct ProfileView: View {
 
                     VStack(spacing: 0) {
                         NavigationLink(destination: EditProfileView()) {
-                            profileRow("Profil bearbeiten", icon: "person.crop.circle.fill", color: FrigyBrand.primaryDark)
+                            profileRow(lang.t("Profil bearbeiten"), icon: "person.crop.circle.fill", color: FrigyBrand.primaryDark)
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: TransformationView()) {
-                            profileRow("Transformation", icon: "figure.arms.open", color: Color(hex: "#8B5CF6"))
+                            profileRow(lang.t("Transformation"), icon: "figure.arms.open", color: Color(hex: "#8B5CF6"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: RemindersView()) {
-                            profileRow("Benachrichtigungen", icon: "bell.fill", color: Color(hex: "#FBBF24"))
+                            profileRow(lang.t("Benachrichtigungen"), icon: "bell.fill", color: Color(hex: "#FBBF24"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: AppearanceView()) {
-                            profileRow("Darstellung", icon: "circle.lefthalf.filled", color: FrigyBrand.primaryDark)
+                            profileRow(lang.t("Darstellung"), icon: "circle.lefthalf.filled", color: FrigyBrand.primaryDark)
+                        }
+                        .buttonStyle(.plain)
+                        Divider().padding(.leading, 52)
+                        NavigationLink(destination: LanguageView()) {
+                            profileRow(lang.t("Sprache"), icon: "globe", color: Color(hex: "#0EA5E9"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: SubscriptionView()) {
-                            profileRow("Abonnement", icon: "crown.fill", color: Color(hex: "#F59E0B"))
+                            profileRow(lang.t("Abonnement"), icon: "crown.fill", color: Color(hex: "#F59E0B"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: PrivacyView()) {
-                            profileRow("Datenschutz", icon: "lock.fill", color: Color(hex: "#A78BFA"))
+                            profileRow(lang.t("Datenschutz"), icon: "lock.fill", color: Color(hex: "#A78BFA"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: ImpressumView()) {
-                            profileRow("Impressum", icon: "doc.text.fill", color: Color(hex: "#6366F1"))
+                            profileRow(lang.t("Impressum"), icon: "doc.text.fill", color: Color(hex: "#6366F1"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: AGBView()) {
-                            profileRow("AGB", icon: "doc.badge.gearshape.fill", color: Color(hex: "#3B82F6"))
+                            profileRow(lang.t("AGB"), icon: "doc.badge.gearshape.fill", color: Color(hex: "#3B82F6"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
                         NavigationLink(destination: HelpView()) {
-                            profileRow("Hilfe & Support", icon: "questionmark.circle.fill", color: FrigyBrand.textMuted)
+                            profileRow(lang.t("Hilfe & Support"), icon: "questionmark.circle.fill", color: FrigyBrand.textMuted)
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
@@ -195,7 +201,7 @@ struct ProfileView: View {
                                             .foregroundColor(Color(hex: "#34D399"))
                                     }
                                 }
-                                Text("Käufe wiederherstellen")
+                                Text(lang.t("Käufe wiederherstellen"))
                                     .font(.system(size: 15))
                                     .foregroundColor(FrigyBrand.text)
                                 Spacer()
@@ -211,7 +217,7 @@ struct ProfileView: View {
                     Button {
                         Task { await router.signOut() }
                     } label: {
-                        Label("Abmelden", systemImage: "rectangle.portrait.and.arrow.right")
+                        Label(lang.t("Abmelden"), systemImage: "rectangle.portrait.and.arrow.right")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Color(hex: "#EF4444"))
                             .frame(maxWidth: .infinity)
@@ -228,7 +234,7 @@ struct ProfileView: View {
                     .padding(.horizontal, 20)
 
                     Button { showDeleteConfirm = true } label: {
-                        Text(isDeletingAccount ? "Wird gelöscht…" : "Konto löschen")
+                        Text(isDeletingAccount ? "Wird gelöscht…" : lang.t("Konto löschen"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(FrigyBrand.textMuted)
                     }

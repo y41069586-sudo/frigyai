@@ -20,12 +20,19 @@ struct MainShellView: View {
             tabRoot(ShoppingTabRoot(), tab: .shopping, selected: coordinator.selectedTab)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            GlassTabBar(
-                selection: $coordinator.selectedTab,
-                mealCount: coordinator.todayMealCount,
-                onTrackerTap: { coordinator.openTracker() }
-            )
+            // The bar lives only on the three tab roots. As soon as a detail
+            // screen is pushed (the active tab's nav path is non-empty), it is
+            // hidden so it never floats over meal details, settings, scanner, etc.
+            if coordinator.path(for: coordinator.selectedTab).isEmpty {
+                GlassTabBar(
+                    selection: $coordinator.selectedTab,
+                    mealCount: coordinator.todayMealCount,
+                    onTrackerTap: { coordinator.openTracker() }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: coordinator.path(for: coordinator.selectedTab).isEmpty)
         .sheet(isPresented: $coordinator.showTrackerSheet) {
             TrackerLogMealView(preselectedCategory: coordinator.trackerPreselectedCategory)
                 .presentationBackground(.clear)
@@ -46,5 +53,6 @@ struct MainShellView: View {
     MainShellView()
         .environment(AppRouter())
         .environment(MainTabCoordinator())
+        .environment(LanguageManager.shared)
 }
 #endif

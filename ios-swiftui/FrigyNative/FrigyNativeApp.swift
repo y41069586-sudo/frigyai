@@ -5,6 +5,7 @@ import GoogleSignIn
 struct FrigyNativeApp: App {
     @State private var router = AppRouter()
     @State private var theme = ThemeManager.shared
+    @State private var language = LanguageManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -29,6 +30,8 @@ struct FrigyNativeApp: App {
                 .environment(router)
                 .environment(router.tabCoordinator)
                 .environment(theme)
+                .environment(language)
+                .environment(\.locale, language.locale)
                 .preferredColorScheme(theme.colorScheme)
                 .task {
                     await router.bootstrap()

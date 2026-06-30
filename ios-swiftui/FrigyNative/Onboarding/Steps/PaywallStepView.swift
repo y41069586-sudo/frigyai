@@ -21,6 +21,7 @@ struct PaywallStepView: View {
     @State private var showTerms = false
     @State private var showPrivacy = false
     @State private var restoreAlertMessage: String?
+    @State private var showCelebration = false
 
     // MARK: - Derived state
 
@@ -106,6 +107,14 @@ struct PaywallStepView: View {
             }
 
             bottomBar
+
+            if showCelebration {
+                PremiumCelebrationView(isYearly: selectedPkg?.isYearly ?? false) {
+                    onNext()
+                }
+                .transition(.opacity)
+                .zIndex(10)
+            }
         }
         .sheet(isPresented: $showTerms) {
             AGBView()
@@ -365,7 +374,8 @@ struct PaywallStepView: View {
                             }
                         }
                         isPurchasing = false
-                        if ok { onNext() }
+                        // Show the celebration screen first; "Los geht's" then advances.
+                        if ok { withAnimation(.easeOut(duration: 0.25)) { showCelebration = true } }
                     }
                 } label: {
                     HStack(spacing: 8) {
@@ -406,7 +416,7 @@ struct PaywallStepView: View {
                                     router.isPremium = true
                                     UNUserNotificationCenter.current()
                                         .removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
-                                    onNext()
+                                    withAnimation(.easeOut(duration: 0.25)) { showCelebration = true }
                                 } else {
                                     // Restore ran but found no active entitlement — always
                                     // give feedback (Apple requires it; silent = broken UX).
@@ -514,13 +524,23 @@ struct PaywallStepView: View {
                                 .frame(width: 72, height: 17)
                                 .shimmering()
                         } else {
-                            Text(pkg?.priceString ?? "—")
-                                .font(.system(size: 17, weight: .bold))
-                                .foregroundColor(FrigyBrand.text)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                            if let perMonth = pkg?.pricePerMonthString {
-                                Text("\(perMonth) / Monat")
+                            // For the yearly plan show the MONTHLY equivalent as the
+                            // headline figure (not the annual total), with the annual
+                            // billing shown as a small subtitle underneath.
+                            let isYearlyCard = pkg?.isYearly == true
+                            let headline = (isYearlyCard ? pkg?.pricePerMonthString : pkg?.priceString) ?? pkg?.priceString ?? "—"
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text(headline)
+                                    .font(.system(size: 17, weight: .bold))
+                                    .foregroundColor(FrigyBrand.text)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                Text("/ Monat")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(FrigyBrand.textMuted)
+                            }
+                            if isYearlyCard, let annual = pkg?.priceString {
+                                Text("\(annual) / Jahr")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(FrigyBrand.primaryDeep)
                             }

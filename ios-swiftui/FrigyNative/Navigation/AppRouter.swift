@@ -220,8 +220,21 @@ final class AppRouter {
         if isPaywallBypassed(for: session.email) {
             isPremium = true
         } else {
-            isPremium = try await subscriptionService.refreshPremiumState()
+            // Never downgrade a freshly-completed purchase: if the entitlement is
+            // already active in this session, keep it even if the server lookup
+            // hasn't caught up yet (avoids bouncing a user who just paid).
+            let refreshed = try await subscriptionService.refreshPremiumState()
+            isPremium = refreshed || isPremium
         }
+
+        // Hard gate — Frigy has no free tier. Without an active entitlement the
+        // user cannot enter the main app; route them to the paywall instead.
+        guard isPremium else {
+            onboardingCoordinator.skipToPaywall()
+            rootRoute = .onboarding(step: .paywall)
+            return
+        }
+
         rootRoute = .main
         flushPendingDeepLinkIfNeeded()
     }
@@ -250,7 +263,20 @@ final class AppRouter {
             await subscriptionService.identify(userId: session.userId)
 
             if onboardingCoordinator.isComplete {
-                isPremium = try await subscriptionService.refreshPremiumState()
+                if isPaywallBypassed(for: session.email) {
+                    isPremium = true
+                } else {
+                    let refreshed = try await subscriptionService.refreshPremiumState()
+                    isPremium = refreshed || isPremium
+                }
+
+                // Hard gate — no free tier. Send non-entitled users to the paywall.
+                guard isPremium else {
+                    onboardingCoordinator.skipToPaywall()
+                    rootRoute = .onboarding(step: .paywall)
+                    return
+                }
+
                 rootRoute = .main
                 flushPendingDeepLinkIfNeeded()
             } else {
