@@ -7,6 +7,8 @@ struct PlanningSetupStepView: View {
 
     @State private var setupProgress = 0.0
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
@@ -22,10 +24,10 @@ struct PlanningSetupStepView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("Planung einrichten")
+                    Text(lang.t("Planung einrichten"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Dein persönlicher Ernährungsplan wird jetzt vorbereitet.")
+                    Text(lang.t("Dein persönlicher Ernährungsplan wird jetzt vorbereitet."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -34,17 +36,17 @@ struct PlanningSetupStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    setupRow("person.fill",         "Profildaten übernommen",      true)
-                    setupRow("target",              "Ziele gesetzt",               true)
-                    setupRow("fork.knife",          "Ernährungspräferenzen",       true)
-                    setupRow("calendar.badge.plus", "Wochenplan wird erstellt",    false)
+                    setupRow("person.fill",         lang.t("Profildaten übernommen"),      true)
+                    setupRow("target",              lang.t("Ziele gesetzt"),               true)
+                    setupRow("fork.knife",          lang.t("Ernährungspräferenzen"),       true)
+                    setupRow("calendar.badge.plus", lang.t("Wochenplan wird erstellt"),    false)
                 }
                 .padding(.horizontal, 24)
             }
 
             Spacer()
 
-            OnboardingContinueButton("Weiter", action: onNext)
+            OnboardingContinueButton(lang.t("Weiter"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }

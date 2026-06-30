@@ -14,6 +14,8 @@ struct ReferralCodeStepView: View {
     @State private var influencerName: String?
     @FocusState private var focusedIndex: Int?
 
+    @Environment(LanguageManager.self) private var lang
+
     enum Phase { case input, validating, success }
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
@@ -69,14 +71,14 @@ struct ReferralCodeStepView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("EIN FREUND\nLÄDT DICH EIN")
+                        Text(lang.t("EIN FREUND\nLÄDT DICH EIN"))
                             .font(.system(size: 30, weight: .black))
                             .foregroundColor(FrigyBrand.text)
                             .tracking(-1.5)
                             .lineSpacing(2)
                             .padding(.bottom, 40)
 
-                        Text("Empfehlungscode")
+                        Text(lang.t("Empfehlungscode"))
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                             .tracking(-0.5)
@@ -102,7 +104,7 @@ struct ReferralCodeStepView: View {
                             HStack(spacing: 8) {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                Text("Code wird überprüft…")
+                                Text(lang.t("Code wird überprüft…"))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(FrigyBrand.textMuted)
                             }
@@ -117,7 +119,7 @@ struct ReferralCodeStepView: View {
 
                 if phase != .success {
                     HStack(spacing: 0) {
-                        Button("Nicht jetzt") {
+                        Button(lang.t("Nicht jetzt")) {
                             handleSkip()
                         }
                         .font(.system(size: 17, weight: .medium))
@@ -125,7 +127,7 @@ struct ReferralCodeStepView: View {
                         .frame(maxWidth: .infinity).frame(height: 54)
                         .disabled(isDisabled)
 
-                        Button("Weiter") {
+                        Button(lang.t("Weiter")) {
                             Task { await handleWeiter() }
                         }
                         .font(.system(size: 17, weight: .medium))
@@ -227,12 +229,12 @@ struct ReferralCodeStepView: View {
                         .clipShape(Capsule())
                     }
 
-                    Text("Code erkannt!")
+                    Text(lang.t("Code erkannt!"))
                         .font(.system(size: 28, weight: .black))
                         .foregroundColor(FrigyBrand.text)
                         .tracking(-1)
 
-                    Text("Dein Partner wurde gespeichert. Als Nächstes wählst du dein Premium-Abo.")
+                    Text(lang.t("Dein Partner wurde gespeichert. Als Nächstes wählst du dein Premium-Abo."))
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(Color(hex: "#3F3F46"))
                         .multilineTextAlignment(.center)
@@ -270,11 +272,11 @@ struct ReferralCodeStepView: View {
         guard phase == .input else { return }
         fieldError = nil
         if codeValue.isEmpty {
-            fieldError = "Bitte Code eingeben oder \"Nicht jetzt\" wählen."
+            fieldError = lang.t("Bitte Code eingeben oder \"Nicht jetzt\" wählen.")
             return
         }
         if codeValue.count < codeLength {
-            fieldError = "Bitte alle 6 Felder ausfüllen."
+            fieldError = lang.t("Bitte alle 6 Felder ausfüllen.")
             return
         }
 
@@ -293,7 +295,7 @@ struct ReferralCodeStepView: View {
             }
         } else {
             withAnimation { phase = .input }
-            fieldError = result.error ?? "Ungültiger Code. Bitte prüfen."
+            fieldError = result.error ?? lang.t("Ungültiger Code. Bitte prüfen.")
         }
     }
 }

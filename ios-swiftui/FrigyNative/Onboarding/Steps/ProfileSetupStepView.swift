@@ -5,12 +5,16 @@ struct ProfileSetupStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let steps = [
-        ("person.fill",      "Körperdaten",     "Gewicht, Größe & Alter"),
-        ("target",           "Ziele",           "Was du erreichen möchtest"),
-        ("fork.knife",       "Ernährung",       "Präferenzen & Allergien"),
-        ("chart.bar.fill",   "Dein Plan",       "Wochenplan & Makros"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var steps: [(String, String, String)] {
+        [
+            ("person.fill",      lang.t("Körperdaten"),     lang.t("Gewicht, Größe & Alter")),
+            ("target",           lang.t("Ziele"),           lang.t("Was du erreichen möchtest")),
+            ("fork.knife",       lang.t("Ernährung"),       lang.t("Präferenzen & Allergien")),
+            ("chart.bar.fill",   lang.t("Dein Plan"),       lang.t("Wochenplan & Makros")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -29,12 +33,12 @@ struct ProfileSetupStepView: View {
 
                     Spacer().frame(height: 4)
 
-                    Text("Jetzt dein Profil einrichten")
+                    Text(lang.t("Jetzt dein Profil einrichten"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
 
-                    Text("Damit können wir deinen Plan perfekt auf dich abstimmen.")
+                    Text(lang.t("Damit können wir deinen Plan perfekt auf dich abstimmen."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -82,7 +86,7 @@ struct ProfileSetupStepView: View {
 
             Spacer()
 
-            OnboardingContinueButton("Los geht's!", action: onNext)
+            OnboardingContinueButton(lang.t("Los geht's!"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }

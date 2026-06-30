@@ -9,6 +9,8 @@ struct PremiumCelebrationView: View {
     @State private var appear = false
     @State private var burst = false
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         ZStack {
             FrigyGlassBackground().ignoresSafeArea()
@@ -45,14 +47,14 @@ struct PremiumCelebrationView: View {
                 .scaleEffect(appear ? 1 : 0.5)
 
                 VStack(spacing: 10) {
-                    Text("Willkommen bei\nFrigy Premium! 🎉")
+                    Text(lang.t("Willkommen bei\nFrigy Premium! 🎉"))
                         .font(.system(size: 26, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
 
                     Text(isYearly
-                         ? "Dein Jahresabo ist aktiv. Du hast jetzt vollen Zugriff auf alle Premium-Funktionen."
-                         : "Deine Testphase läuft. Du hast jetzt vollen Zugriff auf alle Premium-Funktionen.")
+                         ? lang.t("Dein Jahresabo ist aktiv. Du hast jetzt vollen Zugriff auf alle Premium-Funktionen.")
+                         : lang.t("Deine Testphase läuft. Du hast jetzt vollen Zugriff auf alle Premium-Funktionen."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -62,9 +64,9 @@ struct PremiumCelebrationView: View {
                 .offset(y: appear ? 0 : 16)
 
                 VStack(spacing: 12) {
-                    featureLine("KI-Mahlzeitenpläne ohne Limit", "sparkles")
-                    featureLine("Barcode- & Foto-Scan", "camera.fill")
-                    featureLine("KI-Coach & erweiterte Statistiken", "brain.head.profile")
+                    featureLine(lang.t("KI-Mahlzeitenpläne ohne Limit"), "sparkles")
+                    featureLine(lang.t("Barcode- & Foto-Scan"), "camera.fill")
+                    featureLine(lang.t("KI-Coach & erweiterte Statistiken"), "brain.head.profile")
                 }
                 .padding(.top, 4)
                 .opacity(appear ? 1 : 0)
@@ -72,7 +74,7 @@ struct PremiumCelebrationView: View {
                 Spacer()
 
                 Button(action: onContinue) {
-                    Text("Los geht's")
+                    Text(lang.t("Los geht's"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

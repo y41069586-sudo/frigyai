@@ -5,13 +5,17 @@ struct PremiumHintStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let features = [
-        ("sparkles",           "Unbegrenzte Wochenpläne",       "Täglich frisch generiert"),
-        ("camera.viewfinder",  "Kühlschrank scannen",           "Unlimitierte Scans pro Monat"),
-        ("chart.bar.fill",     "Detaillierte Analysen",         "Nährwerte, Trends & Fortschritt"),
-        ("cart.fill",          "Smarte Einkaufsliste",          "Automatisch & sortiert"),
-        ("bell.fill",          "Erinnerungen",                  "Mahlzeiten & Trinkwasser"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var features: [(String, String, String)] {
+        [
+            ("sparkles",           lang.t("Unbegrenzte Wochenpläne"),       lang.t("Täglich frisch generiert")),
+            ("camera.viewfinder",  lang.t("Kühlschrank scannen"),           lang.t("Unlimitierte Scans pro Monat")),
+            ("chart.bar.fill",     lang.t("Detaillierte Analysen"),         lang.t("Nährwerte, Trends & Fortschritt")),
+            ("cart.fill",          lang.t("Smarte Einkaufsliste"),          lang.t("Automatisch & sortiert")),
+            ("bell.fill",          lang.t("Erinnerungen"),                  lang.t("Mahlzeiten & Trinkwasser")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -27,10 +31,10 @@ struct PremiumHintStepView: View {
                             .font(.system(size: 34, weight: .semibold))
                             .foregroundColor(Color(hex: "#F59E0B"))
                     }
-                    Text("Frigy Premium")
+                    Text(lang.t("Frigy Premium"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Alle Features. Keine Einschränkungen.")
+                    Text(lang.t("Alle Features. Keine Einschränkungen."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
