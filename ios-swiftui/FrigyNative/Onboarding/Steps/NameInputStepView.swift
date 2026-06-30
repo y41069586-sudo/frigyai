@@ -9,6 +9,8 @@ struct NameInputStepView: View {
     @State private var name: String
     @FocusState private var focused: Bool
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -24,10 +26,10 @@ struct NameInputStepView: View {
             Spacer()
 
             VStack(spacing: 28) {
-                OnboardingQuestion(text: "Wie sollen wir dich nennen?")
+                OnboardingQuestion(text: lang.t("Wie sollen wir dich nennen?"))
 
                 OnboardingInputCard {
-                    TextField("Dein Vorname", text: $name)
+                    TextField(lang.t("Dein Vorname"), text: $name)
                         .font(.system(size: 24, weight: .semibold))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)

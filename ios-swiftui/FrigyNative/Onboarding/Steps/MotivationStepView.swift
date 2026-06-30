@@ -7,13 +7,17 @@ struct MotivationStepView: View {
 
     @State private var selected: Set<String> = []
 
-    private let options = [
-        ("look",    "eye.fill",             "Besser aussehen",    "Körper formen & definieren"),
-        ("health",  "heart.fill",           "Gesünder leben",     "Wohlbefinden & Energie steigern"),
-        ("sport",   "figure.run",           "Sportliche Leistung","Fitness & Ausdauer verbessern"),
-        ("energy",  "bolt.fill",            "Mehr Energie",       "Vitaler & aktiver im Alltag"),
-        ("sleep",   "moon.stars.fill",      "Besser schlafen",    "Erholung & Regeneration"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var options: [(String, String, String, String)] {
+        [
+            ("look",    "eye.fill",             lang.t("Besser aussehen"),    lang.t("Körper formen & definieren")),
+            ("health",  "heart.fill",           lang.t("Gesünder leben"),     lang.t("Wohlbefinden & Energie steigern")),
+            ("sport",   "figure.run",           lang.t("Sportliche Leistung"),lang.t("Fitness & Ausdauer verbessern")),
+            ("energy",  "bolt.fill",            lang.t("Mehr Energie"),       lang.t("Vitaler & aktiver im Alltag")),
+            ("sleep",   "moon.stars.fill",      lang.t("Besser schlafen"),    lang.t("Erholung & Regeneration")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -21,9 +25,9 @@ struct MotivationStepView: View {
                 VStack(spacing: 28) {
                     Spacer().frame(height: 8)
 
-                    OnboardingQuestion(text: "Was motiviert dich?")
+                    OnboardingQuestion(text: lang.t("Was motiviert dich?"))
 
-                    Text("Mehrere Antworten möglich")
+                    Text(lang.t("Mehrere Antworten möglich"))
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
 

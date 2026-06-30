@@ -12,6 +12,7 @@ struct PaywallStepView: View {
     let onNext: () -> Void
 
     @Environment(AppRouter.self) private var router
+    @Environment(LanguageManager.self) private var lang
 
     @State private var packages: [SubscriptionPackage] = []
     @State private var selectedId: String = "monthly"
@@ -40,7 +41,7 @@ struct PaywallStepView: View {
     private var billingDate: String {
         let d = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
         let f = DateFormatter()
-        f.locale = Locale(identifier: "de_DE")
+        f.locale = lang.locale
         f.dateStyle = .long
         return f.string(from: d)
     }
@@ -48,9 +49,11 @@ struct PaywallStepView: View {
     private var footerPriceText: String {
         if isMonthly {
             let p = monthlyPkg?.priceString ?? "—"
-            return trialEligible ? "3 Tage kostenlos, danach \(p)" : "Nur \(p) pro Monat"
+            return trialEligible
+                ? lang.t("3 Tage kostenlos, danach %@").replacingOccurrences(of: "%@", with: p)
+                : lang.t("Nur %@ pro Monat").replacingOccurrences(of: "%@", with: p)
         }
-        return "Jährlich – \(yearlyPkg?.priceString ?? "—")"
+        return lang.t("Jährlich – %@").replacingOccurrences(of: "%@", with: yearlyPkg?.priceString ?? "—")
     }
 
     // MARK: - Body
@@ -77,8 +80,8 @@ struct PaywallStepView: View {
 
                     // Title switches with plan selection
                     Text(showTrialTimeline
-                         ? "Starte deine 3-tägige\nKOSTENLOSE Testphase"
-                         : "Schalte Frigy frei, um deine\nZiele schneller zu erreichen")
+                         ? lang.t("Starte deine 3-tägige\nKOSTENLOSE Testphase")
+                         : lang.t("Schalte Frigy frei, um deine\nZiele schneller zu erreichen"))
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
@@ -122,11 +125,11 @@ struct PaywallStepView: View {
         .sheet(isPresented: $showPrivacy) {
             PrivacyView()
         }
-        .alert("Käufe wiederherstellen", isPresented: Binding(
+        .alert(lang.t("Käufe wiederherstellen"), isPresented: Binding(
             get: { restoreAlertMessage != nil },
             set: { if !$0 { restoreAlertMessage = nil } }
         )) {
-            Button("OK", role: .cancel) { restoreAlertMessage = nil }
+            Button(lang.t("OK"), role: .cancel) { restoreAlertMessage = nil }
         } message: {
             Text(restoreAlertMessage ?? "")
         }
@@ -168,20 +171,20 @@ struct PaywallStepView: View {
         VStack(alignment: .leading, spacing: 0) {
             timelineStep(
                 icon: "lock.fill",
-                title: "Heute",
-                desc: "Alle Premium-Funktionen freischalten – KI-Scan, Tracker und mehr",
+                title: lang.t("Heute"),
+                desc: lang.t("Alle Premium-Funktionen freischalten – KI-Scan, Tracker und mehr"),
                 isLast: false
             )
             timelineStep(
                 icon: "bell.fill",
-                title: "In 2 Tagen – Erinnerung",
-                desc: "Wir erinnern dich, dass deine Testphase bald endet",
+                title: lang.t("In 2 Tagen – Erinnerung"),
+                desc: lang.t("Wir erinnern dich, dass deine Testphase bald endet"),
                 isLast: false
             )
             timelineStep(
                 icon: "crown.fill",
-                title: "In 3 Tagen – Abrechnung",
-                desc: "Abrechnung am \(billingDate), sofern du nicht vorher kündigst",
+                title: lang.t("In 3 Tagen – Abrechnung"),
+                desc: lang.t("Abrechnung am %@, sofern du nicht vorher kündigst").replacingOccurrences(of: "%@", with: billingDate),
                 isLast: true
             )
         }
@@ -246,17 +249,17 @@ struct PaywallStepView: View {
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Bestes Angebot")
+                        Text(lang.t("Bestes Angebot"))
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                         if let perMonth = yearlyPkg?.pricePerMonthString {
-                            Text("Nur \(perMonth) pro Monat")
+                            Text(lang.t("Nur %@ pro Monat").replacingOccurrences(of: "%@", with: perMonth))
                                 .font(.system(size: 13))
                                 .foregroundColor(FrigyBrand.textMuted)
                         }
                     }
                     Spacer()
-                    Text("JÄHRLICH")
+                    Text(lang.t("JÄHRLICH"))
                         .font(.system(size: 10, weight: .black))
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
@@ -269,7 +272,7 @@ struct PaywallStepView: View {
                 // Price breakdown
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Jährliche Abrechnung")
+                        Text(lang.t("Jährliche Abrechnung"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(FrigyBrand.textMuted)
                         Text(yearlyPkg?.priceString ?? "—")
@@ -278,11 +281,11 @@ struct PaywallStepView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text("Im Vergleich zu monatlich")
+                        Text(lang.t("Im Vergleich zu monatlich"))
                             .font(.system(size: 11))
                             .foregroundColor(FrigyBrand.textMuted)
                         if let monthly = monthlyPkg?.priceString {
-                            Text("\(monthly) × 12")
+                            Text(lang.t("%@ × 12").replacingOccurrences(of: "%@", with: monthly))
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(hex: "#EF4444"))
                                 .strikethrough(color: Color(hex: "#EF4444"))
@@ -298,9 +301,9 @@ struct PaywallStepView: View {
             // Feature list
             VStack(spacing: 14) {
                 ForEach([
-                    ("checkmark.circle.fill", "Alle Premium-Funktionen", "KI-Scan, Tracker, Wochenpläne & mehr"),
-                    ("arrow.clockwise.circle.fill", "Jederzeit kündbar", "Über deine App-Store-Einstellungen"),
-                    ("lock.shield.fill", "Einmalig pro Jahr abgerechnet", "Keine monatlichen Abbuchungen"),
+                    ("checkmark.circle.fill", lang.t("Alle Premium-Funktionen"), lang.t("KI-Scan, Tracker, Wochenpläne & mehr")),
+                    ("arrow.clockwise.circle.fill", lang.t("Jederzeit kündbar"), lang.t("Über deine App-Store-Einstellungen")),
+                    ("lock.shield.fill", lang.t("Einmalig pro Jahr abgerechnet"), lang.t("Keine monatlichen Abbuchungen")),
                 ], id: \.0) { icon, title, desc in
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: icon)
@@ -339,9 +342,9 @@ struct PaywallStepView: View {
                 // 2-column plan cards
                 HStack(spacing: 12) {
                     planCard(pkg: monthlyPkg, fallbackId: "monthly",
-                             title: "Monatlich", showBadge: trialEligible)
+                             title: lang.t("Monatlich"), showBadge: trialEligible)
                     planCard(pkg: yearlyPkg,  fallbackId: "yearly",
-                             title: "Jährlich",  showBadge: false)
+                             title: lang.t("Jährlich"),  showBadge: false)
                 }
 
                 // Commitment row — "no payment now" for trial, "cancel anytime" for yearly
@@ -350,8 +353,8 @@ struct PaywallStepView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(FrigyBrand.primaryDeep)
                     Text(showTrialTimeline
-                         ? "Keine Zahlung jetzt fällig"
-                         : "Keine Bindung – jederzeit kündbar")
+                         ? lang.t("Keine Zahlung jetzt fällig")
+                         : lang.t("Keine Bindung – jederzeit kündbar"))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.text)
                 }
@@ -383,8 +386,8 @@ struct PaywallStepView: View {
                             ProgressView().tint(FrigyBrand.text).scaleEffect(0.85)
                         }
                         Text(isPurchasing
-                             ? "Wird verarbeitet…"
-                             : showTrialTimeline ? "3-tägige Testphase starten" : "Loslegen")
+                             ? lang.t("Wird verarbeitet…")
+                             : showTrialTimeline ? lang.t("3-tägige Testphase starten") : lang.t("Loslegen"))
                             .font(.system(size: 17, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                     }
@@ -420,11 +423,11 @@ struct PaywallStepView: View {
                                 } else {
                                     // Restore ran but found no active entitlement — always
                                     // give feedback (Apple requires it; silent = broken UX).
-                                    restoreAlertMessage = "Keine aktiven Käufe gefunden. Falls du Frigy Premium hast, melde dich mit derselben Apple-ID an, mit der du gekauft hast."
+                                    restoreAlertMessage = lang.t("Keine aktiven Käufe gefunden. Falls du Frigy Premium hast, melde dich mit derselben Apple-ID an, mit der du gekauft hast.")
                                 }
                             } catch {
                                 isRestoring = false
-                                restoreAlertMessage = "Wiederherstellung fehlgeschlagen. Bitte prüfe deine Internetverbindung und versuche es erneut."
+                                restoreAlertMessage = lang.t("Wiederherstellung fehlgeschlagen. Bitte prüfe deine Internetverbindung und versuche es erneut.")
                             }
                         }
                     } label: {
@@ -432,7 +435,7 @@ struct PaywallStepView: View {
                             if isRestoring {
                                 ProgressView().progressViewStyle(.circular).scaleEffect(0.8)
                             } else {
-                                Text("Käufe wiederherstellen")
+                                Text(lang.t("Käufe wiederherstellen"))
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(FrigyBrand.text)
                                     .underline()
@@ -449,7 +452,7 @@ struct PaywallStepView: View {
                     Button {
                         router.subscriptionService.redeemOfferCode()
                     } label: {
-                        Text("Code einlösen")
+                        Text(lang.t("Code einlösen"))
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                             .underline()
@@ -463,12 +466,14 @@ struct PaywallStepView: View {
                 VStack(spacing: 6) {
                     Divider().padding(.top, 8)
                     if let pkg = selectedPkg {
-                        Text("Frigy Premium · \(pkg.isYearly ? "Jahresabo (1 Jahr)" : "Monatsabo (1 Monat)") · \(pkg.priceString)")
+                        Text(lang.t("Frigy Premium · %1@ · %2@")
+                            .replacingOccurrences(of: "%1@", with: pkg.isYearly ? lang.t("Jahresabo (1 Jahr)") : lang.t("Monatsabo (1 Monat)"))
+                            .replacingOccurrences(of: "%2@", with: pkg.priceString))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
                     }
-                    Text("Das Abo verlängert sich automatisch, bis du es mindestens 24 Stunden vor Periodenende in den Einstellungen deines App-Store-Kontos kündigst. Die Zahlung wird bei Bestätigung über dein Store-Konto abgebucht.")
+                    Text(lang.t("Das Abo verlängert sich automatisch, bis du es mindestens 24 Stunden vor Periodenende in den Einstellungen deines App-Store-Kontos kündigst. Die Zahlung wird bei Bestätigung über dein Store-Konto abgebucht."))
                         .font(.system(size: 11))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -480,13 +485,13 @@ struct PaywallStepView: View {
                     // auto-renewable subscriptions: functional Terms (EULA) and
                     // Privacy Policy links right where the purchase happens.
                     HStack(spacing: 6) {
-                        Button("Nutzungsbedingungen") { showTerms = true }
+                        Button(lang.t("Nutzungsbedingungen")) { showTerms = true }
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                         Text("·")
                             .font(.system(size: 11))
                             .foregroundColor(FrigyBrand.textMuted)
-                        Button("Datenschutz") { showPrivacy = true }
+                        Button(lang.t("Datenschutz")) { showPrivacy = true }
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
@@ -535,12 +540,12 @@ struct PaywallStepView: View {
                                     .foregroundColor(FrigyBrand.text)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.7)
-                                Text("/ Monat")
+                                Text(lang.t("/ Monat"))
                                     .font(.system(size: 11, weight: .semibold))
                                     .foregroundColor(FrigyBrand.textMuted)
                             }
                             if isYearlyCard, let annual = pkg?.priceString {
-                                Text("\(annual) / Jahr")
+                                Text(lang.t("%@ / Jahr").replacingOccurrences(of: "%@", with: annual))
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(FrigyBrand.primaryDeep)
                             }
@@ -575,7 +580,7 @@ struct PaywallStepView: View {
                 .shadow(color: selected ? FrigyBrand.primary.opacity(0.4) : .clear, radius: 12, y: 4)
 
                 if showBadge {
-                    Text("3 TAGE KOSTENLOS")
+                    Text(lang.t("3 TAGE KOSTENLOS"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
@@ -612,8 +617,8 @@ struct PaywallStepView: View {
     private func addTrialReminderRequest(to center: UNUserNotificationCenter) {
         center.removePendingNotificationRequests(withIdentifiers: ["frigy.trial.day2"])
         let content = UNMutableNotificationContent()
-        content.title = "⏰ Testphase endet morgen!"
-        content.body = "Deine kostenlose Testphase endet morgen. Kündige jetzt in den App-Store-Einstellungen, wenn du nicht abgerechnet werden möchtest."
+        content.title = lang.t("⏰ Testphase endet morgen!")
+        content.body = lang.t("Deine kostenlose Testphase endet morgen. Kündige jetzt in den App-Store-Einstellungen, wenn du nicht abgerechnet werden möchtest.")
         content.sound = .default
 
         var fireComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())

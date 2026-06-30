@@ -8,6 +8,8 @@ struct MainGoalStepView: View {
 
     @State private var draft: UserProfileDraft
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -16,11 +18,13 @@ struct MainGoalStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private let options: [(id: String, icon: String, titleA: String, titleB: String)] = [
-        ("lose",     "flame.fill",    "Gewicht",  "abnehmen"),
-        ("maintain", "scalemass.fill","Gewicht",  "beibehalten"),
-        ("gain",     "dumbbell.fill", "Gewicht",  "zulegen"),
-    ]
+    private var options: [(id: String, icon: String, titleA: String, titleB: String)] {
+        [
+            ("lose",     "flame.fill",    lang.t("Gewicht"),  lang.t("abnehmen")),
+            ("maintain", "scalemass.fill",lang.t("Gewicht"),  lang.t("beibehalten")),
+            ("gain",     "dumbbell.fill", lang.t("Gewicht"),  lang.t("zulegen")),
+        ]
+    }
 
     private var canProceed: Bool {
         ["lose", "maintain", "gain"].contains(draft.goalMode)
@@ -29,7 +33,7 @@ struct MainGoalStepView: View {
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            FrigyMascotQuestion("Was ist dein Ziel?")
+            FrigyMascotQuestion(lang.t("Was ist dein Ziel?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

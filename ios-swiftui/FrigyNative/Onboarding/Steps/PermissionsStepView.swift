@@ -13,6 +13,8 @@ struct PermissionsStepView: View {
 
     @State private var requested = false
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
@@ -28,10 +30,10 @@ struct PermissionsStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    Text("Bleib am Ball")
+                    Text(lang.t("Bleib am Ball"))
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Aktiviere Erinnerungen, damit du deine Mahlzeiten nicht vergisst und dein Ziel erreichst.")
+                    Text(lang.t("Aktiviere Erinnerungen, damit du deine Mahlzeiten nicht vergisst und dein Ziel erreichst."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -39,10 +41,10 @@ struct PermissionsStepView: View {
                 }
 
                 VStack(spacing: 10) {
-                    permissionRow("Mahlzeit-Erinnerungen", icon: "fork.knife")
-                    permissionRow("Fortschritts-Updates", icon: "chart.line.uptrend.xyaxis")
-                    permissionRow("Kamera & Barcode-Scan", icon: "camera.fill")
-                    permissionRow("Gesundheits-App verbinden", icon: "heart.fill")
+                    permissionRow(lang.t("Mahlzeit-Erinnerungen"), icon: "fork.knife")
+                    permissionRow(lang.t("Fortschritts-Updates"), icon: "chart.line.uptrend.xyaxis")
+                    permissionRow(lang.t("Kamera & Barcode-Scan"), icon: "camera.fill")
+                    permissionRow(lang.t("Gesundheits-App verbinden"), icon: "heart.fill")
                 }
                 .padding(.horizontal, 24)
             }
@@ -50,12 +52,12 @@ struct PermissionsStepView: View {
             Spacer()
 
             VStack(spacing: 12) {
-                OnboardingContinueButton("Benachrichtigungen erlauben") {
+                OnboardingContinueButton(lang.t("Benachrichtigungen erlauben")) {
                     requestAndContinue()
                 }
                 .padding(.horizontal, 24)
 
-                Button("Überspringen") { onNext() }
+                Button(lang.t("Überspringen")) { onNext() }
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(FrigyBrand.textMuted)
             }
