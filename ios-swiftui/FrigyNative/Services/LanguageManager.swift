@@ -725,5 +725,18 @@ enum Translations {
         "Fr": [.en: "Fri", .fr: "Ven", .es: "Vie", .it: "Ven", .hi: "शुक्र"],
         "🌯 Veggie-Wrap": [.en: "🌯 Veggie wrap", .fr: "🌯 Wrap végétarien", .es: "🌯 Wrap vegetariano", .it: "🌯 Wrap vegetariano", .hi: "🌯 वेजी रैप"],
         "🍝 Pasta bolognese": [.en: "🍝 Pasta bolognese", .fr: "🍝 Pâtes bolognaise", .es: "🍝 Pasta a la boloñesa", .it: "🍝 Pasta al ragù", .hi: "🍝 पास्ता बोलोग्नीज़"],
+
+        // ===== ONBOARDING: WEEKLY PLAN / WEIGHT / WELCOME =====
+        "Was erwartet dich bei Frigy?": [.en: "What awaits you at Frigy?", .fr: "Qu'est-ce qui t'attend chez Frigy ?", .es: "¿Qué te espera en Frigy?", .it: "Cosa ti aspetta su Frigy?", .hi: "Frigy में आपका क्या इंतज़ार है?"],
+        "KI wählt optimale Mahlzeiten": [.en: "AI selects optimal meals", .fr: "L'IA choisit les repas optimaux", .es: "La IA elige las comidas óptimas", .it: "L'IA sceglie i pasti ottimali", .hi: "एआई इष्टतम भोजन चुनता है"],
+        "Abgestimmt auf deine Präferenzen": [.en: "Matched to your preferences", .fr: "Adapté à tes préférences", .es: "Adaptado a tus preferencias", .it: "Adattato alle tue preferenze", .hi: "आपकी प्राथमिकताओं के अनुरूप"],
+        "Kalorienziel wird eingehalten": [.en: "Calorie goal is maintained", .fr: "L'objectif calorique est respecté", .es: "Se mantiene el objetivo calórico", .it: "L'obiettivo calorico viene rispettato", .hi: "कैलोरी लक्ष्य बनाए रखा जाता है"],
+        "Jede Woche frisch generiert": [.en: "Freshly generated every week", .fr: "Généré à nouveau chaque semaine", .es: "Generado de nuevo cada semana", .it: "Generato di nuovo ogni settimana", .hi: "हर सप्ताह नया बनाया जाता है"],
+        "Frigy erstellt dir einen vollständigen 7-Tage-Ernährungsplan – automatisch & personalisiert.": [.en: "Frigy creates a complete 7-day nutrition plan for you – automatically & personalized.", .fr: "Frigy te crée un plan nutritionnel complet de 7 jours – automatique et personnalisé.", .es: "Frigy crea para ti un plan nutricional completo de 7 días – automático y personalizado.", .it: "Frigy crea per te un piano nutrizionale completo di 7 giorni – automatico e personalizzato.", .hi: "Frigy आपके लिए एक पूर्ण 7-दिवसीय पोषण योजना बनाता है – स्वचालित और व्यक्तिगत।"],
+        "Wie viel wiegst du aktuell?": [.en: "How much do you currently weigh?", .fr: "Combien pèses-tu actuellement ?", .es: "¿Cuánto pesas actualmente?", .it: "Quanto pesi attualmente?", .hi: "आपका वर्तमान वजन कितना है?"],
+        "KI-generierte Wochenpläne": [.en: "AI-generated weekly plans", .fr: "Plans hebdomadaires générés par l'IA", .es: "Planes semanales generados por IA", .it: "Piani settimanali generati dall'IA", .hi: "एआई-जनित साप्ताहिक योजनाएं"],
+        "Barcode & Kühlschrank scannen": [.en: "Scan barcode & fridge", .fr: "Scanner le code-barres et le réfrigérateur", .es: "Escanear código de barras y refrigerador", .it: "Scansiona codice a barre e frigorifero", .hi: "बारकोड और फ्रिज स्कैन करें"],
+        "Bereits ein Konto? ": [.en: "Already have an account? ", .fr: "Tu as déjà un compte ? ", .es: "¿Ya tienes una cuenta? ", .it: "Hai già un account? ", .hi: "पहले से खाता है? "],
+        "Anmelden": [.en: "Sign in", .fr: "Connexion", .es: "Iniciar sesión", .it: "Accedi", .hi: "साइन इन करें"],
     ]
 }

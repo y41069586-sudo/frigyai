@@ -7,6 +7,8 @@ struct WelcomeStepView: View {
     @State private var opacity = 0.0
     @State private var offsetY = 24.0
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         ZStack {
             FrigyBrand.bg.ignoresSafeArea()
@@ -50,10 +52,10 @@ struct WelcomeStepView: View {
 
                 // Headline
                 VStack(spacing: 4) {
-                    Text("Iss smarter.")
+                    Text(lang.t("Iss smarter."))
                         .font(.system(size: 42, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Leb leichter.")
+                    Text(lang.t("Leb leichter."))
                         .font(.system(size: 42, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.primaryDark)
                 }
@@ -61,7 +63,7 @@ struct WelcomeStepView: View {
                 Spacer().frame(height: 18)
 
                 // Subline
-                Text("Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.")
+                Text(lang.t("Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste."))
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -72,9 +74,9 @@ struct WelcomeStepView: View {
 
                 // Feature bullets
                 VStack(spacing: 12) {
-                    featureRow("sparkles",        "KI-generierte Wochenpläne")
-                    featureRow("barcode.viewfinder", "Barcode & Kühlschrank scannen")
-                    featureRow("cart.fill",       "Automatische Einkaufsliste")
+                    featureRow("sparkles",        lang.t("KI-generierte Wochenpläne"))
+                    featureRow("barcode.viewfinder", lang.t("Barcode & Kühlschrank scannen"))
+                    featureRow("cart.fill",       lang.t("Automatische Einkaufsliste"))
                 }
                 .padding(.horizontal, 40)
 
@@ -82,13 +84,13 @@ struct WelcomeStepView: View {
 
                 // CTA
                 VStack(spacing: 14) {
-                    OnboardingContinueButton("Loslegen", action: onNext)
+                    OnboardingContinueButton(lang.t("Loslegen"), action: onNext)
                         .padding(.horizontal, 24)
 
                     Button(action: onSignIn) {
-                        Text("Bereits ein Konto? ")
+                        Text(lang.t("Bereits ein Konto? "))
                             .foregroundColor(FrigyBrand.textMuted)
-                        + Text("Anmelden")
+                        + Text(lang.t("Anmelden"))
                             .foregroundColor(FrigyBrand.primaryDark)
                             .bold()
                     }

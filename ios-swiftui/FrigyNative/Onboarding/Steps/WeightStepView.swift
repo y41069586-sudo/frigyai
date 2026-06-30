@@ -13,6 +13,8 @@ struct WeightStepView: View {
 
     private let kgPerLb = 0.45359237
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -27,13 +29,13 @@ struct WeightStepView: View {
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Wie viel wiegst du aktuell?")
+            FrigyMascotQuestion(lang.t("Wie viel wiegst du aktuell?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
 
             MintSegmentedControl(
-                options: [("metric", "Metrisch"), ("imperial", "Imperial")],
+                options: [("metric", lang.t("Metrisch")), ("imperial", lang.t("Imperial"))],
                 selected: isMetric ? "metric" : "imperial"
             ) { id in
                 let wasMetric = isMetric

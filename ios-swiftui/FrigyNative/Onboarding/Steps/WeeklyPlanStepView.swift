@@ -7,16 +7,20 @@ struct WeeklyPlanStepView: View {
 
     @State private var appeared = false
 
-    private let features: [(icon: String, color: Color, label: String)] = [
-        ("sparkles",        Color(hex: "#75FBB2"), "KI wählt optimale Mahlzeiten"),
-        ("heart.fill",      Color(hex: "#FF6B8A"), "Abgestimmt auf deine Präferenzen"),
-        ("scalemass.fill",  Color(hex: "#75FBB2"), "Kalorienziel wird eingehalten"),
-        ("arrow.clockwise", Color(hex: "#60B4FF"), "Jede Woche frisch generiert"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var features: [(icon: String, color: Color, label: String)] {
+        [
+            ("sparkles",        Color(hex: "#75FBB2"), lang.t("KI wählt optimale Mahlzeiten")),
+            ("heart.fill",      Color(hex: "#FF6B8A"), lang.t("Abgestimmt auf deine Präferenzen")),
+            ("scalemass.fill",  Color(hex: "#75FBB2"), lang.t("Kalorienziel wird eingehalten")),
+            ("arrow.clockwise", Color(hex: "#60B4FF"), lang.t("Jede Woche frisch generiert")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Was erwartet dich bei Frigy?")
+            FrigyMascotQuestion(lang.t("Was erwartet dich bei Frigy?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
@@ -42,10 +46,10 @@ struct WeeklyPlanStepView: View {
 
                 // Title + subtitle
                 VStack(spacing: 6) {
-                    Text("Dein Wochenplan")
+                    Text(lang.t("Dein Wochenplan"))
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("Frigy erstellt dir einen vollständigen 7-Tage-Ernährungsplan – automatisch & personalisiert.")
+                    Text(lang.t("Frigy erstellt dir einen vollständigen 7-Tage-Ernährungsplan – automatisch & personalisiert."))
                         .font(.system(size: 14))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
