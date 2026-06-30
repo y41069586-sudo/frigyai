@@ -9,6 +9,8 @@ struct GoalPreviewStepView: View {
     @State private var drawProgress: CGFloat = 0
     @State private var showDots = false
 
+    @Environment(LanguageManager.self) private var lang
+
     private var currentKg: Double { profile.weightKg }
     private var targetKg: Double { profile.targetWeightKg }
     private var deltaKg: Double { abs(targetKg - currentKg) }
@@ -21,9 +23,9 @@ struct GoalPreviewStepView: View {
     private var headlineText: String {
         let deltaStr = String(format: "%.1f", deltaKg).replacingOccurrences(of: ".", with: ",")
         switch direction {
-        case "lose":  return "BEREIT, \(deltaStr) KG ABZUNEHMEN — EIN ERREICHBARES ZIEL!"
-        case "gain":  return "BEREIT, \(deltaStr) KG ZUZUNEHMEN — EIN ERREICHBARES ZIEL!"
-        default:      return "BEREIT, DEIN GEWICHT ZU HALTEN — EIN ERREICHBARES ZIEL!"
+        case "lose":  return lang.t("BEREIT, %@ KG ABZUNEHMEN — EIN ERREICHBARES ZIEL!").replacingOccurrences(of: "%@", with: deltaStr)
+        case "gain":  return lang.t("BEREIT, %@ KG ZUZUNEHMEN — EIN ERREICHBARES ZIEL!").replacingOccurrences(of: "%@", with: deltaStr)
+        default:      return lang.t("BEREIT, DEIN GEWICHT ZU HALTEN — EIN ERREICHBARES ZIEL!")
         }
     }
 
@@ -41,7 +43,7 @@ struct GoalPreviewStepView: View {
                     .padding(.bottom, 4)
             }
 
-            Text("Illustrativer Vergleich aus deinen Angaben — nur motivierend, keine medizinische Prognose.")
+            Text(lang.t("Illustrativer Vergleich aus deinen Angaben — nur motivierend, keine medizinische Prognose."))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(FrigyBrand.textMuted)
                 .padding(.horizontal, 20)
@@ -103,7 +105,7 @@ struct GoalPreviewStepView: View {
             animatedChart
                 .frame(height: 200)
                 .overlay(alignment: .topLeading) {
-                    Text("Dein Gewicht")
+                    Text(lang.t("Dein Gewicht"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(FrigyBrand.textMuted)
                         .padding(.leading, 28)
@@ -112,7 +114,7 @@ struct GoalPreviewStepView: View {
                 .overlay(alignment: .topTrailing) {
                     HStack(spacing: 5) {
                         Circle().fill(FrigyBrand.primaryDeep).frame(width: 7, height: 7)
-                        Text("Mit Frigy")
+                        Text(lang.t("Mit Frigy"))
                             .font(.system(size: 12, weight: .black))
                             .foregroundColor(FrigyBrand.primaryDeep)
                     }
@@ -123,7 +125,7 @@ struct GoalPreviewStepView: View {
                 .overlay(alignment: .bottomTrailing) {
                     HStack(spacing: 5) {
                         Circle().fill(Color(hex: "#EF4444")).frame(width: 7, height: 7)
-                        Text("Ohne Frigy")
+                        Text(lang.t("Ohne Frigy"))
                             .font(.system(size: 12, weight: .black))
                             .foregroundColor(Color(hex: "#EF4444"))
                     }

@@ -410,5 +410,42 @@ enum Translations {
         "Tausende Nutzer haben bereits ihr Ziel erreicht.": [.en: "Thousands of users have already reached their goal.", .fr: "Des milliers d'utilisateurs ont déjà atteint leur objectif.", .es: "Miles de usuarios ya han alcanzado su objetivo.", .it: "Migliaia di utenti hanno già raggiunto il loro obiettivo.", .hi: "हजारों उपयोगकर्ता पहले ही अपना लक्ष्य प्राप्त कर चुके हैं।"],
         "KI erstellt deinen personalisierten Wochenplan.": [.en: "AI creates your personalized weekly plan.", .fr: "L'IA crée ton plan hebdomadaire personnalisé.", .es: "La IA crea tu plan semanal personalizado.", .it: "L'IA crea il tuo piano settimanale personalizzato.", .hi: "AI आपकी व्यक्तिगत साप्ताहिक योजना बनाता है।"],
         "Scanne deinen Kühlschrank und wir schlagen Rezepte vor.": [.en: "Scan your fridge and we'll suggest recipes.", .fr: "Scanne ton réfrigérateur et nous te proposerons des recettes.", .es: "Escanea tu nevera y te sugeriremos recetas.", .it: "Scansiona il tuo frigorifero e ti suggeriremo delle ricette.", .hi: "अपना फ्रिज स्कैन करें और हम रेसिपी सुझाएंगे।"],
+
+        // ===== ONBOARDING: GOAL MODE / GOAL PREVIEW / GOAL SELECTION / GOAL / HEALTH GOALS =====
+        "Welchen Modus bevorzugst du?": [.en: "Which mode do you prefer?", .fr: "Quel mode préfères-tu ?", .es: "¿Qué modo prefieres?", .it: "Quale modalità preferisci?", .hi: "आप किस मोड को प्राथमिकता देते हैं?"],
+        "Strikt": [.en: "Strict", .fr: "Strict", .es: "Estricto", .it: "Rigoroso", .hi: "सख्त"],
+        "Klare Regeln, schnellere Ergebnisse": [.en: "Clear rules, faster results", .fr: "Règles claires, résultats plus rapides", .es: "Reglas claras, resultados más rápidos", .it: "Regole chiare, risultati più rapidi", .hi: "स्पष्ट नियम, तेज़ परिणाम"],
+        "Ausgewogen": [.en: "Balanced", .fr: "Équilibré", .es: "Equilibrado", .it: "Equilibrato", .hi: "संतुलित"],
+        "Nachhaltig & langfristig": [.en: "Sustainable & long-term", .fr: "Durable et à long terme", .es: "Sostenible y a largo plazo", .it: "Sostenibile e a lungo termine", .hi: "टिकाऊ और दीर्घकालिक"],
+        "Flexibel": [.en: "Flexible", .fr: "Flexible", .es: "Flexible", .it: "Flessibile", .hi: "लचीला"],
+        "Lockerer Ansatz mit Spielraum": [.en: "Relaxed approach with room to flex", .fr: "Approche détendue avec marge de manœuvre", .es: "Enfoque relajado con margen de maniobra", .it: "Approccio rilassato con margine di manovra", .hi: "लचीलेपन के साथ आरामदायक दृष्टिकोण"],
+
+        "BEREIT, %@ KG ABZUNEHMEN — EIN ERREICHBARES ZIEL!": [.en: "READY TO LOSE %@ KG — AN ACHIEVABLE GOAL!", .fr: "PRÊT À PERDRE %@ KG — UN OBJECTIF ATTEIGNABLE !", .es: "LISTO PARA PERDER %@ KG — ¡UN OBJETIVO ALCANZABLE!", .it: "PRONTO A PERDERE %@ KG — UN OBIETTIVO RAGGIUNGIBILE!", .hi: "%@ किलो वजन कम करने के लिए तैयार — एक प्राप्य लक्ष्य!"],
+        "BEREIT, %@ KG ZUZUNEHMEN — EIN ERREICHBARES ZIEL!": [.en: "READY TO GAIN %@ KG — AN ACHIEVABLE GOAL!", .fr: "PRÊT À PRENDRE %@ KG — UN OBJECTIF ATTEIGNABLE !", .es: "LISTO PARA GANAR %@ KG — ¡UN OBJETIVO ALCANZABLE!", .it: "PRONTO A PRENDERE %@ KG — UN OBIETTIVO RAGGIUNGIBILE!", .hi: "%@ किलो वजन बढ़ाने के लिए तैयार — एक प्राप्य लक्ष्य!"],
+        "BEREIT, DEIN GEWICHT ZU HALTEN — EIN ERREICHBARES ZIEL!": [.en: "READY TO MAINTAIN YOUR WEIGHT — AN ACHIEVABLE GOAL!", .fr: "PRÊT À MAINTENIR TON POIDS — UN OBJECTIF ATTEIGNABLE !", .es: "LISTO PARA MANTENER TU PESO — ¡UN OBJETIVO ALCANZABLE!", .it: "PRONTO A MANTENERE IL TUO PESO — UN OBIETTIVO RAGGIUNGIBILE!", .hi: "अपना वजन बनाए रखने के लिए तैयार — एक प्राप्य लक्ष्य!"],
+        "Illustrativer Vergleich aus deinen Angaben — nur motivierend, keine medizinische Prognose.": [.en: "Illustrative comparison based on your data — for motivation only, not a medical prediction.", .fr: "Comparaison illustrative basée sur tes données — à titre motivationnel uniquement, pas une prédiction médicale.", .es: "Comparación ilustrativa basada en tus datos — solo con fines motivacionales, no es una predicción médica.", .it: "Confronto illustrativo basato sui tuoi dati — solo a scopo motivazionale, non una previsione medica.", .hi: "आपके डेटा पर आधारित उदाहरणात्मक तुलना — केवल प्रेरणा के लिए, कोई चिकित्सा भविष्यवाणी नहीं।"],
+        "Dein Gewicht": [.en: "Your weight", .fr: "Ton poids", .es: "Tu peso", .it: "Il tuo peso", .hi: "आपका वजन"],
+
+        "Wie möchtest du Frigy nutzen?": [.en: "How do you want to use Frigy?", .fr: "Comment veux-tu utiliser Frigy ?", .es: "¿Cómo quieres usar Frigy?", .it: "Come vuoi usare Frigy?", .hi: "आप Frigy का उपयोग कैसे करना चाहते हैं?"],
+        "Strukturiert": [.en: "Structured", .fr: "Structuré", .es: "Estructurado", .it: "Strutturato", .hi: "संरचित"],
+        "Wochenpläne mit festen Mahlzeiten & Einkaufslisten": [.en: "Weekly plans with fixed meals & shopping lists", .fr: "Plans hebdomadaires avec repas fixes et listes de courses", .es: "Planes semanales con comidas fijas y listas de compras", .it: "Piani settimanali con pasti fissi e liste della spesa", .hi: "निश्चित भोजन और खरीदारी सूची के साथ साप्ताहिक योजनाएं"],
+        "Empfohlen": [.en: "Recommended", .fr: "Recommandé", .es: "Recomendado", .it: "Consigliato", .hi: "अनुशंसित"],
+        "Spontan": [.en: "Spontaneous", .fr: "Spontané", .es: "Espontáneo", .it: "Spontaneo", .hi: "स्वतःस्फूर्त"],
+        "Flexibel tracken ohne feste Pläne": [.en: "Track flexibly without fixed plans", .fr: "Suivi flexible sans plans fixes", .es: "Seguimiento flexible sin planes fijos", .it: "Monitoraggio flessibile senza piani fissi", .hi: "बिना निश्चित योजनाओं के लचीला ट्रैकिंग"],
+
+        "Abnehmen": [.en: "Lose weight", .fr: "Perdre du poids", .es: "Perder peso", .it: "Perdere peso", .hi: "वजन कम करें"],
+        "Körperfett reduzieren & leichter werden": [.en: "Reduce body fat & get lighter", .fr: "Réduire la graisse corporelle et s'alléger", .es: "Reducir la grasa corporal y bajar de peso", .it: "Ridurre il grasso corporeo e diventare più leggero", .hi: "शरीर की चर्बी कम करें और हल्के बनें"],
+        "Gewicht halten": [.en: "Maintain weight", .fr: "Maintenir le poids", .es: "Mantener el peso", .it: "Mantenere il peso", .hi: "वजन बनाए रखें"],
+        "Gesund bleiben & Gewicht stabilisieren": [.en: "Stay healthy & stabilize weight", .fr: "Rester en bonne santé et stabiliser son poids", .es: "Mantenerse saludable y estabilizar el peso", .it: "Rimanere in salute e stabilizzare il peso", .hi: "स्वस्थ रहें और वजन स्थिर करें"],
+        "Zunehmen": [.en: "Gain weight", .fr: "Prendre du poids", .es: "Ganar peso", .it: "Aumentare di peso", .hi: "वजन बढ़ाएं"],
+        "Muskeln aufbauen & Körpergewicht steigern": [.en: "Build muscle & increase body weight", .fr: "Développer les muscles et augmenter le poids corporel", .es: "Desarrollar músculo y aumentar el peso corporal", .it: "Costruire muscoli e aumentare il peso corporeo", .hi: "मांसपेशियां बनाएं और शरीर का वजन बढ़ाएं"],
+
+        "Was möchtest du erreichen?": [.en: "What do you want to achieve?", .fr: "Que veux-tu accomplir ?", .es: "¿Qué quieres lograr?", .it: "Cosa vuoi ottenere?", .hi: "आप क्या हासिल करना चाहते हैं?"],
+        "Fitness & Straffung": [.en: "Fitness & toning", .fr: "Fitness et tonification", .es: "Fitness y tonificación", .it: "Fitness e tonificazione", .hi: "फिटनेस और टोनिंग"],
+        "Sportliche Leistung verbessern": [.en: "Improve athletic performance", .fr: "Améliorer les performances sportives", .es: "Mejorar el rendimiento deportivo", .it: "Migliorare le prestazioni sportive", .hi: "खेल प्रदर्शन में सुधार करें"],
+        "Entzündungshemmende Ernährung": [.en: "Anti-inflammatory diet", .fr: "Alimentation anti-inflammatoire", .es: "Dieta antiinflamatoria", .it: "Dieta antinfiammatoria", .hi: "सूजनरोधी आहार"],
+        "Energie steigern": [.en: "Increase energy", .fr: "Augmenter l'énergie", .es: "Aumentar la energía", .it: "Aumentare l'energia", .hi: "ऊर्जा बढ़ाएं"],
+        "Ernährung während der Schwangerschaft": [.en: "Nutrition during pregnancy", .fr: "Alimentation pendant la grossesse", .es: "Nutrición durante el embarazo", .it: "Alimentazione durante la gravidanza", .hi: "गर्भावस्था के दौरान पोषण"],
+        "Verdauungsgesundheit verbessern": [.en: "Improve digestive health", .fr: "Améliorer la santé digestive", .es: "Mejorar la salud digestiva", .it: "Migliorare la salute digestiva", .hi: "पाचन स्वास्थ्य में सुधार करें"],
     ]
 }

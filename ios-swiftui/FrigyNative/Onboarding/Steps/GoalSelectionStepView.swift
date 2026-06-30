@@ -7,29 +7,33 @@ struct GoalSelectionStepView: View {
 
     @State private var selected: String? = nil
 
-    private let options = [
-        (
-            id: "structured",
-            icon: "calendar.badge.checkmark",
-            title: "Strukturiert",
-            subtitle: "Wochenpläne mit festen Mahlzeiten & Einkaufslisten",
-            badge: "Empfohlen"
-        ),
-        (
-            id: "spontan",
-            icon: "bolt.fill",
-            title: "Spontan",
-            subtitle: "Flexibel tracken ohne feste Pläne",
-            badge: String?.none
-        ),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var options: [(id: String, icon: String, title: String, subtitle: String, badge: String?)] {
+        [
+            (
+                id: "structured",
+                icon: "calendar.badge.checkmark",
+                title: lang.t("Strukturiert"),
+                subtitle: lang.t("Wochenpläne mit festen Mahlzeiten & Einkaufslisten"),
+                badge: lang.t("Empfohlen")
+            ),
+            (
+                id: "spontan",
+                icon: "bolt.fill",
+                title: lang.t("Spontan"),
+                subtitle: lang.t("Flexibel tracken ohne feste Pläne"),
+                badge: String?.none
+            ),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
 
             VStack(spacing: 28) {
-                OnboardingQuestion(text: "Wie möchtest du Frigy nutzen?")
+                OnboardingQuestion(text: lang.t("Wie möchtest du Frigy nutzen?"))
 
                 VStack(spacing: 12) {
                     ForEach(options, id: \.id) { opt in

@@ -7,18 +7,22 @@ struct GoalStepView: View {
 
     @State private var selected: String? = nil
 
-    private let options = [
-        ("lose",     "arrow.down.circle.fill", "Abnehmen",       "Körperfett reduzieren & leichter werden"),
-        ("maintain", "equal.circle.fill",      "Gewicht halten", "Gesund bleiben & Gewicht stabilisieren"),
-        ("gain",     "arrow.up.circle.fill",   "Zunehmen",       "Muskeln aufbauen & Körpergewicht steigern"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var options: [(String, String, String, String)] {
+        [
+            ("lose",     "arrow.down.circle.fill", lang.t("Abnehmen"),       lang.t("Körperfett reduzieren & leichter werden")),
+            ("maintain", "equal.circle.fill",      lang.t("Gewicht halten"), lang.t("Gesund bleiben & Gewicht stabilisieren")),
+            ("gain",     "arrow.up.circle.fill",   lang.t("Zunehmen"),       lang.t("Muskeln aufbauen & Körpergewicht steigern")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
 
             VStack(spacing: 28) {
-                OnboardingQuestion(text: "Was ist dein Ziel?")
+                OnboardingQuestion(text: lang.t("Was ist dein Ziel?"))
 
                 VStack(spacing: 10) {
                     ForEach(options, id: \.0) { opt in

@@ -8,6 +8,8 @@ struct HealthGoalsStepView: View {
 
     @State private var draft: UserProfileDraft
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -16,19 +18,21 @@ struct HealthGoalsStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private let options: [(id: String, emoji: String, title: String)] = [
-        ("fitness",           "🏋️", "Fitness & Straffung"),
-        ("performance",       "⚡",  "Sportliche Leistung verbessern"),
-        ("anti-inflammatory", "🌿", "Entzündungshemmende Ernährung"),
-        ("energy",            "🔋", "Energie steigern"),
-        ("pregnancy",         "🤰", "Ernährung während der Schwangerschaft"),
-        ("digestion",         "✨", "Verdauungsgesundheit verbessern"),
-    ]
+    private var options: [(id: String, emoji: String, title: String)] {
+        [
+            ("fitness",           "🏋️", lang.t("Fitness & Straffung")),
+            ("performance",       "⚡",  lang.t("Sportliche Leistung verbessern")),
+            ("anti-inflammatory", "🌿", lang.t("Entzündungshemmende Ernährung")),
+            ("energy",            "🔋", lang.t("Energie steigern")),
+            ("pregnancy",         "🤰", lang.t("Ernährung während der Schwangerschaft")),
+            ("digestion",         "✨", lang.t("Verdauungsgesundheit verbessern")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            FrigyMascotQuestion("Was möchtest du erreichen?")
+            FrigyMascotQuestion(lang.t("Was möchtest du erreichen?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

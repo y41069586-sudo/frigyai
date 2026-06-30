@@ -7,18 +7,22 @@ struct GoalModeStepView: View {
 
     @State private var selected: String? = nil
 
-    private let options = [
-        ("strict",   "bolt.fill",         "Strikt",       "Klare Regeln, schnellere Ergebnisse"),
-        ("balanced", "leaf.fill",          "Ausgewogen",   "Nachhaltig & langfristig"),
-        ("flexible", "wind",              "Flexibel",     "Lockerer Ansatz mit Spielraum"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var options: [(String, String, String, String)] {
+        [
+            ("strict",   "bolt.fill",         lang.t("Strikt"),       lang.t("Klare Regeln, schnellere Ergebnisse")),
+            ("balanced", "leaf.fill",          lang.t("Ausgewogen"),   lang.t("Nachhaltig & langfristig")),
+            ("flexible", "wind",              lang.t("Flexibel"),     lang.t("Lockerer Ansatz mit Spielraum")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
 
             VStack(spacing: 28) {
-                OnboardingQuestion(text: "Welchen Modus bevorzugst du?")
+                OnboardingQuestion(text: lang.t("Welchen Modus bevorzugst du?"))
 
                 VStack(spacing: 10) {
                     ForEach(options, id: \.0) { opt in
