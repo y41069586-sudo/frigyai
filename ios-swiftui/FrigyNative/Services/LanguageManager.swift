@@ -206,5 +206,63 @@ enum Translations {
         "Du wurdest abgemeldet und lokale Daten wurden entfernt, aber dein Konto auf dem Server konnte nicht gelöscht werden. Bitte versuche es später erneut oder kontaktiere den Support.": [.en: "You were signed out and local data was removed, but your server account could not be deleted. Please try again later or contact support.", .fr: "Tu as été déconnecté et les données locales ont été supprimées, mais ton compte serveur n'a pas pu être supprimé. Veuillez réessayer plus tard ou contacter le support.", .es: "Fuiste desconectado y se eliminaron los datos locales, pero tu cuenta de servidor no pudo ser eliminada. Intenta de nuevo más tarde o contacta con soporte.", .it: "Sei stato disconnesso e i dati locali sono stati rimossi, ma il tuo account server non ha potuto essere eliminato. Per favore riprova più tardi o contatta il supporto.", .hi: "आप साइन आउट किए गए और स्थानीय डेटा हटा दिए गए, लेकिन आपके सर्वर खाते को हटाया नहीं जा सका। कृपया बाद में पुनः प्रयास करें या सहायता से संपर्क करें।"],
         "Wird gelöscht…": [.en: "Deleting...", .fr: "Suppression en cours...", .es: "Eliminando...", .it: "Eliminazione in corso...", .hi: "हटाया जा रहा है..."],
         "Dein Konto und alle lokalen Daten werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.": [.en: "Your account and all local data will be deleted. This action cannot be undone.", .fr: "Ton compte et toutes les données locales seront supprimés. Cette action ne peut pas être annulée.", .es: "Tu cuenta y todos los datos locales se eliminarán. Esta acción no se puede deshacer.", .it: "Il tuo account e tutti i dati locali verranno eliminati. Questa azione non può essere annullata.", .hi: "आपका खाता और सभी स्थानीय डेटा हटा दिए जाएंगे। यह क्रिया पूर्ववत नहीं की जा सकती।"],
+
+        // ===== DASHBOARD WIDGETS =====
+        "AKTIVITÄT": [.en: "ACTIVITY", .fr: "ACTIVITÉ", .es: "ACTIVIDAD", .it: "ATTIVITÀ", .hi: "गतिविधि"],
+        "WASSER": [.en: "WATER", .fr: "EAU", .es: "AGUA", .it: "ACQUA", .hi: "पानी"],
+        "ARTIKEL": [.en: "ITEMS", .fr: "ARTICLES", .es: "ARTÍCULOS", .it: "ARTICOLI", .hi: "वस्तुएं"],
+        "NÄHRWERTE (PRO 100g)": [.en: "NUTRITION (PER 100g)", .fr: "VALEURS NUTRITIONNELLES (PAR 100g)", .es: "NUTRICIÓN (POR 100g)", .it: "VALORI NUTRIZIONALI (PER 100g)", .hi: "पोषण (प्रति 100g)"],
+        "Geloggte Mahlzeiten": [.en: "Logged meals", .fr: "Repas enregistrés", .es: "Comidas registradas", .it: "Pasti registrati", .hi: "लॉग किए गए भोजन"],
+        "Zuletzt gegessen": [.en: "Recently eaten", .fr: "Mangé récemment", .es: "Comido recientemente", .it: "Mangiato di recente", .hi: "हाल ही में खाया"],
+        "Hinzufügen": [.en: "Add", .fr: "Ajouter", .es: "Agregar", .it: "Aggiungi", .hi: "जोड़ें"],
+        "Plan ansehen": [.en: "View plan", .fr: "Voir le plan", .es: "Ver plan", .it: "Visualizza piano", .hi: "योजना देखें"],
+        "Noch nichts geloggt": [.en: "Nothing logged yet", .fr: "Rien enregistré pour le moment", .es: "Nada registrado aún", .it: "Niente registrato ancora", .hi: "अभी तक कुछ नहीं लॉग किया गया"],
+        "Noch kein Plan für diesen Tag": [.en: "No plan for this day yet", .fr: "Aucun plan pour ce jour", .es: "Sin plan para este día", .it: "Nessun piano per questo giorno", .hi: "इस दिन के लिए अभी कोई योजना नहीं"],
+        "Noch kein Wochenplan": [.en: "No weekly plan yet", .fr: "Pas encore de plan hebdomadaire", .es: "Sin plan semanal aún", .it: "Nessun piano settimanale ancora", .hi: "अभी तक कोई साप्ताहिक योजना नहीं"],
+        "Tagesziel erreicht! Super!": [.en: "Daily goal reached! Great!", .fr: "Objectif quotidien atteint ! Excellent !", .es: "¡Objetivo diario alcanzado! ¡Excelente!", .it: "Obiettivo giornaliero raggiunto! Fantastico!", .hi: "दैनिक लक्ष्य प्राप्त! बहुत अच्छा!"],
+
+        // ===== MEAL PLANNING =====
+        "Wochenplan": [.en: "Weekly plan", .fr: "Plan hebdomadaire", .es: "Plan semanal", .it: "Piano settimanale", .hi: "साप्ताहिक योजना"],
+        "Wochenplan erstellen": [.en: "Create weekly plan", .fr: "Créer un plan hebdomadaire", .es: "Crear plan semanal", .it: "Crea piano settimanale", .hi: "साप्ताहिक योजना बनाएं"],
+        "Wochenplan wird erstellt": [.en: "Creating weekly plan", .fr: "Création d'un plan hebdomadaire", .es: "Creando plan semanal", .it: "Creazione del piano settimanale", .hi: "साप्ताहिक योजना बनाई जा रही है"],
+        "Wird erstellt…": [.en: "Creating...", .fr: "Création en cours...", .es: "Creando...", .it: "Creazione in corso...", .hi: "बनाया जा रहा है..."],
+        "KATEGORIE": [.en: "CATEGORY", .fr: "CATÉGORIE", .es: "CATEGORÍA", .it: "CATEGORIA", .hi: "श्रेणी"],
+        "Vorlage": [.en: "Template", .fr: "Modèle", .es: "Plantilla", .it: "Modello", .hi: "टेम्पलेट"],
+
+        // ===== BARCODE / FOOD RECOGNITION =====
+        "Scanne einen Barcode oder suche nach einem Lebensmittel.": [.en: "Scan a barcode or search for a food.", .fr: "Scanne un code-barres ou cherche un aliment.", .es: "Escanea un código de barras o busca un alimento.", .it: "Scansiona un codice a barre o cerca un alimento.", .hi: "बारकोड स्कैन करें या खाद्य पदार्थ खोजें।"],
+        "Produkt hinzufügen": [.en: "Add product", .fr: "Ajouter un produit", .es: "Agregar producto", .it: "Aggiungi prodotto", .hi: "उत्पाद जोड़ें"],
+        "LEBENSMITTEL": [.en: "FOOD", .fr: "ALIMENT", .es: "ALIMENTO", .it: "CIBO", .hi: "खाद्य पदार्थ"],
+        "MAHLZEIT": [.en: "MEAL", .fr: "REPAS", .es: "COMIDA", .it: "PASTO", .hi: "भोजन"],
+        "Artikel hinzufügen": [.en: "Add item", .fr: "Ajouter un article", .es: "Agregar artículo", .it: "Aggiungi articolo", .hi: "वस्तु जोड़ें"],
+        "Suchergebnisse": [.en: "Search results", .fr: "Résultats de recherche", .es: "Resultados de búsqueda", .it: "Risultati di ricerca", .hi: "खोज परिणाम"],
+
+        // ===== AI FEATURES =====
+        "Dein KI-Ernährungscoach": [.en: "Your AI nutrition coach", .fr: "Votre coach en nutrition IA", .es: "Tu entrenador de nutrición IA", .it: "Il tuo coach nutrizionista AI", .hi: "आपका AI पोषण कोच"],
+        "Frag deinen Coach": [.en: "Ask your coach", .fr: "Demande à ton coach", .es: "Pregunta a tu entrenador", .it: "Chiedi al tuo coach", .hi: "अपने कोच से पूछें"],
+        "KI-BERATER": [.en: "AI ADVISOR", .fr: "CONSEILLER IA", .es: "ASESOR IA", .it: "CONSULENTE AI", .hi: "AI सलाहकार"],
+        "KI Analyse starten": [.en: "Start AI analysis", .fr: "Démarrer l'analyse IA", .es: "Iniciar análisis IA", .it: "Avvia analisi AI", .hi: "AI विश्लेषण शुरू करें"],
+        "KI analysiert dein Essen…": [.en: "AI is analyzing your food...", .fr: "L'IA analyse votre nourriture...", .es: "La IA está analizando tu comida...", .it: "L'IA sta analizzando il tuo cibo...", .hi: "AI आपके खाने का विश्लेषण कर रहा है..."],
+        "Kalorien und Makros werden erkannt": [.en: "Calories and macros are detected", .fr: "Les calories et les macros sont détectées", .es: "Se detectan calorías y macros", .it: "Calorie e macros rilevate", .hi: "कैलोरी और मैक्रो का पता लगाया जा रहा है"],
+
+        // ===== FRIDGE SCAN =====
+        "Kühlschrank scannen": [.en: "Scan fridge", .fr: "Scanner le réfrigérateur", .es: "Escanear nevera", .it: "Scansiona frigorifero", .hi: "फ्रिज स्कैन करें"],
+        "Zutaten erkennen": [.en: "Recognize ingredients", .fr: "Reconnaître les ingrédients", .es: "Reconocer ingredientes", .it: "Riconoscere ingredienti", .hi: "सामग्री पहचानें"],
+        "Alles erkannt, was dein Wochenplan benötigt – nichts fehlt! 🎉": [.en: "All recognized ingredients match your plan – nothing missing! 🎉", .fr: "Tous les ingrédients reconnus correspondent à votre plan – rien ne manque ! 🎉", .es: "Todos los ingredientes reconocidos coinciden con su plan – ¡nada falta! 🎉", .it: "Tutti gli ingredienti riconosciuti corrispondono al tuo piano – niente manca! 🎉", .hi: "सभी मान्यता प्राप्त सामग्री आपकी योजना से मेल खाती है – कुछ नहीं छूटा! 🎉"],
+        "Es wurden keine Zutaten erkannt. Versuche ein deutlicheres Foto.": [.en: "No ingredients were recognized. Try a clearer photo.", .fr: "Aucun ingrédient n'a été reconnu. Essayez une photo plus claire.", .es: "No se reconocieron ingredientes. Intente una foto más clara.", .it: "Nessun ingrediente è stato riconosciuto. Prova una foto più nitida.", .hi: "कोई सामग्री मान्यता प्राप्त नहीं की गई। एक स्पष्ट फोटो की कोशिश करें।"],
+        "Noch keine Fotos": [.en: "No photos yet", .fr: "Pas encore de photos", .es: "Sin fotos aún", .it: "Nessuna foto ancora", .hi: "अभी कोई फोटो नहीं"],
+        "Mache ein oder mehrere Fotos deines Kühlschranks oder wähle sie aus der Galerie. Die KI erkennt automatisch alle vorhandenen Zutaten und zeigt, was für deinen Wochenplan noch fehlt.": [.en: "Take one or more photos of your fridge or select them from the gallery. AI automatically recognizes all available ingredients and shows what's missing for your meal plan.", .fr: "Prenez une ou plusieurs photos de votre réfrigérateur ou sélectionnez-les dans la galerie. L'IA reconnaît automatiquement tous les ingrédients disponibles et montre ce qui manque pour votre plan de repas.", .es: "Toma una o más fotos de tu nevera o selecciónalas de la galería. La IA reconoce automáticamente todos los ingredientes disponibles y muestra lo que falta para tu plan de comidas.", .it: "Scatta una o più foto del tuo frigorifero o selezionale dalla galleria. L'IA riconosce automaticamente tutti gli ingredienti disponibili e mostra cosa manca per il tuo piano dei pasti.", .hi: "अपने फ्रिज की एक या अधिक तस्वीरें लें या गैलरी से चुनें। AI स्वचालित रूप से सभी उपलब्ध सामग्री को पहचानता है और दिखाता है कि आपकी भोजन योजना के लिए क्या गायब है।"],
+
+        // ===== CAMERA & SETTINGS =====
+        "Kamera-Zugriff verweigert": [.en: "Camera access denied", .fr: "Accès à la caméra refusé", .es: "Acceso a la cámara denegado", .it: "Accesso alla fotocamera negato", .hi: "कैमरा एक्सेस अस्वीकृत"],
+        "Aktiviere den Kamera-Zugriff in den Einstellungen.": [.en: "Enable camera access in settings.", .fr: "Activez l'accès à la caméra dans les paramètres.", .es: "Habilita el acceso a la cámara en la configuración.", .it: "Abilita l'accesso alla fotocamera nelle impostazioni.", .hi: "सेटिंग्स में कैमरा एक्सेस सक्षम करें।"],
+        "Einstellungen": [.en: "Settings", .fr: "Paramètres", .es: "Configuración", .it: "Impostazioni", .hi: "सेटिंग्स"],
+        "Verbinden": [.en: "Connect", .fr: "Connecter", .es: "Conectar", .it: "Connetti", .hi: "कनेक्ट करें"],
+        "Trennen": [.en: "Disconnect", .fr: "Déconnecter", .es: "Desconectar", .it: "Scollega", .hi: "डिस्कनेक्ट करें"],
+        "Für heute sind noch keine Mahlzeiten geplant.": [.en: "No meals planned for today yet.", .fr: "Aucun repas prévu pour aujourd'hui.", .es: "Sin comidas planeadas para hoy.", .it: "Nessun pasto pianificato per oggi.", .hi: "आज के लिए अभी कोई भोजन योजनाबद्ध नहीं है।"],
+        "Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren.": [.en: "Tap to open your meal plan and generate meals.", .fr: "Appuyez pour ouvrir votre plan de repas et générer des repas.", .es: "Toca para abrir tu plan de comidas y generar comidas.", .it: "Tocca per aprire il tuo piano pasti e generare pasti.", .hi: "अपनी भोजन योजना खोलने और भोजन उत्पन्न करने के लिए टैप करें।"],
+        "Wie viele Kalorien sollte ich essen?": [.en: "How many calories should I eat?", .fr: "Combien de calories devrais-je manger ?", .es: "¿Cuántas calorías debería comer?", .it: "Quante calorie dovrei mangiare?", .hi: "मुझे कितनी कैलोरी खानी चाहिए?"],
+        "Noch": [.en: "Still", .fr: "Encore", .es: "Aún", .it: "Ancora", .hi: "अभी भी"],
+        "bis zum Tagesziel": [.en: "until daily goal", .fr: "jusqu'à l'objectif quotidien", .es: "hasta el objetivo diario", .it: "fino all'obiettivo giornaliero", .hi: "दैनिक लक्ष्य तक"],
     ]
 }

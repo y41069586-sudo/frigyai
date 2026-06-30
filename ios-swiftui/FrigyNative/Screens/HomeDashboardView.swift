@@ -575,7 +575,7 @@ struct HomeDashboardView: View {
                             .foregroundColor(FrigyBrand.primaryDeep)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Wochenplan")
+                        Text(lang.t("Wochenplan"))
                             .font(.system(size: 17, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                         Text(weekdayText)
@@ -590,8 +590,8 @@ struct HomeDashboardView: View {
 
                 if todayPlanMeals.isEmpty {
                     Text(hasSavedWeekPlan
-                         ? "Für heute sind noch keine Mahlzeiten geplant."
-                         : "Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren.")
+                         ? lang.t("Für heute sind noch keine Mahlzeiten geplant.")
+                         : lang.t("Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren."))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(Color(hex: "#6B7280"))
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -635,7 +635,7 @@ struct HomeDashboardView: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text("Plan ansehen")
+                    Text(lang.t("Plan ansehen"))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(FrigyBrand.primaryDark)
                     Image(systemName: "chevron.right")
@@ -663,18 +663,18 @@ struct HomeDashboardView: View {
                         .foregroundColor(FrigyBrand.primaryDeep)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("KI-BERATER")
+                    Text(lang.t("KI-BERATER"))
                         .font(.system(size: 9, weight: .bold))
                         .tracking(1.5)
                         .foregroundColor(FrigyBrand.textMuted)
-                    Text("Frag deinen Coach")
+                    Text(lang.t("Frag deinen Coach"))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                 }
             }
 
             HStack(alignment: .center, spacing: 8) {
-                TextField("Wie viele Kalorien sollte ich essen?", text: $aiPrompt)
+                TextField(lang.t("Wie viele Kalorien sollte ich essen?"), text: $aiPrompt)
                     .font(.system(size: 14))
                     .focused($aiFocused)
                     .submitLabel(.send)
@@ -742,7 +742,7 @@ struct HomeDashboardView: View {
                         .foregroundColor(Color(hex: "#3B82F6"))
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("WASSER")
+                    Text(lang.t("WASSER"))
                         .font(.system(size: 9, weight: .bold)).tracking(1.5)
                         .foregroundColor(FrigyBrand.textMuted)
                     Text("\(liters(waterGlasses)) / \(liters(waterGoal)) L")
@@ -789,11 +789,11 @@ struct HomeDashboardView: View {
             if waterGlasses >= waterGoal {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill").foregroundColor(Color(hex: "#3B82F6"))
-                    Text("Tagesziel erreicht! Super!")
+                    Text(lang.t("Tagesziel erreicht! Super!"))
                         .font(.system(size: 13, weight: .semibold)).foregroundColor(Color(hex: "#3B82F6"))
                 }
             } else {
-                Text("Noch \(liters(waterGoal - waterGlasses)) L bis zum Tagesziel")
+                Text(lang.t("Noch") + " \(liters(waterGoal - waterGlasses)) L " + lang.t("bis zum Tagesziel"))
                     .font(.system(size: 12, weight: .medium)).foregroundColor(FrigyBrand.textMuted)
             }
         }
@@ -815,10 +815,10 @@ struct HomeDashboardView: View {
                         .foregroundColor(Color(hex: "#D97706"))
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("AKTIVITÄT")
+                    Text(lang.t("AKTIVITÄT"))
                         .font(.system(size: 9, weight: .bold)).tracking(1.5)
                         .foregroundColor(FrigyBrand.textMuted)
-                    Text("Heute")
+                    Text(lang.t("Heute"))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(FrigyBrand.text)
                 }
@@ -827,7 +827,7 @@ struct HomeDashboardView: View {
                     Button {
                         Task { await healthKit.requestAuthorization() }
                     } label: {
-                        Text("Verbinden")
+                        Text(lang.t("Verbinden"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -841,7 +841,7 @@ struct HomeDashboardView: View {
                             UIApplication.shared.open(url)
                         }
                     } label: {
-                        Text("Einstellungen")
+                        Text(lang.t("Einstellungen"))
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(Color(hex: "#D97706"))
                             .padding(.horizontal, 12)
@@ -854,7 +854,7 @@ struct HomeDashboardView: View {
                         Button {
                             healthKit.disconnect()
                         } label: {
-                            Text("Trennen")
+                            Text(lang.t("Trennen"))
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(FrigyBrand.textMuted)
                                 .padding(.horizontal, 12)
@@ -866,7 +866,7 @@ struct HomeDashboardView: View {
                         Button {
                             Task { await healthKit.reconnect() }
                         } label: {
-                            Text("Verbinden")
+                            Text(lang.t("Verbinden"))
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 12)
