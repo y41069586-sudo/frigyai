@@ -263,6 +263,10 @@ function mapOffProductToFood(
   };
 }
 
+// OFF requires a descriptive User-Agent identifying the app; requests without
+// one are throttled/blocked, which made every barcode/text lookup silently fail.
+const OFF_USER_AGENT = "Frigy/1.0 (https://frigy.app; contact=frigy@frigy.app)";
+
 async function searchOpenFoodFacts(query: string): Promise<OffFoodResult | null> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return null;
@@ -284,7 +288,7 @@ async function searchOpenFoodFacts(query: string): Promise<OffFoodResult | null>
   try {
     const res = await fetch(
       `https://world.openfoodfacts.org/cgi/search.pl?${params}`,
-      { signal: controller.signal },
+      { signal: controller.signal, headers: { "User-Agent": OFF_USER_AGENT } },
     );
     if (!res.ok) return null;
 
@@ -335,7 +339,7 @@ async function lookupOffProductByBarcode(barcode: string): Promise<OffFoodResult
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v2/product/${barcode}` +
       `?fields=code,product_name,product_name_de,nutriments,serving_size,serving_quantity,brands`,
-      { signal: controller.signal },
+      { signal: controller.signal, headers: { "User-Agent": OFF_USER_AGENT } },
     );
     if (!res.ok) return null;
     const data = await res.json();

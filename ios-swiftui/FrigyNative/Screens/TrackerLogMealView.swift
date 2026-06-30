@@ -341,6 +341,19 @@ struct TrackerLogMealView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(FrigyBrand.textMuted)
             Button {
+                Task { await deleteRecentFood(food) }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#FEE2E2"))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "trash")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(hex: "#EF4444"))
+                }
+            }
+            .buttonStyle(.plain)
+            Button {
                 Task {
                     await TrackerDataService.shared.addFoodEntry(
                         name: food.name, calories: food.calories,
@@ -421,6 +434,8 @@ struct TrackerLogMealView: View {
     private func deleteRecentFood(_ food: RecentFood) async {
         recentFoods.removeAll { $0.id == food.id }
         _ = await TrackerDataService.shared.deleteFoodEntry(id: food.id)
+        // The deleted row may also be today's logged entry — let the dashboard refresh.
+        NotificationCenter.default.post(name: .trackerDidAddEntry, object: nil)
     }
 
     /// Search via the app's own analyze-food edge function (OpenAI), not Open Food Facts.
@@ -744,20 +759,49 @@ struct ManualFoodEntrySheet: View {
     @State private var fatText: String = ""
     @State private var category: MealCategory
     @State private var isSaving = false
+    @State private var amountText: String = "100"
+    private let isDrink: Bool
+
+    // The macro fields above represent values per 100 g/ml — these are the
+    // unscaled baseline so the "Menge" field can recompute totals live.
+    private let baseCalories: Double
+    private let baseProtein: Double
+    private let baseCarbs: Double
+    private let baseFat: Double
+
+    private static let drinkKeywords = [
+        "wasser", "saft", "shake", "kaffee", "tee", "milch", "smoothie",
+        "cola", "limo", "drink", "getränk", "sprudel", "limonade",
+    ]
 
     init(prefill: ScannedFood?, selectedCategory: MealCategory, onSaved: @escaping () -> Void) {
         self.prefill = prefill
         self.selectedCategory = selectedCategory
         self.onSaved = onSaved
         _category = State(initialValue: selectedCategory)
+        let lowerName = prefill?.name.lowercased() ?? ""
+        self.isDrink = Self.drinkKeywords.contains { lowerName.contains($0) }
         if let f = prefill {
             _name = State(initialValue: f.name)
             _caloriesText = State(initialValue: f.calories > 0 ? "\(f.calories)" : "")
             _proteinText = State(initialValue: f.protein > 0 ? "\(f.protein)" : "")
             _carbsText = State(initialValue: f.carbs > 0 ? "\(f.carbs)" : "")
             _fatText = State(initialValue: f.fat > 0 ? "\(f.fat)" : "")
+            baseCalories = Double(f.calories)
+            baseProtein = Double(f.protein)
+            baseCarbs = Double(f.carbs)
+            baseFat = Double(f.fat)
+        } else {
+            baseCalories = 0; baseProtein = 0; baseCarbs = 0; baseFat = 0
         }
     }
+
+    private var amount: Double { Double(amountText.replacingOccurrences(of: ",", with: ".")) ?? 100 }
+    private var scale: Double { amount > 0 ? amount / 100.0 : 0 }
+    private var scaledCalories: Int { Int((baseCalories * scale).rounded()) }
+    private var scaledProtein: Int { Int((baseProtein * scale).rounded()) }
+    private var scaledCarbs: Int { Int((baseCarbs * scale).rounded()) }
+    private var scaledFat: Int { Int((baseFat * scale).rounded()) }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && Int(caloriesText) != nil
@@ -819,6 +863,30 @@ struct ManualFoodEntrySheet: View {
                         }
                     }
                     .padding(16).frigyCard(cornerRadius: 16)
+
+                    if prefill != nil {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(isDrink ? "MENGE (ml)" : "MENGE (g)")
+                                .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                                .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 10)
+                            HStack {
+                                TextField("100", text: $amountText)
+                                    .keyboardType(.decimalPad)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(FrigyBrand.text)
+                                Text(isDrink ? "ml" : "g")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(FrigyBrand.textMuted)
+                            }
+                            if amount != 100 {
+                                Divider().padding(.vertical, 10)
+                                Text("≈ \(scaledCalories) kcal · \(scaledProtein)g P · \(scaledCarbs)g K · \(scaledFat)g F bei \(amountText)\(isDrink ? "ml" : "g")")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(FrigyBrand.primaryDark)
+                            }
+                        }
+                        .padding(16).frigyCard(cornerRadius: 16)
+                    }
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("MAHLZEIT")
@@ -896,13 +964,17 @@ struct ManualFoodEntrySheet: View {
     private func save() async {
         guard canSave else { return }
         isSaving = true
+        let useScaled = prefill != nil && amount != 100
+        let portionLabel = prefill != nil
+            ? "\(amountText)\(isDrink ? "ml" : "g")"
+            : "1 Portion"
         await TrackerDataService.shared.addFoodEntry(
             name: name.trimmingCharacters(in: .whitespaces),
-            calories: Int(caloriesText) ?? 0,
-            protein: Int(proteinText) ?? 0,
-            carbs: Int(carbsText) ?? 0,
-            fat: Int(fatText) ?? 0,
-            portion: "1 Portion",
+            calories: useScaled ? scaledCalories : (Int(caloriesText) ?? 0),
+            protein: useScaled ? scaledProtein : (Int(proteinText) ?? 0),
+            carbs: useScaled ? scaledCarbs : (Int(carbsText) ?? 0),
+            fat: useScaled ? scaledFat : (Int(fatText) ?? 0),
+            portion: portionLabel,
             category: category
         )
         isSaving = false

@@ -17,6 +17,11 @@ struct DayPlan: Identifiable, Codable {
     }
 }
 
+struct PlannedMealIngredient: Codable {
+    let name: String
+    let amount: String
+}
+
 struct PlannedMeal: Identifiable, Codable {
     let id: UUID
     let category: MealCategory
@@ -27,10 +32,30 @@ struct PlannedMeal: Identifiable, Codable {
     let fat: Int
     let duration: Int
     let tags: [String]
-    init(id: UUID = UUID(), category: MealCategory, name: String, calories: Int, protein: Int, carbs: Int, fat: Int, duration: Int, tags: [String]) {
+    let ingredients: [PlannedMealIngredient]
+    init(id: UUID = UUID(), category: MealCategory, name: String, calories: Int, protein: Int, carbs: Int, fat: Int, duration: Int, tags: [String], ingredients: [PlannedMealIngredient] = []) {
         self.id = id; self.category = category; self.name = name
         self.calories = calories; self.protein = protein; self.carbs = carbs
         self.fat = fat; self.duration = duration; self.tags = tags
+        self.ingredients = ingredients
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, category, name, calories, protein, carbs, fat, duration, tags, ingredients
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        category = try c.decode(MealCategory.self, forKey: .category)
+        name = try c.decode(String.self, forKey: .name)
+        calories = try c.decode(Int.self, forKey: .calories)
+        protein = try c.decode(Int.self, forKey: .protein)
+        carbs = try c.decode(Int.self, forKey: .carbs)
+        fat = try c.decode(Int.self, forKey: .fat)
+        duration = try c.decode(Int.self, forKey: .duration)
+        tags = try c.decode([String].self, forKey: .tags)
+        ingredients = try c.decodeIfPresent([PlannedMealIngredient].self, forKey: .ingredients) ?? []
     }
 }
 
@@ -43,7 +68,10 @@ struct PlannedMeal: Identifiable, Codable {
 //   - each meal: type label + kcal (right), name, P/K/F macros, "Gegessen" button
 // Web tokens: --primary = #75FBB2, macros = red-400/amber-400/blue-400.
 
-private let weekPlanKey = "frigy.weekPlan.v1"
+let weekPlanKey = "frigy.weekPlan.v1"
+extension Notification.Name {
+    static let weekPlanDidUpdate = Notification.Name("frigy.weekPlanDidUpdate")
+}
 
 struct MealPlansView: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
@@ -80,6 +108,7 @@ struct MealPlansView: View {
         if let data = try? JSONEncoder().encode(weekPlan) {
             UserDefaults.standard.set(data, forKey: weekPlanKey)
         }
+        NotificationCenter.default.post(name: .weekPlanDidUpdate, object: nil)
     }
 
     /// Loads the user's onboarding/profile draft so the meal plan can respect
@@ -228,6 +257,16 @@ struct MealPlansView: View {
                     .foregroundColor(FrigyBrand.text)
 
                 Spacer()
+
+                Button {
+                    tabCoordinator.pushPlans(.preferences)
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(FrigyBrand.text)
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -334,28 +373,34 @@ struct MealPlansView: View {
 
     private func mealTile(_ meal: PlannedMeal) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(meal.category.rawValue)
-                    .font(.system(size: 11))
-                    .foregroundColor(FrigyBrand.textMuted)
-                    .lineLimit(1)
-                Spacer()
-                Text("\(meal.calories)")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(FrigyBrand.primary)
-            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(meal.category.rawValue)
+                        .font(.system(size: 11))
+                        .foregroundColor(FrigyBrand.textMuted)
+                        .lineLimit(1)
+                    Spacer()
+                    Text("\(meal.calories)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(FrigyBrand.primary)
+                }
 
-            Text(meal.name)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(FrigyBrand.text)
-                .lineLimit(2)
+                Text(meal.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(FrigyBrand.text)
+                    .lineLimit(2)
 
-            HStack(spacing: 8) {
-                Text("\(meal.protein)P").foregroundColor(proteinClr)
-                Text("\(meal.carbs)K").foregroundColor(carbsClr)
-                Text("\(meal.fat)F").foregroundColor(fatClr)
+                HStack(spacing: 8) {
+                    Text("\(meal.protein)P").foregroundColor(proteinClr)
+                    Text("\(meal.carbs)K").foregroundColor(carbsClr)
+                    Text("\(meal.fat)F").foregroundColor(fatClr)
+                }
+                .font(.system(size: 11))
             }
-            .font(.system(size: 11))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                tabCoordinator.pushPlans(.mealDetail(meal.id.uuidString))
+            }
 
             // "Gegessen" button — logs the meal to today's tracker
             Button {
@@ -437,14 +482,28 @@ struct MealPlansView: View {
 
         let targets = await TrackerDataService.shared.loadTargets()
         let profile = Self.loadProfileDraft()
+
+        let savedMealsPerDay = UserDefaults.standard.integer(forKey: prefMealsKey)
+        let mealsPerDay = savedMealsPerDay > 0 ? max(3, min(6, savedMealsPerDay)) : 4
+        let savedCuisines = UserDefaults.standard.stringArray(forKey: prefCuisinesKey) ?? []
+        let mealPlanPreferences: MealPlanPrefsPayload? = savedCuisines.isEmpty ? nil : MealPlanPrefsPayload(
+            cuisines: savedCuisines,
+            maxPrepTime: UserDefaults.standard.string(forKey: prefMaxPrepTimeKey) ?? "30",
+            cookFrequency: UserDefaults.standard.string(forKey: prefCookFrequencyKey) ?? "3_4",
+            budget: UserDefaults.standard.string(forKey: prefBudgetKey) ?? "medium",
+            variety: UserDefaults.standard.string(forKey: prefVarietyKey) ?? "varied"
+        )
+
         if let generatedDays = await TrackerDataService.shared.generateMealPlan(
             calories: targets.calories,
             protein: targets.protein,
             carbs: targets.carbs,
             fat: targets.fat,
+            mealsPerDay: mealsPerDay,
             dietaryPreferences: profile?.dietaryPreferences ?? [],
             allergies: profile?.allergies ?? [],
-            healthGoals: profile?.healthGoals ?? []
+            healthGoals: profile?.healthGoals ?? [],
+            mealPlanPreferences: mealPlanPreferences
         ) {
             weekPlan = weekPlan.enumerated().map { (i, existing) in
                 guard i < generatedDays.count else { return existing }
@@ -458,7 +517,8 @@ struct MealPlansView: View {
                         carbs: m.carbs ?? 0,
                         fat: m.fat ?? 0,
                         duration: m.prepTime ?? 0,
-                        tags: m.allergenTags ?? []
+                        tags: m.allergenTags ?? [],
+                        ingredients: (m.ingredients ?? []).map { PlannedMealIngredient(name: $0.name, amount: $0.amount) }
                     )
                 }
                 return DayPlan(weekday: existing.weekday, shortDay: existing.shortDay,
@@ -627,6 +687,7 @@ private func makeDemoWeek() -> [DayPlan] {
 /// is offered for the shopping list.
 struct FridgeScanSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(MainTabCoordinator.self) private var tabCoordinator
     let weekMeals: [PlannedMeal]
 
     @State private var images: [UIImage] = []
@@ -652,6 +713,16 @@ struct FridgeScanSheet: View {
         return Array(Set(
             words.filter { $0.count > 3 && !stopWords.contains($0.lowercased()) }
         )).sorted()
+    }
+
+    /// Detected items that are actually needed by the current week plan — the
+    /// rest of `detectedItems` (e.g. items in the fridge but unrelated to any
+    /// planned meal) is noise the user doesn't need shown.
+    private var neededDetectedItems: [String] {
+        let req = requiredIngredients.map { $0.lowercased() }
+        return detectedItems.filter { det in
+            req.contains { reqWord in det.contains(reqWord) || reqWord.contains(det) }
+        }
     }
 
     var body: some View {
@@ -840,10 +911,16 @@ struct FridgeScanSheet: View {
 
     @ViewBuilder private var resultsSection: some View {
         if !isAnalyzing {
-            if !detectedItems.isEmpty { detectedCard }
+            if !neededDetectedItems.isEmpty { detectedCard }
             if !missingItems.isEmpty { missingCard }
-            if hasAnalyzed && detectedItems.isEmpty && missingItems.isEmpty && analysisError == nil {
+            if hasAnalyzed && detectedItems.isEmpty && analysisError == nil {
                 Text("Es wurden keine Zutaten erkannt. Versuche ein deutlicheres Foto.")
+                    .font(.system(size: 13))
+                    .foregroundColor(FrigyBrand.textMuted)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            } else if hasAnalyzed && neededDetectedItems.isEmpty && missingItems.isEmpty && analysisError == nil {
+                Text("Alles erkannt, was dein Wochenplan benötigt – nichts fehlt! 🎉")
                     .font(.system(size: 13))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -861,10 +938,10 @@ struct FridgeScanSheet: View {
 
     private var detectedCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Vorhanden (\(detectedItems.count))", systemImage: "checkmark.circle.fill")
+            Label("Vorhanden (\(neededDetectedItems.count))", systemImage: "checkmark.circle.fill")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(FrigyBrand.primaryDark)
-            ForEach(detectedItems, id: \.self) { item in
+            ForEach(neededDetectedItems, id: \.self) { item in
                 ingredientRow(item, color: FrigyBrand.primaryDark)
             }
         }
@@ -905,11 +982,14 @@ struct FridgeScanSheet: View {
     private var addToListButton: some View {
         let done = addedToListCount != nil
         let bg: Color = done ? FrigyBrand.primaryDark : Color(hex: "#EF4444")
-        let label = done ? "\(addedToListCount ?? 0) hinzugefügt" : "Einkaufsliste erstellen"
+        let label = done ? "\(addedToListCount ?? 0) hinzugefügt – zur Liste…" : "Einkaufsliste erstellen"
         return Button {
             let added = ShoppingListStore.add(names: missingItems, category: .other)
             addedToListCount = added
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { dismiss() }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                dismiss()
+                tabCoordinator.selectedTab = .shopping
+            }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: done ? "checkmark" : "cart.badge.plus")

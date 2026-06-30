@@ -76,6 +76,10 @@ struct BarcodeScannerView: View {
     @ViewBuilder private var scanOverlay: some View {
         VStack {
             Spacer()
+            // Without this frame the VStack only takes its intrinsic (content) width,
+            // and the enclosing ZStack(alignment: .topLeading) then pins it to the
+            // left edge instead of centering it — that's what made the scan frame
+            // appear shifted off-center.
 
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
@@ -148,6 +152,7 @@ struct BarcodeScannerView: View {
 
             Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder private var permissionDeniedView: some View {

@@ -9,6 +9,18 @@ struct FrigyNativeApp: App {
 
     init() {
         RevenueCatBootstrap.configureIfNeeded()
+        // Every pushed/presented screen hides the system nav bar via
+        // `.toolbar(.hidden, for: .navigationBar)`, but that modifier only takes
+        // effect once the destination view has appeared — during the push/sheet
+        // transition itself, UIKit still paints the default *opaque white* nav bar
+        // for a frame or two, which showed up as a blank white card flashing over
+        // the top of screens like Profil/Ernährungsziele. Making the bar transparent
+        // globally means there's nothing opaque to flash before our modifier kicks in.
+        let transparentNavBar = UINavigationBarAppearance()
+        transparentNavBar.configureWithTransparentBackground()
+        UINavigationBar.appearance().standardAppearance = transparentNavBar
+        UINavigationBar.appearance().scrollEdgeAppearance = transparentNavBar
+        UINavigationBar.appearance().compactAppearance = transparentNavBar
     }
 
     var body: some Scene {

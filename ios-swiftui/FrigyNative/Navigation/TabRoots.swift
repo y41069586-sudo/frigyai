@@ -1876,17 +1876,142 @@ struct FoodEntryView: View {
 struct MealDetailView: View {
     let id: String
     @State private var isSaving = false
+    @State private var hasLogged = false
     @Environment(MainTabCoordinator.self) private var tabCoordinator
+
+    /// Generated week-plan meals are looked up by UUID from the persisted plan.
+    /// Falls back to the static `FoodTemplate` lookup-by-name for any other callers.
+    private var plannedMeal: PlannedMeal? {
+        guard let uuid = UUID(uuidString: id),
+              let data = UserDefaults.standard.data(forKey: weekPlanKey),
+              let days = try? JSONDecoder().decode([DayPlan].self, from: data) else { return nil }
+        return days.flatMap(\.meals).first { $0.id == uuid }
+    }
 
     private var template: FoodTemplate? { FoodTemplate.all.first { $0.name == id } }
 
+    private var steps: [CookingStep] {
+        guard let meal = plannedMeal else { return [] }
+        return CookingInstructions.generateSteps(mealName: meal.name, prepTime: meal.duration, ingredients: meal.ingredients)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: template?.name ?? id)
+            FrigyNavBar(title: plannedMeal?.name ?? template?.name ?? id)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    if let tpl = template {
+                    if let meal = plannedMeal {
+                        VStack(spacing: 10) {
+                            Text(meal.category.emoji).font(.system(size: 56))
+                            Text(meal.name)
+                                .font(.system(size: 22, weight: .black))
+                                .foregroundColor(FrigyBrand.text)
+                                .multilineTextAlignment(.center)
+                            HStack(spacing: 5) {
+                                Image(systemName: "clock").font(.system(size: 11))
+                                Text("\(meal.duration) Min.").font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(FrigyBrand.textMuted)
+                        }
+                        .frame(maxWidth: .infinity).padding(.top, 12)
+
+                        HStack(spacing: 10) {
+                            mealDetailMacroChip("Kalorien", value: "\(meal.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                            mealDetailMacroChip("Protein",  value: "\(meal.protein)",  unit: "g",    color: Color(hex: "#60A5FA"))
+                            mealDetailMacroChip("Carbs",    value: "\(meal.carbs)",    unit: "g",    color: Color(hex: "#FBBF24"))
+                            mealDetailMacroChip("Fett",     value: "\(meal.fat)",      unit: "g",    color: Color(hex: "#F87171"))
+                        }
+                        .padding(.horizontal, 20)
+
+                        if !meal.ingredients.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Zutaten", systemImage: "basket")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(FrigyBrand.text)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    ForEach(Array(meal.ingredients.enumerated()), id: \.offset) { _, ing in
+                                        HStack {
+                                            Text(ing.name).font(.system(size: 14)).foregroundColor(FrigyBrand.text)
+                                            Spacer()
+                                            Text(ing.amount).font(.system(size: 13)).foregroundColor(FrigyBrand.textMuted)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(16)
+                            .frigyCard(cornerRadius: 18)
+                            .padding(.horizontal, 20)
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("Zubereitung", systemImage: "list.bullet")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(FrigyBrand.text)
+                            VStack(alignment: .leading, spacing: 14) {
+                                ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+                                    HStack(alignment: .top, spacing: 10) {
+                                        Text("\(i + 1)")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .frame(width: 22, height: 22)
+                                            .background(Circle().fill(FrigyBrand.primary))
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack(spacing: 6) {
+                                                Text(step.phase)
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(FrigyBrand.primaryDark)
+                                                Text("· \(step.minutes) Min.")
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(FrigyBrand.textMuted)
+                                            }
+                                            Text(step.text)
+                                                .font(.system(size: 14))
+                                                .foregroundColor(FrigyBrand.text)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                            if let tip = step.tip {
+                                                Text("Tipp: \(tip)")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(FrigyBrand.textMuted)
+                                                    .fixedSize(horizontal: false, vertical: true)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(16)
+                        .frigyCard(cornerRadius: 18)
+                        .padding(.horizontal, 20)
+
+                        Button {
+                            isSaving = true
+                            Task {
+                                let ok = await TrackerDataService.shared.addFoodEntry(
+                                    name: meal.name, calories: meal.calories,
+                                    protein: meal.protein, carbs: meal.carbs, fat: meal.fat,
+                                    portion: nil, category: meal.category
+                                )
+                                isSaving = false
+                                if ok {
+                                    hasLogged = true
+                                    NotificationCenter.default.post(name: .trackerDidAddEntry, object: nil)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if isSaving { ProgressView().tint(.white) }
+                                Text(isSaving ? "Wird gespeichert…" : (hasLogged ? "Geloggt ✓" : "Zu Tagebuch hinzufügen"))
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity).frame(height: 54)
+                            .background(FrigyBrand.buttonGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .buttonStyle(.plain).disabled(isSaving || hasLogged)
+                        .padding(.horizontal, 20)
+                    } else if let tpl = template {
                         VStack(spacing: 10) {
                             Text(tpl.emoji).font(.system(size: 56))
                             Text(tpl.name)
@@ -2241,8 +2366,30 @@ struct RemindersView: View {
 
 // MARK: - Meal Plan Preferences
 
-private let prefCaloriesKey = "frigy.planPrefs.calories"
-private let prefMealsKey = "frigy.planPrefs.mealsPerDay"
+let prefMealsKey = "frigy.planPrefs.mealsPerDay"
+let prefCuisinesKey = "frigy.planPrefs.cuisines"
+let prefMaxPrepTimeKey = "frigy.planPrefs.maxPrepTime"
+let prefCookFrequencyKey = "frigy.planPrefs.cookFrequency"
+let prefBudgetKey = "frigy.planPrefs.budget"
+let prefVarietyKey = "frigy.planPrefs.variety"
+
+/// Mirrors `MealPlanPrefsInput` in `supabase/functions/generate-meal-plan/mealPlanPrefs.ts` —
+/// keep the raw string values in sync with that file's accepted enums.
+struct MealPlanCuisineOption: Identifiable {
+    let id: String
+    let label: String
+}
+
+let mealPlanCuisineOptions: [MealPlanCuisineOption] = [
+    .init(id: "international", label: "International / gemischt"),
+    .init(id: "asian", label: "Asiatisch"),
+    .init(id: "north_african", label: "Nordafrikanisch"),
+    .init(id: "south_african", label: "Südafrikanisch"),
+    .init(id: "european", label: "Europäisch"),
+    .init(id: "american", label: "Amerikanisch"),
+    .init(id: "italian", label: "Italienisch"),
+    .init(id: "german", label: "Deutsch"),
+]
 
 // MARK: - Edit Profile
 
@@ -2517,17 +2664,55 @@ struct FlowLayout: Layout {
 struct MealPlanPreferencesView: View {
     @Environment(\.dismiss) private var dismiss
 
-    private static func loadCalories() -> Double {
-        let v = UserDefaults.standard.integer(forKey: prefCaloriesKey)
-        return v > 0 ? max(1200, min(3500, Double(v))) : 1900
-    }
     private static func loadMeals() -> Int {
         let v = UserDefaults.standard.integer(forKey: prefMealsKey)
-        return v > 0 ? max(2, min(6, v)) : 3
+        return v > 0 ? max(3, min(6, v)) : 4
+    }
+    private static func loadCuisines() -> [String] {
+        let stored = UserDefaults.standard.stringArray(forKey: prefCuisinesKey) ?? []
+        let valid = stored.filter { id in mealPlanCuisineOptions.contains { $0.id == id } }
+        return valid.isEmpty ? ["international"] : valid
+    }
+    private static func loadMaxPrepTime() -> String {
+        UserDefaults.standard.string(forKey: prefMaxPrepTimeKey) ?? "30"
+    }
+    private static func loadCookFrequency() -> String {
+        UserDefaults.standard.string(forKey: prefCookFrequencyKey) ?? "3_4"
+    }
+    private static func loadBudget() -> String {
+        UserDefaults.standard.string(forKey: prefBudgetKey) ?? "medium"
+    }
+    private static func loadVariety() -> String {
+        UserDefaults.standard.string(forKey: prefVarietyKey) ?? "varied"
     }
 
-    @State private var calories: Double = MealPlanPreferencesView.loadCalories()
     @State private var mealsPerDay: Int = MealPlanPreferencesView.loadMeals()
+    @State private var selectedCuisines: [String] = MealPlanPreferencesView.loadCuisines()
+    @State private var maxPrepTime: String = MealPlanPreferencesView.loadMaxPrepTime()
+    @State private var cookFrequency: String = MealPlanPreferencesView.loadCookFrequency()
+    @State private var budget: String = MealPlanPreferencesView.loadBudget()
+    @State private var variety: String = MealPlanPreferencesView.loadVariety()
+
+    private let maxPrepTimeOptions: [(id: String, label: String)] = [
+        ("10", "Max. 10 Min."),
+        ("30", "Max. 30 Min."),
+        ("60plus", "60+ Min."),
+    ]
+    private let cookFrequencyOptions: [(id: String, label: String)] = [
+        ("daily", "Täglich frisch"),
+        ("4_5", "4–5×/Woche"),
+        ("3_4", "3–4×/Woche"),
+        ("1_2", "1–2×/Woche"),
+    ]
+    private let budgetOptions: [(id: String, label: String)] = [
+        ("cheap", "Günstig"),
+        ("medium", "Mittel"),
+        ("any", "Egal"),
+    ]
+    private let varietyOptions: [(id: String, label: String)] = [
+        ("repeat_ok", "Wiederholungen OK"),
+        ("varied", "Maximale Abwechslung"),
+    ]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -2535,42 +2720,16 @@ struct MealPlanPreferencesView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("TÄGLICHE KALORIEN")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.5)
-                            .foregroundColor(FrigyBrand.textMuted)
-                        HStack {
-                            Text("\(Int(calories)) kcal")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(FrigyBrand.primaryDark)
-                            Spacer()
-                        }
-                        Slider(value: $calories, in: 1200...3500, step: 50)
-                            .tint(FrigyBrand.primaryDark)
-                        HStack {
-                            Text("1200 kcal").font(.system(size: 11)).foregroundColor(FrigyBrand.textMuted)
-                            Spacer()
-                            Text("3500 kcal").font(.system(size: 11)).foregroundColor(FrigyBrand.textMuted)
-                        }
-                    }
-                    .padding(16)
-                    .frigyCard(cornerRadius: 16)
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("MAHLZEITEN PRO TAG")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1.5)
-                            .foregroundColor(FrigyBrand.textMuted)
+                    sectionCard(title: "MAHLZEITEN PRO TAG") {
                         HStack {
                             Button {
-                                if mealsPerDay > 2 { mealsPerDay -= 1 }
+                                if mealsPerDay > 3 { mealsPerDay -= 1 }
                             } label: {
                                 Image(systemName: "minus")
                                     .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(mealsPerDay > 2 ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
+                                    .foregroundColor(mealsPerDay > 3 ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
                                     .frame(width: 40, height: 40)
-                                    .background(Circle().fill(FrigyBrand.primary.opacity(mealsPerDay > 2 ? 0.15 : 0.05)))
+                                    .background(Circle().fill(FrigyBrand.primary.opacity(mealsPerDay > 3 ? 0.15 : 0.05)))
                             }
                             .buttonStyle(.plain)
 
@@ -2592,8 +2751,46 @@ struct MealPlanPreferencesView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(16)
-                    .frigyCard(cornerRadius: 16)
+
+                    sectionCard(title: "KÜCHEN-STILE") {
+                        FlowLayout(spacing: 8) {
+                            ForEach(mealPlanCuisineOptions) { opt in
+                                cuisineChip(opt)
+                            }
+                        }
+                    }
+
+                    sectionCard(title: "MAX. ZUBEREITUNGSZEIT") {
+                        FlowLayout(spacing: 8) {
+                            ForEach(maxPrepTimeOptions, id: \.id) { opt in
+                                optionChip(id: opt.id, label: opt.label, selection: $maxPrepTime)
+                            }
+                        }
+                    }
+
+                    sectionCard(title: "KOCHHÄUFIGKEIT") {
+                        FlowLayout(spacing: 8) {
+                            ForEach(cookFrequencyOptions, id: \.id) { opt in
+                                optionChip(id: opt.id, label: opt.label, selection: $cookFrequency)
+                            }
+                        }
+                    }
+
+                    sectionCard(title: "BUDGET") {
+                        FlowLayout(spacing: 8) {
+                            ForEach(budgetOptions, id: \.id) { opt in
+                                optionChip(id: opt.id, label: opt.label, selection: $budget)
+                            }
+                        }
+                    }
+
+                    sectionCard(title: "ABWECHSLUNG") {
+                        FlowLayout(spacing: 8) {
+                            ForEach(varietyOptions, id: \.id) { opt in
+                                optionChip(id: opt.id, label: opt.label, selection: $variety)
+                            }
+                        }
+                    }
 
                     Spacer().frame(height: 32)
                 }
@@ -2603,12 +2800,75 @@ struct MealPlanPreferencesView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .onChange(of: calories) { _, v in
-            UserDefaults.standard.set(Int(v), forKey: prefCaloriesKey)
-        }
         .onChange(of: mealsPerDay) { _, v in
             UserDefaults.standard.set(v, forKey: prefMealsKey)
         }
+        .onChange(of: selectedCuisines) { _, v in
+            UserDefaults.standard.set(v, forKey: prefCuisinesKey)
+        }
+        .onChange(of: maxPrepTime) { _, v in
+            UserDefaults.standard.set(v, forKey: prefMaxPrepTimeKey)
+        }
+        .onChange(of: cookFrequency) { _, v in
+            UserDefaults.standard.set(v, forKey: prefCookFrequencyKey)
+        }
+        .onChange(of: budget) { _, v in
+            UserDefaults.standard.set(v, forKey: prefBudgetKey)
+        }
+        .onChange(of: variety) { _, v in
+            UserDefaults.standard.set(v, forKey: prefVarietyKey)
+        }
+    }
+
+    @ViewBuilder
+    private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.5)
+                .foregroundColor(FrigyBrand.textMuted)
+            content()
+        }
+        .padding(16)
+        .frigyCard(cornerRadius: 16)
+    }
+
+    private func cuisineChip(_ opt: MealPlanCuisineOption) -> some View {
+        let isOn = selectedCuisines.contains(opt.id)
+        return Button {
+            if isOn {
+                if selectedCuisines.count > 1 { selectedCuisines.removeAll { $0 == opt.id } }
+            } else {
+                selectedCuisines.append(opt.id)
+            }
+        } label: {
+            Text(opt.label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(isOn ? .white : FrigyBrand.text)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(isOn ? FrigyBrand.primaryDark : Color(UIColor.secondarySystemBackground))
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(isOn ? FrigyBrand.primaryDark : FrigyBrand.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.25), value: isOn)
+    }
+
+    private func optionChip(id: String, label: String, selection: Binding<String>) -> some View {
+        let isOn = selection.wrappedValue == id
+        return Button {
+            selection.wrappedValue = id
+        } label: {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(isOn ? .white : FrigyBrand.text)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(isOn ? FrigyBrand.primaryDark : Color(UIColor.secondarySystemBackground))
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(isOn ? FrigyBrand.primaryDark : FrigyBrand.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.25), value: isOn)
     }
 }
 

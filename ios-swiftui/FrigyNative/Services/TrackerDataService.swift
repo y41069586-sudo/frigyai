@@ -20,6 +20,12 @@ struct WeightPoint: Identifiable {
     let kg: Double
 }
 
+/// One ingredient line from a generated meal.
+struct GeneratedIngredient: Decodable {
+    let name: String
+    let amount: String
+}
+
 /// A single meal from a generated week plan.
 struct GeneratedMeal: Decodable {
     let type: String
@@ -30,6 +36,7 @@ struct GeneratedMeal: Decodable {
     let carbs: Int?
     let fat: Int?
     let allergenTags: [String]?
+    let ingredients: [GeneratedIngredient]?
 }
 
 /// One day from a generated week plan.
@@ -513,8 +520,10 @@ final class TrackerDataService {
     /// Passes the user's dietary preferences, allergies and health goals so the plan
     /// respects them (a vegan never gets meat; an allergic user never gets unsafe meals).
     func generateMealPlan(calories: Int, protein: Int, carbs: Int, fat: Int,
+                          mealsPerDay: Int = 4,
                           dietaryPreferences: [String] = [], allergies: [String] = [],
-                          healthGoals: [String] = []) async -> [GeneratedDayPlan]? {
+                          healthGoals: [String] = [],
+                          mealPlanPreferences: MealPlanPrefsPayload? = nil) async -> [GeneratedDayPlan]? {
         #if canImport(Supabase)
         guard SupabaseConfig.isConfigured,
               let base = SupabaseConfig.urlString,
@@ -529,8 +538,9 @@ final class TrackerDataService {
         request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = try? JSONEncoder().encode(MealPlanRequest(
             dailyCalories: calories, dailyProtein: protein,
-            dailyCarbs: carbs, dailyFat: fat, mealsPerDay: 4,
-            dietaryPreferences: dietaryPreferences, allergies: allergies, healthGoals: healthGoals
+            dailyCarbs: carbs, dailyFat: fat, mealsPerDay: mealsPerDay,
+            dietaryPreferences: dietaryPreferences, allergies: allergies, healthGoals: healthGoals,
+            mealPlanPreferences: mealPlanPreferences
         ))
 
         do {
@@ -833,6 +843,16 @@ private struct MealPlanRequest: Encodable {
     let dietaryPreferences: [String]
     let allergies: [String]
     let healthGoals: [String]
+    let mealPlanPreferences: MealPlanPrefsPayload?
+}
+
+/// Mirrors `MealPlanPrefsInput` in `supabase/functions/generate-meal-plan/mealPlanPrefs.ts`.
+struct MealPlanPrefsPayload: Encodable {
+    let cuisines: [String]
+    let maxPrepTime: String
+    let cookFrequency: String
+    let budget: String
+    let variety: String
 }
 
 private struct MealPlanResponse: Decodable {

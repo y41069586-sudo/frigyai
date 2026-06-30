@@ -77,6 +77,8 @@ struct HomeDashboardView: View {
     @FocusState private var aiFocused: Bool
     @State private var waterGlasses: Int = 0
     @State private var showEditTargets = false
+    @State private var todayPlanMeals: [PlannedMeal] = []
+    @State private var hasSavedWeekPlan = false
     @Environment(\.horizontalSizeClass) private var hSizeClass
     // Goal is adjustable; default 8 glasses × 0.25 L = 2.0 L.
     @AppStorage("frigy.water.goal") private var waterGoal: Int = 8
@@ -168,6 +170,19 @@ struct HomeDashboardView: View {
         value.formatted(.number.grouping(.automatic).locale(Locale(identifier: "de_DE")))
     }
 
+    private func loadTodayPlan() {
+        guard let data = UserDefaults.standard.data(forKey: weekPlanKey),
+              let saved = try? JSONDecoder().decode([DayPlan].self, from: data),
+              !saved.isEmpty else {
+            todayPlanMeals = []
+            hasSavedWeekPlan = false
+            return
+        }
+        hasSavedWeekPlan = true
+        let todayIdx = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        todayPlanMeals = todayIdx < saved.count ? saved[todayIdx].meals : []
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 22) {
@@ -193,7 +208,15 @@ struct HomeDashboardView: View {
         .task {
             await reload()
             loadWater()
-            await healthKit.requestAuthorization()
+            loadTodayPlan()
+            // Only trigger the OS permission flow the first time — calling
+            // requestAuthorization() again on every dashboard load would silently
+            // re-flip a user's "Trennen" (local disconnect) choice back on.
+            if healthKit.authStatus == .notDetermined {
+                await healthKit.requestAuthorization()
+            } else {
+                await healthKit.refresh()
+            }
         }
         .refreshable { await reload(); await healthKit.refresh() }
         .onChange(of: tabCoordinator.showTrackerSheet) { _, isShowing in
@@ -211,7 +234,13 @@ struct HomeDashboardView: View {
                 await reload()
             }
         }
-        .sheet(isPresented: $showEditTargets) { NutritionGoalsView() }
+        .onReceive(NotificationCenter.default.publisher(for: .weekPlanDidUpdate)) { _ in
+            loadTodayPlan()
+        }
+        .sheet(isPresented: $showEditTargets) {
+            NutritionGoalsView()
+                .presentationBackground(.clear)
+        }
         .overlay(alignment: .top) {
             if loadError {
                 HStack(spacing: 10) {
@@ -485,6 +514,17 @@ struct HomeDashboardView: View {
                                 }
 
                                 Spacer()
+
+                                Button {
+                                    Task { await deleteMeal(meal) }
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(Color(hex: "#EF4444"))
+                                        .frame(width: 30, height: 30)
+                                        .background(Circle().fill(Color(hex: "#FEE2E2")))
+                                }
+                                .buttonStyle(.plain)
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
@@ -547,13 +587,37 @@ struct HomeDashboardView: View {
                         .foregroundColor(FrigyBrand.primary.opacity(0.4))
                 }
 
-                Text("Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren.")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color(hex: "#6B7280"))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if todayPlanMeals.isEmpty {
+                    Text(hasSavedWeekPlan
+                         ? "Für heute sind noch keine Mahlzeiten geplant."
+                         : "Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren.")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(hex: "#6B7280"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(FrigyBrand.primary.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(todayPlanMeals) { meal in
+                            HStack(spacing: 10) {
+                                Text(meal.category.emoji)
+                                    .font(.system(size: 16))
+                                Text(meal.name)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(FrigyBrand.text)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("\(meal.calories) kcal")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(FrigyBrand.textMuted)
+                            }
+                        }
+                    }
                     .padding(14)
                     .background(FrigyBrand.primary.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
 
                 HStack(spacing: 0) {
                     ForEach(weekDays, id: \.short) { day in
@@ -608,21 +672,25 @@ struct HomeDashboardView: View {
                 }
             }
 
-            HStack(spacing: 8) {
+            HStack(alignment: .center, spacing: 8) {
                 TextField("Wie viele Kalorien sollte ich essen?", text: $aiPrompt)
                     .font(.system(size: 14))
                     .focused($aiFocused)
                     .submitLabel(.send)
                     .onSubmit { submitAi() }
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 11)
+                    // Apple's real Liquid Glass (.glassEffect on iOS 26) imposes its own
+                    // minimum height on the shape it's applied to, which doesn't match
+                    // the send button's manually-sized frame — pin both to the same
+                    // explicit height so the row doesn't visually shift between OS versions.
+                    .frame(height: 46)
                     .realGlass(in: RoundedRectangle(cornerRadius: 14), interactive: false)
 
                 Button { submitAi() } label: {
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
-                        .frame(width: 42, height: 42)
+                        .frame(width: 46, height: 46)
                         .background(
                             RoundedRectangle(cornerRadius: 14)
                                 .fill(LinearGradient(
@@ -635,6 +703,7 @@ struct HomeDashboardView: View {
                         .shadow(color: Color(hex: "#39D47F").opacity(0.28), radius: 8, y: 4)
                 }
                 .buttonStyle(.plain)
+                .frame(height: 46)
             }
         }
         .padding(16)
@@ -714,26 +783,8 @@ struct HomeDashboardView: View {
                     .buttonStyle(.plain).disabled(waterGlasses >= waterGoal)
                 }
             }
-            HStack(spacing: 6) {
-                ForEach(Array(0..<waterGoal), id: \.self) { i in
-                    Image(systemName: i < waterGlasses ? "drop.fill" : "drop")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(i < waterGlasses ? Color(hex: "#3B82F6") : Color(hex: "#BFDBFE"))
-                        .frame(maxWidth: .infinity)
-                        .animation(.spring(duration: 0.3), value: waterGlasses)
-                }
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color(hex: "#BFDBFE").opacity(0.4)).frame(height: 6)
-                    Capsule()
-                        .fill(LinearGradient(colors: [Color(hex: "#93C5FD"), Color(hex: "#3B82F6")],
-                                             startPoint: .leading, endPoint: .trailing))
-                        .frame(width: max(6, geo.size.width * Double(waterGlasses) / Double(waterGoal)), height: 6)
-                        .animation(.spring(duration: 0.4), value: waterGlasses)
-                }
-            }
-            .frame(height: 6)
+            WaterLevelBar(progress: waterGoal > 0 ? Double(waterGlasses) / Double(waterGoal) : 0)
+                .frame(height: 56)
             if waterGlasses >= waterGoal {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill").foregroundColor(Color(hex: "#3B82F6"))
@@ -797,6 +848,32 @@ struct HomeDashboardView: View {
                             .background(Capsule().fill(Color(hex: "#FEF3C7")))
                     }
                     .buttonStyle(.plain)
+                } else if healthKit.authStatus == .authorized {
+                    if healthKit.isLocallyConnected {
+                        Button {
+                            healthKit.disconnect()
+                        } label: {
+                            Text("Trennen")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(FrigyBrand.textMuted)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Capsule().fill(Color(hex: "#F3F4F6")))
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button {
+                            Task { await healthKit.reconnect() }
+                        } label: {
+                            Text("Verbinden")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Capsule().fill(Color(hex: "#F59E0B")))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
 
@@ -849,5 +926,70 @@ struct HomeDashboardView: View {
         aiPrompt = ""
         aiFocused = false
         tabCoordinator.pushHome(.chatbot(initialPrompt: prompt.isEmpty ? nil : prompt))
+    }
+}
+
+// MARK: - Water level visual (smooth rising fill, replaces the old droplet-icon row)
+
+/// A gently oscillating wave drawn across the top edge of its own bounds — used as
+/// the surface of the water fill. Only `phase` is animatable; the fill *level* is
+/// controlled separately by sizing this shape's enclosing frame, which keeps the
+/// continuous wave motion and the spring-animated level change from fighting over
+/// the same `animatableData`.
+private struct WaterWaveShape: Shape {
+    var phase: Double
+    var amplitude: CGFloat = 3
+
+    var animatableData: Double {
+        get { phase }
+        set { phase = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let wavelength = max(rect.width, 1)
+        path.move(to: CGPoint(x: 0, y: amplitude))
+        var x: CGFloat = 0
+        while x <= rect.width {
+            let relativeX = x / wavelength
+            let y = amplitude + amplitude * sin(relativeX * 2 * .pi + phase)
+            path.addLine(to: CGPoint(x: x, y: y))
+            x += 2
+        }
+        path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+        path.addLine(to: CGPoint(x: 0, y: rect.height))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct WaterLevelBar: View {
+    let progress: Double // 0...1
+
+    private let amplitude: CGFloat = 3
+
+    var body: some View {
+        GeometryReader { geo in
+            let clamped = max(0, min(1, progress))
+            let fillHeight = clamped <= 0 ? 0 : max(amplitude * 2, geo.size.height * clamped + amplitude)
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(hex: "#EFF6FF"))
+                TimelineView(.animation) { timeline in
+                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    let wavePhase = t.truncatingRemainder(dividingBy: 3) / 3 * 2 * .pi
+                    WaterWaveShape(phase: wavePhase, amplitude: amplitude)
+                        .fill(
+                            LinearGradient(colors: [Color(hex: "#60A5FA"), Color(hex: "#2563EB")],
+                                          startPoint: .top, endPoint: .bottom)
+                        )
+                }
+                .frame(height: fillHeight)
+                .animation(.spring(response: 0.7, dampingFraction: 0.82), value: clamped)
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color(hex: "#BFDBFE"), lineWidth: 1.5)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
     }
 }

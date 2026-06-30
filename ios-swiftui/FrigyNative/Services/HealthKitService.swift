@@ -22,6 +22,13 @@ final class HealthKitService: ObservableObject {
     @Published var activeCaloriesToday: Int = 0
     @Published var authStatus: HKAuthorizationStatus = .notDetermined
     @Published var isAvailable: Bool = HKHealthStore.isHealthDataAvailable()
+    // iOS never lets an app revoke its own HealthKit read access — only the user can,
+    // in Settings. This flag is our app-local stand-in for "disconnected": once set,
+    // we stop reading/displaying HealthKit data even though system authorization
+    // technically remains granted.
+    @Published private(set) var isLocallyConnected: Bool
+
+    private static let connectedKey = "frigy.healthkit.locallyConnected"
 
     private let store = HKHealthStore()
 
@@ -30,10 +37,18 @@ final class HealthKitService: ObservableObject {
         HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
     ]
 
+    init() {
+        // Default true so existing users who already authorized keep seeing their data.
+        isLocallyConnected = UserDefaults.standard.object(forKey: Self.connectedKey) == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: Self.connectedKey)
+    }
+
     func requestAuthorization() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         do {
             try await store.requestAuthorization(toShare: [], read: readTypes)
+            setLocallyConnected(true)
             await updateAuthStatus()
             await refresh()
         } catch {
@@ -41,8 +56,19 @@ final class HealthKitService: ObservableObject {
         }
     }
 
+    func disconnect() {
+        setLocallyConnected(false)
+        stepsToday = 0
+        activeCaloriesToday = 0
+    }
+
+    func reconnect() async {
+        setLocallyConnected(true)
+        await refresh()
+    }
+
     func refresh() async {
-        guard HKHealthStore.isHealthDataAvailable() else { return }
+        guard HKHealthStore.isHealthDataAvailable(), isLocallyConnected else { return }
         await updateAuthStatus()
         guard authStatus == .authorized else { return }
         async let s = fetchToday(.stepCount, unit: .count())
@@ -53,6 +79,11 @@ final class HealthKitService: ObservableObject {
     }
 
     // MARK: - Private
+
+    private func setLocallyConnected(_ value: Bool) {
+        isLocallyConnected = value
+        UserDefaults.standard.set(value, forKey: Self.connectedKey)
+    }
 
     private func updateAuthStatus() async {
         guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return }
@@ -89,9 +120,12 @@ final class HealthKitService: ObservableObject {
     @Published var activeCaloriesToday: Int = 0
     @Published var authStatus: HKAuthorizationStatus = .notDetermined
     @Published var isAvailable: Bool = false
+    @Published private(set) var isLocallyConnected: Bool = true
 
     func requestAuthorization() async {}
     func refresh() async {}
+    func disconnect() { isLocallyConnected = false }
+    func reconnect() async { isLocallyConnected = true }
 }
 
 #endif
