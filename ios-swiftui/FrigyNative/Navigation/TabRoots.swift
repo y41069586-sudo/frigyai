@@ -322,6 +322,7 @@ struct TransformationPhoto: Identifiable, Codable {
 }
 
 struct TransformationView: View {
+    @Environment(LanguageManager.self) private var lang
     @State private var photos: [TransformationPhoto] = []
     @State private var showCamera = false
     @State private var showPicker = false
@@ -343,7 +344,7 @@ struct TransformationView: View {
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(
-                title: "Transformation",
+                title: lang.t("Transformation"),
                 trailingIcon: "plus",
                 trailingAction: { showAddSheet = true }
             )
@@ -361,10 +362,10 @@ struct TransformationView: View {
                                 .foregroundColor(Color(hex: "#8B5CF6"))
                         }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Dein Körper-Fortschritt")
+                            Text(lang.t("Dein Körper-Fortschritt"))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
-                            Text("Mache regelmäßig Fotos und erhalte KI-Feedback zu deinem Fortschritt.")
+                            Text(lang.t("Mache regelmäßig Fotos und erhalte KI-Feedback zu deinem Fortschritt."))
                                 .font(.system(size: 12))
                                 .foregroundColor(FrigyBrand.textMuted)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -378,17 +379,17 @@ struct TransformationView: View {
                             Image(systemName: "camera.viewfinder")
                                 .font(.system(size: 48))
                                 .foregroundColor(FrigyBrand.cardBorder)
-                            Text("Noch keine Fotos")
+                            Text(lang.t("Noch keine Fotos"))
                                 .font(.system(size: 17, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
-                            Text("Tippe auf + um dein erstes Transformationsfoto hinzuzufügen.")
+                            Text(lang.t("Tippe auf + um dein erstes Transformationsfoto hinzuzufügen."))
                                 .font(.system(size: 13))
                                 .foregroundColor(FrigyBrand.textMuted)
                                 .multilineTextAlignment(.center)
                             Button {
                                 showAddSheet = true
                             } label: {
-                                Label("Erstes Foto hinzufügen", systemImage: "camera.fill")
+                                Label(lang.t("Erstes Foto hinzufügen"), systemImage: "camera.fill")
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -410,12 +411,12 @@ struct TransformationView: View {
                         // Compare: first vs latest
                         if photos.count >= 2 {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Vergleich: Anfang vs. Jetzt")
+                                Text(lang.t("Vergleich: Anfang vs. Jetzt"))
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundColor(FrigyBrand.text)
                                 HStack(spacing: 12) {
-                                    photoThumb(photos.first!, label: "Start")
-                                    photoThumb(photos.last!, label: "Aktuell")
+                                    photoThumb(photos.first!, label: lang.t("Anfang"))
+                                    photoThumb(photos.last!, label: lang.t("Aktuell"))
                                 }
                             }
                             .padding(16)
@@ -434,7 +435,7 @@ struct TransformationView: View {
                                         Image(systemName: "sparkles")
                                             .font(.system(size: 15, weight: .semibold))
                                     }
-                                    Text(isAnalyzing ? "Analyse läuft…" : "KI-Feedback erhalten")
+                                    Text(isAnalyzing ? lang.t("Analyse läuft…") : lang.t("KI-Feedback erhalten"))
                                         .font(.system(size: 15, weight: .semibold))
                                 }
                                 .foregroundColor(.white)
@@ -453,7 +454,7 @@ struct TransformationView: View {
 
                             if let feedback = aiFeedback {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Label("KI-Feedback", systemImage: "sparkles")
+                                    Label(lang.t("KI-Feedback"), systemImage: "sparkles")
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(Color(hex: "#8B5CF6"))
                                     Text(feedback)
@@ -468,7 +469,7 @@ struct TransformationView: View {
 
                         // Photo timeline
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Verlauf")
+                            Text(lang.t("Verlauf"))
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(FrigyBrand.text)
                             ForEach(photos.reversed()) { photo in
@@ -558,7 +559,7 @@ struct TransformationView: View {
             : "kurze Zeit"
         let prompt = "Ein Nutzer macht seit \(daysSince) Transformationsfotos und hat insgesamt \(count) Foto(s) hochgeladen. Gib motivierendes, konkretes Feedback über Konsistenz und was als nächstes zu tun ist für den Körperfortschritt. Max 3 Sätze."
         let reply = await TrackerDataService.shared.sendChatMessage(prompt, history: [])
-        aiFeedback = reply ?? "Tolle Arbeit, dass du deinen Fortschritt dokumentierst! Bleib konsequent und mache alle 2 Wochen ein neues Foto, um deinen Fortschritt sichtbar zu machen."
+        aiFeedback = reply ?? lang.t("Tolle Arbeit, dass du deinen Fortschritt dokumentierst! Bleib konsequent und mache alle 2 Wochen ein neues Foto, um deinen Fortschritt sichtbar zu machen.")
         isAnalyzing = false
     }
 
@@ -578,6 +579,7 @@ struct TransformationView: View {
 
 struct AddTransformationPhotoSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
     let onSave: (UIImage?, String) -> Void
 
     @State private var selectedImage: UIImage?
@@ -588,15 +590,15 @@ struct AddTransformationPhotoSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Abbrechen") { dismiss() }
+                Button(lang.t("Abbrechen")) { dismiss() }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDark)
                 Spacer()
-                Text("Foto hinzufügen")
+                Text(lang.t("Foto hinzufügen"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
-                Button("Speichern") {
+                Button(lang.t("Speichern")) {
                     onSave(selectedImage, noteText)
                     dismiss()
                 }
@@ -626,7 +628,7 @@ struct AddTransformationPhotoSheet: View {
                                     Image(systemName: "camera.fill")
                                         .font(.system(size: 36))
                                         .foregroundColor(FrigyBrand.textMuted)
-                                    Text("Foto auswählen")
+                                    Text(lang.t("Foto auswählen"))
                                         .font(.system(size: 14))
                                         .foregroundColor(FrigyBrand.textMuted)
                                 }
@@ -638,7 +640,7 @@ struct AddTransformationPhotoSheet: View {
                         Button {
                             showCamera = true
                         } label: {
-                            Label("Kamera", systemImage: "camera.fill")
+                            Label(lang.t("Kamera"), systemImage: "camera.fill")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -651,7 +653,7 @@ struct AddTransformationPhotoSheet: View {
                         Button {
                             showImagePicker = true
                         } label: {
-                            Label("Galerie", systemImage: "photo.on.rectangle")
+                            Label(lang.t("Galerie"), systemImage: "photo.on.rectangle")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(Color(hex: "#8B5CF6"))
                                 .frame(maxWidth: .infinity)
@@ -664,10 +666,10 @@ struct AddTransformationPhotoSheet: View {
                     .padding(.horizontal, 20)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Notiz (optional)")
+                        Text(lang.t("Notiz (optional)"))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(FrigyBrand.textMuted)
-                        TextField("z.B. Nach 4 Wochen Training", text: $noteText)
+                        TextField(lang.t("z.B. Nach 4 Wochen Training"), text: $noteText)
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 12)
                                 .fill(.ultraThinMaterial)
@@ -729,17 +731,18 @@ struct ImagePickerView: UIViewControllerRepresentable {
 // MARK: - Nutrition Goals
 
 struct NutritionGoalsView: View {
+    @Environment(LanguageManager.self) private var lang
     @State private var targets = MacroTargets.default
     @State private var isSaving = false
     @State private var saved = false
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Ernährungsziele")
+            FrigyNavBar(title: lang.t("Ernährungsziele"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    Text("Passe deine täglichen Makroziele an.")
+                    Text(lang.t("Passe deine täglichen Makroziele an."))
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -747,13 +750,13 @@ struct NutritionGoalsView: View {
                         .padding(.top, 4)
 
                     VStack(spacing: 0) {
-                        goalRow("Kalorien", value: $targets.calories, range: 1000...4000, step: 50, unit: "kcal", color: FrigyBrand.primaryDark)
+                        goalRow(lang.t("Kalorien"), value: $targets.calories, range: 1000...4000, step: 50, unit: "kcal", color: FrigyBrand.primaryDark)
                         Divider().padding(.leading, 16)
-                        goalRow("Protein", value: $targets.protein, range: 30...300, step: 5, unit: "g", color: Color(hex: "#60A5FA"))
+                        goalRow(lang.t("Protein"), value: $targets.protein, range: 30...300, step: 5, unit: "g", color: Color(hex: "#60A5FA"))
                         Divider().padding(.leading, 16)
-                        goalRow("Kohlenhydrate", value: $targets.carbs, range: 50...600, step: 10, unit: "g", color: Color(hex: "#FBBF24"))
+                        goalRow(lang.t("Kohlenhydrate"), value: $targets.carbs, range: 50...600, step: 10, unit: "g", color: Color(hex: "#FBBF24"))
                         Divider().padding(.leading, 16)
-                        goalRow("Fett", value: $targets.fat, range: 20...200, step: 5, unit: "g", color: Color(hex: "#F87171"))
+                        goalRow(lang.t("Fett"), value: $targets.fat, range: 20...200, step: 5, unit: "g", color: Color(hex: "#F87171"))
                     }
                     .frigyCard(cornerRadius: 16)
                     .padding(.horizontal, 20)
@@ -766,11 +769,11 @@ struct NutritionGoalsView: View {
                             if isSaving {
                                 ProgressView().tint(.white)
                             } else if saved {
-                                Label("Gespeichert", systemImage: "checkmark.circle.fill")
+                                Label(lang.t("Gespeichert"), systemImage: "checkmark.circle.fill")
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.white)
                             } else {
-                                Text("Ziele speichern")
+                                Text(lang.t("Ziele speichern"))
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.white)
                             }
@@ -839,14 +842,15 @@ struct NutritionGoalsView: View {
 
 struct AppearanceView: View {
     @Environment(ThemeManager.self) private var theme
+    @Environment(LanguageManager.self) private var lang
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Darstellung")
+            FrigyNavBar(title: lang.t("Darstellung"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    Text("Wähle, wie Frigy aussehen soll. Die Änderung wird sofort übernommen.")
+                    Text(lang.t("Wähle, wie Frigy aussehen soll. Die Änderung wird sofort übernommen."))
                         .font(.system(size: 14))
                         .foregroundColor(FrigyBrand.textMuted)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -870,10 +874,10 @@ struct AppearanceView: View {
                                             .foregroundColor(FrigyBrand.primaryDark)
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(pref.label)
+                                        Text(lang.t(pref.label))
                                             .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(FrigyBrand.text)
-                                        Text(pref.subtitle)
+                                        Text(lang.t(pref.subtitle))
                                             .font(.system(size: 12))
                                             .foregroundColor(FrigyBrand.textMuted)
                                     }
@@ -908,12 +912,13 @@ struct AppearanceView: View {
 
 struct SubscriptionView: View {
     @Environment(AppRouter.self) private var router
+    @Environment(LanguageManager.self) private var lang
     @State private var showPaywall = false
     @State private var packages: [SubscriptionPackage] = []
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Abonnement")
+            FrigyNavBar(title: lang.t("Abonnement"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
@@ -932,8 +937,8 @@ struct SubscriptionView: View {
                             .font(.system(size: 22, weight: .black, design: .rounded))
                             .foregroundColor(FrigyBrand.text)
                         Text(router.isPremium
-                             ? "Du hast Zugriff auf alle Premium-Features."
-                             : "Upgrade auf Premium für alle Features.")
+                             ? lang.t("Du hast Zugriff auf alle Premium-Features.")
+                             : lang.t("Upgrade auf Premium für alle Features."))
                             .font(.system(size: 14))
                             .foregroundColor(FrigyBrand.textMuted)
                             .multilineTextAlignment(.center)
@@ -942,16 +947,20 @@ struct SubscriptionView: View {
 
                     if !router.isPremium {
                         VStack(spacing: 10) {
-                            featureRow("Unbegrenzte KI-Mahlzeitenpläne", icon: "sparkles")
-                            featureRow("KI-Coach ohne Limits", icon: "brain.head.profile")
-                            featureRow("Barcode & Foto-Scan", icon: "camera.fill")
-                            featureRow("Erweiterte Fortschrittsdiagramme", icon: "chart.line.uptrend.xyaxis")
+                            featureRow(lang.t("Unbegrenzte KI-Mahlzeitenpläne"), icon: "sparkles")
+                            featureRow(lang.t("KI-Coach ohne Limits"), icon: "brain.head.profile")
+                            featureRow(lang.t("Barcode & Foto-Scan"), icon: "camera.fill")
+                            featureRow(lang.t("Erweiterte Fortschrittsdiagramme"), icon: "chart.line.uptrend.xyaxis")
                         }
                         .padding(.horizontal, 20)
 
                         Button { showPaywall = true } label: {
                             let monthly = packages.first { !$0.isYearly }
-                            let priceLabel = monthly.map { "Jetzt upgraden – \($0.priceString) / \($0.period)" } ?? "Jetzt upgraden"
+                            let priceLabel = monthly.map {
+                                lang.t("Jetzt upgraden – %1 / %2")
+                                    .replacingOccurrences(of: "%1", with: $0.priceString)
+                                    .replacingOccurrences(of: "%2", with: $0.period)
+                            } ?? lang.t("Jetzt upgraden")
                             Text(priceLabel)
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundColor(.white)
@@ -980,7 +989,7 @@ struct SubscriptionView: View {
                             Image(systemName: "gift.fill")
                                 .font(.system(size: 15))
                                 .foregroundColor(FrigyBrand.primaryDark)
-                            Text("Gutscheincode einlösen")
+                            Text(lang.t("Gutscheincode einlösen"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(FrigyBrand.primaryDark)
                         }
@@ -1024,32 +1033,36 @@ struct SubscriptionView: View {
 // MARK: - Privacy
 
 struct PrivacyView: View {
-    private let sections: [(icon: String, color: String, title: String, text: String)] = [
-        ("shield.fill",       "#34D399", "Datenerhebung",
-         "Frigy speichert nur die Daten, die du aktiv eingibst: Mahlzeiten, Gewicht und deine Profileinstellungen. Alle Daten werden verschlüsselt und sicher in unserer Datenbank gespeichert."),
-        ("hand.raised.fill",  "#60B4FF", "Datenweitergabe",
-         "Deine persönlichen Daten werden niemals an Dritte verkauft oder ohne deine ausdrückliche Zustimmung weitergegeben."),
-        ("trash.fill",        "#F87171", "Datenlöschung",
-         "Du kannst jederzeit die vollständige Löschung deiner Daten beantragen. Schreib uns einfach an support@frigy.app."),
-        ("brain",             "#A78BFA", "KI-Verarbeitung",
-         "Anfragen an den KI-Coach werden verschlüsselt übertragen. Deine Daten werden nicht zur Verbesserung von KI-Modellen verwendet."),
-        ("lock.fill",         "#FBBF24", "Datensicherheit",
-         "Wir verwenden branchenübliche Sicherheitsmaßnahmen (TLS, AES-256) um deine Daten zu schützen. Passwörter werden niemals im Klartext gespeichert."),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var sections: [(icon: String, color: String, title: String, text: String)] {
+        [
+            ("shield.fill",       "#34D399", lang.t("Datenerhebung"),
+             lang.t("Frigy speichert nur die Daten, die du aktiv eingibst: Mahlzeiten, Gewicht und deine Profileinstellungen. Alle Daten werden verschlüsselt und sicher in unserer Datenbank gespeichert.")),
+            ("hand.raised.fill",  "#60B4FF", lang.t("Datenweitergabe"),
+             lang.t("Deine persönlichen Daten werden niemals an Dritte verkauft oder ohne deine ausdrückliche Zustimmung weitergegeben.")),
+            ("trash.fill",        "#F87171", lang.t("Datenlöschung"),
+             lang.t("Du kannst jederzeit die vollständige Löschung deiner Daten beantragen. Schreib uns einfach an support@frigy.app.")),
+            ("brain",             "#A78BFA", lang.t("KI-Verarbeitung"),
+             lang.t("Anfragen an den KI-Coach werden verschlüsselt übertragen. Deine Daten werden nicht zur Verbesserung von KI-Modellen verwendet.")),
+            ("lock.fill",         "#FBBF24", lang.t("Datensicherheit"),
+             lang.t("Wir verwenden branchenübliche Sicherheitsmaßnahmen (TLS, AES-256) um deine Daten zu schützen. Passwörter werden niemals im Klartext gespeichert.")),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Datenschutz")
+            FrigyNavBar(title: lang.t("Datenschutz"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     legalBanner(icon: "lock.shield.fill", color: "#34D399",
-                                title: "Deine Daten gehören dir",
-                                subtitle: "Wir nehmen Datenschutz ernst.")
+                                title: lang.t("Deine Daten gehören dir"),
+                                subtitle: lang.t("Wir nehmen Datenschutz ernst."))
 
                     legalCard(sections: sections)
 
-                    legalFooter("Letzte Aktualisierung: Januar 2025\nFragen? support@frigy.app")
+                    legalFooter(lang.t("Letzte Aktualisierung: Januar 2025\nFragen? support@frigy.app"))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -1063,9 +1076,11 @@ struct PrivacyView: View {
 // MARK: - Help
 
 struct HelpView: View {
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Hilfe & Support")
+            FrigyNavBar(title: lang.t("Hilfe & Support"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -1077,7 +1092,7 @@ struct HelpView: View {
                     .frigyCard(cornerRadius: 16)
 
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("HÄUFIGE FRAGEN")
+                        Text(lang.t("HÄUFIGE FRAGEN"))
                             .font(.system(size: 10, weight: .bold))
                             .tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted)
@@ -1085,14 +1100,14 @@ struct HelpView: View {
                             .padding(.bottom, 10)
 
                         VStack(spacing: 0) {
-                            helpRow("Wie tracke ich Mahlzeiten?",
-                                    answer: "Tippe im Home-Tab auf + oder wähle eine Mahlzeitkategorie, um Lebensmittel zu suchen und zu tracken.")
+                            helpRow(lang.t("Wie tracke ich Mahlzeiten?"),
+                                    answer: lang.t("Tippe im Home-Tab auf + oder wähle eine Mahlzeitkategorie, um Lebensmittel zu suchen und zu tracken."))
                             Divider().padding(.leading, 16)
-                            helpRow("Wie ändere ich meine Kalorienziele?",
-                                    answer: "Gehe zu Profil → Ernährungsziele und passe die Werte mit den Schiebereglern an.")
+                            helpRow(lang.t("Wie ändere ich meine Kalorienziele?"),
+                                    answer: lang.t("Gehe zu Profil → Ernährungsziele und passe die Werte mit den Schiebereglern an."))
                             Divider().padding(.leading, 16)
-                            helpRow("Kann ich Gewicht tracken?",
-                                    answer: "Ja! Im Home-Tab auf 'Gewicht' tippen, dann auf + um ein neues Gewicht einzutragen.")
+                            helpRow(lang.t("Kann ich Gewicht tracken?"),
+                                    answer: lang.t("Ja! Im Home-Tab auf 'Gewicht' tippen, dann auf + um ein neues Gewicht einzutragen."))
                         }
                         .frigyCard(cornerRadius: 16)
                     }
