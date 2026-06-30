@@ -264,5 +264,8 @@ enum Translations {
         "Wie viele Kalorien sollte ich essen?": [.en: "How many calories should I eat?", .fr: "Combien de calories devrais-je manger ?", .es: "¿Cuántas calorías debería comer?", .it: "Quante calorie dovrei mangiare?", .hi: "मुझे कितनी कैलोरी खानी चाहिए?"],
         "Noch": [.en: "Still", .fr: "Encore", .es: "Aún", .it: "Ancora", .hi: "अभी भी"],
         "bis zum Tagesziel": [.en: "until daily goal", .fr: "jusqu'à l'objectif quotidien", .es: "hasta el objetivo diario", .it: "fino all'obiettivo giornaliero", .hi: "दैनिक लक्ष्य तक"],
+        "Schritte": [.en: "Steps", .fr: "Pas", .es: "Pasos", .it: "Passi", .hi: "कदम"],
+        "Aktiv kcal": [.en: "Active kcal", .fr: "kcal actif", .es: "kcal activo", .it: "kcal attivo", .hi: "सक्रिय किलो कैलोरी"],
+        "Netto kcal": [.en: "Net kcal", .fr: "kcal net", .es: "kcal neto", .it: "kcal netto", .hi: "नेट किलो कैलोरी"],
     ]
 }

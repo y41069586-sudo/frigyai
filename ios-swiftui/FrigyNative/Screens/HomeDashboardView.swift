@@ -881,14 +881,14 @@ struct HomeDashboardView: View {
             HStack(spacing: 0) {
                 activityStat(
                     value: healthKit.stepsToday.formatted(.number.grouping(.automatic).locale(Locale(identifier: "de_DE"))),
-                    label: "Schritte",
+                    label: lang.t("Schritte"),
                     icon: "shoeprints.fill",
                     color: Color(hex: "#F59E0B")
                 )
                 Divider().frame(height: 40)
                 activityStat(
                     value: "\(healthKit.activeCaloriesToday)",
-                    label: "Aktiv kcal",
+                    label: lang.t("Aktiv kcal"),
                     icon: "flame.fill",
                     color: Color(hex: "#EF4444")
                 )
@@ -896,7 +896,7 @@ struct HomeDashboardView: View {
                 let netCal = max(0, consumed.kcal - healthKit.activeCaloriesToday)
                 activityStat(
                     value: "\(netCal)",
-                    label: "Netto kcal",
+                    label: lang.t("Netto kcal"),
                     icon: "equal.circle.fill",
                     color: FrigyBrand.primaryDark
                 )
