@@ -267,5 +267,10 @@ enum Translations {
         "Schritte": [.en: "Steps", .fr: "Pas", .es: "Pasos", .it: "Passi", .hi: "कदम"],
         "Aktiv kcal": [.en: "Active kcal", .fr: "kcal actif", .es: "kcal activo", .it: "kcal attivo", .hi: "सक्रिय किलो कैलोरी"],
         "Netto kcal": [.en: "Net kcal", .fr: "kcal net", .es: "kcal neto", .it: "kcal netto", .hi: "नेट किलो कैलोरी"],
+
+        // ===== BARCODE SCANNER =====
+        "🔍 Barcode erkannt": [.en: "🔍 Barcode scanned", .fr: "🔍 Code-barres scannné", .es: "🔍 Código de barras escaneado", .it: "🔍 Codice a barre scansionato", .hi: "🔍 बारकोड स्कैन किया गया"],
+        "🤖 KI analysiert Produkt…": [.en: "🤖 AI analyzing product...", .fr: "🤖 L'IA analyse le produit...", .es: "🤖 La IA analiza el producto...", .it: "🤖 L'IA sta analizzando il prodotto...", .hi: "🤖 AI उत्पाद का विश्लेषण कर रहा है..."],
+        "📊 Nährwerte werden geladen…": [.en: "📊 Loading nutrition facts...", .fr: "📊 Chargement des valeurs nutritionnelles...", .es: "📊 Cargando información nutricional...", .it: "📊 Caricamento dei valori nutrizionali...", .hi: "📊 पोषण तथ्य लोड किए जा रहे हैं..."],
     ]
 }

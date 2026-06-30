@@ -16,6 +16,8 @@ struct ScannedFood {
 
 struct BarcodeScannerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
+
     let onResult: (ScannedFood) -> Void
 
     @State private var isLookingUp = false
@@ -27,11 +29,13 @@ struct BarcodeScannerView: View {
 
     enum CameraStatus { case checking, ready, denied }
 
-    private let lookupPhases = [
-        "🔍 Barcode erkannt",
-        "🤖 KI analysiert Produkt…",
-        "📊 Nährwerte werden geladen…",
-    ]
+    private var lookupPhases: [String] {
+        [
+            lang.t("🔍 Barcode erkannt"),
+            lang.t("🤖 KI analysiert Produkt…"),
+            lang.t("📊 Nährwerte werden geladen…"),
+        ]
+    }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
