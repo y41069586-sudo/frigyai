@@ -10,6 +10,8 @@ struct SpeedSelectStepView: View {
     @State private var isMetric: Bool = true
     @State private var appeared = false
 
+    @Environment(LanguageManager.self) private var lang
+
     private let kgPerLb = 0.45359237
     private let minKg = 0.1
     private let maxKg = 0.9
@@ -49,9 +51,9 @@ struct SpeedSelectStepView: View {
 
     private var speedLabel: String {
         switch pct {
-        case ..<0.34: return draft.goalMode == "gain" ? "Sanfter Aufbau" : "Sanfter Start"
-        case ..<0.67: return "Optimales Tempo"
-        default:      return draft.goalMode == "gain" ? "Intensiver Aufbau" : "Schnelle Abnahme"
+        case ..<0.34: return draft.goalMode == "gain" ? lang.t("Sanfter Aufbau") : lang.t("Sanfter Start")
+        case ..<0.67: return lang.t("Optimales Tempo")
+        default:      return draft.goalMode == "gain" ? lang.t("Intensiver Aufbau") : lang.t("Schnelle Abnahme")
         }
     }
 
@@ -77,7 +79,7 @@ struct SpeedSelectStepView: View {
 
     private var content: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Wie schnell möchtest du dein Ziel erreichen?")
+            FrigyMascotQuestion(lang.t("Wie schnell möchtest du dein Ziel erreichen?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
@@ -145,11 +147,11 @@ struct SpeedSelectStepView: View {
 
                     // Pole labels
                     HStack {
-                        Label(draft.goalMode == "gain" ? "Sanft" : "Langsam", systemImage: "tortoise.fill")
+                        Label(draft.goalMode == "gain" ? lang.t("Sanft") : lang.t("Langsam"), systemImage: "tortoise.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(paceColor(0))
                         Spacer()
-                        Label(draft.goalMode == "gain" ? "Intensiv" : "Schnell", systemImage: "hare.fill")
+                        Label(draft.goalMode == "gain" ? lang.t("Intensiv") : lang.t("Schnell"), systemImage: "hare.fill")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(paceColor(1))
                     }
@@ -173,7 +175,7 @@ struct SpeedSelectStepView: View {
 
                 // Unit toggle
                 MintSegmentedControl(
-                    options: [("metric", "Metrisch"), ("imperial", "Imperial")],
+                    options: [("metric", lang.t("Metrisch")), ("imperial", lang.t("Imperial"))],
                     selected: isMetric ? "metric" : "imperial"
                 ) { id in
                     isMetric = (id == "metric")

@@ -7,22 +7,26 @@ struct ShoppingListIntroStepView: View {
 
     @State private var appeared = false
 
-    private let items: [(emoji: String, label: String)] = [
-        ("🥛", "Bio-Hafermilch"),
-        ("🥑", "Avocados"),
-        ("🐟", "Lachsfilet"),
-        ("🥗", "Rucola-Salat"),
-        ("🍓", "Bio-Beeren"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var items: [(emoji: String, label: String)] {
+        [
+            ("🥛", lang.t("Bio-Hafermilch")),
+            ("🥑", lang.t("Avocados")),
+            ("🐟", lang.t("Lachsfilet")),
+            ("🥗", lang.t("Rucola-Salat")),
+            ("🍓", lang.t("Bio-Beeren")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Deine Einkaufsliste, automatisch.")
+            FrigyMascotQuestion(lang.t("Deine Einkaufsliste, automatisch."))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 4)
 
-            Text("Nur die Zutaten, die dir noch fehlen.")
+            Text(lang.t("Nur die Zutaten, die dir noch fehlen."))
                 .font(.system(size: 14))
                 .foregroundColor(FrigyBrand.textMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -64,15 +68,15 @@ struct ShoppingListIntroStepView: View {
                         .foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Meine Einkaufsliste")
+                    Text(lang.t("Meine Einkaufsliste"))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("\(items.count) Artikel")
+                    Text(lang.t("%@ Artikel").replacingOccurrences(of: "%@", with: "\(items.count)"))
                         .font(.system(size: 12))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
                 Spacer()
-                Text("Heute")
+                Text(lang.t("Heute"))
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDeep)
                     .padding(.horizontal, 8)

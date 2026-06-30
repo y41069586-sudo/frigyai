@@ -10,14 +10,16 @@ struct ScanFridgeStepView: View {
     @State private var floatOffset: CGFloat = 0
     @State private var appeared = false
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Erkenne deine Zutaten.")
+            FrigyMascotQuestion(lang.t("Erkenne deine Zutaten."))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 4)
 
-            Text("Scanne später deinen Kühlschrank — Frigy erkennt, was du hast und was für deinen Plan noch fehlt.")
+            Text(lang.t("Scanne später deinen Kühlschrank — Frigy erkennt, was du hast und was für deinen Plan noch fehlt."))
                 .font(.system(size: 14))
                 .foregroundColor(FrigyBrand.textMuted)
                 .lineSpacing(3)

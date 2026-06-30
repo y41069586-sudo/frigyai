@@ -5,12 +5,16 @@ struct ScanFeedbackStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
-    private let items = [
-        ("Hähnchenbrust",  "23g Protein · 165 kcal",  true),
-        ("Brokkoli",       "2,8g Protein · 34 kcal",  true),
-        ("Cheddar",        "7g Fett · 113 kcal",       true),
-        ("Milch 1,5%",     "3,4g Protein · 47 kcal",  true),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var items: [(String, String, Bool)] {
+        [
+            (lang.t("Hähnchenbrust"),  lang.t("23g Protein · 165 kcal"),  true),
+            (lang.t("Brokkoli"),       lang.t("2,8g Protein · 34 kcal"),  true),
+            (lang.t("Cheddar"),        lang.t("7g Fett · 113 kcal"),       true),
+            (lang.t("Milch 1,5%"),     lang.t("3,4g Protein · 47 kcal"),  true),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -26,21 +30,21 @@ struct ScanFeedbackStepView: View {
                             .font(.system(size: 32, weight: .semibold))
                             .foregroundColor(FrigyBrand.primaryDark)
                     }
-                    Text("KI-Scan Feedback")
+                    Text(lang.t("KI-Scan Feedback"))
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("So erkennst du deine Zutaten mit Frigy")
+                    Text(lang.t("So erkennst du deine Zutaten mit Frigy"))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
 
                 VStack(spacing: 8) {
                     HStack {
-                        Text("Erkannte Lebensmittel")
+                        Text(lang.t("Erkannte Lebensmittel"))
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(FrigyBrand.textMuted)
                         Spacer()
-                        Text("\(items.count) Artikel")
+                        Text(lang.t("%@ Artikel").replacingOccurrences(of: "%@", with: "\(items.count)"))
                             .font(.system(size: 12))
                             .foregroundColor(FrigyBrand.primaryDark)
                             .padding(.horizontal, 10)

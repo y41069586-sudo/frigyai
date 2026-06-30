@@ -8,6 +8,8 @@ struct SplashStepView: View {
     @State private var mascotOffset = 18.0
     @State private var textOffset = 18.0
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         ZStack {
             FrigyGlassBackground().ignoresSafeArea()
@@ -28,14 +30,14 @@ struct SplashStepView: View {
                 // Headline + subline
                 VStack(spacing: 0) {
                     VStack(alignment: .center, spacing: 0) {
-                        Text("Iss smarter.")
+                        Text(lang.t("Iss smarter."))
                             .font(.system(size: 43, weight: .heavy))
                             .foregroundColor(FrigyBrand.text)
                             .tracking(-3.5)
                             .lineLimit(1)
 
                         // Second line with mint highlight
-                        Text("Leb leichter.")
+                        Text(lang.t("Leb leichter."))
                             .font(.system(size: 43, weight: .heavy))
                             .foregroundColor(FrigyBrand.text)
                             .tracking(-3.5)
@@ -54,7 +56,7 @@ struct SplashStepView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
 
-                    Text("Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste.")
+                    Text(lang.t("Generiere Wochenpläne, scanne deinen Kühlschrank und bekomme automatisch deine Einkaufsliste."))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -71,7 +73,7 @@ struct SplashStepView: View {
                 VStack(spacing: 16) {
                     Button(action: onNext) {
                         HStack(spacing: 8) {
-                            Text("Loslegen")
+                            Text(lang.t("Loslegen"))
                                 .font(.system(size: 17, weight: .black))
                                 .tracking(-0.6)
                             Image(systemName: "arrow.right")
@@ -89,7 +91,7 @@ struct SplashStepView: View {
 
                     if let signIn = onSignIn {
                         Button(action: signIn) {
-                            Text("Bereits ein Konto? Anmelden")
+                            Text(lang.t("Bereits ein Konto? Anmelden"))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(FrigyBrand.textMuted)
                                 .tracking(-0.3)
