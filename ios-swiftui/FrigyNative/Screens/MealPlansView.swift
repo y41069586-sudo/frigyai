@@ -288,10 +288,10 @@ struct MealPlansView: View {
                 HStack(spacing: 7) {
                     if isGenerating {
                         ProgressView().tint(Color(hex: "#082013")).scaleEffect(0.85)
-                        Text("Wird erstellt…")
+                        Text(lang.t("Wird erstellt…"))
                     } else {
                         Image(systemName: "sparkles")
-                        Text("Wochenplan erstellen")
+                        Text(lang.t("Wochenplan erstellen"))
                     }
                 }
                 .font(.system(size: 14, weight: .semibold))
@@ -309,7 +309,7 @@ struct MealPlansView: View {
             Button { showFridgeScan = true } label: {
                 HStack(spacing: 7) {
                     Image(systemName: "camera.viewfinder")
-                    Text("Zutaten erkennen")
+                    Text(lang.t("Zutaten erkennen"))
                 }
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(FrigyBrand.primaryDark)
@@ -332,12 +332,12 @@ struct MealPlansView: View {
 
     private func dayCard(_ day: DayPlan) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(day.weekday)
+            Text(lang.t(day.weekday))
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(FrigyBrand.primary)
 
             if day.meals.isEmpty {
-                Text("Noch kein Plan für diesen Tag")
+                Text(lang.t("Noch kein Plan für diesen Tag"))
                     .font(.system(size: 13))
                     .foregroundColor(FrigyBrand.textMuted)
                     .padding(.vertical, 8)
@@ -350,7 +350,7 @@ struct MealPlansView: View {
                         Image(systemName: "flame.fill")
                             .font(.system(size: 12))
                             .foregroundColor(Color(hex: "#F97316"))
-                        Text("+\(healthKit.activeCaloriesToday) kcal Aktivitätsbonus")
+                        Text("+\(healthKit.activeCaloriesToday) \(lang.t("kcal Aktivitätsbonus"))")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(FrigyBrand.textMuted)
                     }
@@ -376,7 +376,7 @@ struct MealPlansView: View {
         VStack(alignment: .leading, spacing: 4) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(meal.category.rawValue)
+                    Text(lang.t(meal.category.rawValue))
                         .font(.system(size: 11))
                         .foregroundColor(FrigyBrand.textMuted)
                         .lineLimit(1)
@@ -386,7 +386,7 @@ struct MealPlansView: View {
                         .foregroundColor(FrigyBrand.primary)
                 }
 
-                Text(meal.name)
+                Text(lang.t(meal.name))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(FrigyBrand.text)
                     .lineLimit(2)
@@ -410,7 +410,7 @@ struct MealPlansView: View {
                 HStack(spacing: 4) {
                     Image(systemName: eatenMealIDs.contains(meal.id) ? "checkmark.circle.fill" : "checkmark")
                         .font(.system(size: 11, weight: .bold))
-                    Text(eatenMealIDs.contains(meal.id) ? "Gegessen ✓" : "Gegessen")
+                    Text(eatenMealIDs.contains(meal.id) ? lang.t("Gegessen ✓") : lang.t("Gegessen"))
                         .font(.system(size: 12, weight: .medium))
                 }
                 .foregroundColor(eatenMealIDs.contains(meal.id) ? FrigyBrand.primaryDark : FrigyBrand.text)
@@ -446,13 +446,13 @@ struct MealPlansView: View {
         if ok {
             eatenMealIDs.insert(meal.id)
             NotificationCenter.default.post(name: .trackerDidAddEntry, object: nil)
-            toastMessage = "✓ \(meal.name) geloggt"
+            toastMessage = "✓ \(lang.t(meal.name)) \(lang.t("geloggt"))"
             Task {
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 toastMessage = nil
             }
         } else {
-            toastMessage = "Fehler beim Speichern – bitte anmelden"
+            toastMessage = lang.t("Fehler beim Speichern – bitte anmelden")
             Task {
                 try? await Task.sleep(nanoseconds: 2_500_000_000)
                 toastMessage = nil
@@ -531,7 +531,7 @@ struct MealPlansView: View {
             eatenMealIDs = []
             savePlan()
             bannerIsError = false
-            bannerMessage = "Plan erfolgreich erstellt!"
+            bannerMessage = lang.t("Plan erfolgreich erstellt!")
             Task {
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
                 bannerMessage = nil
@@ -539,7 +539,7 @@ struct MealPlansView: View {
         } else {
             ticker.cancel()
             bannerIsError = true
-            bannerMessage = "Plan konnte nicht erstellt werden. Premium erforderlich oder Verbindung prüfen."
+            bannerMessage = lang.t("Plan konnte nicht erstellt werden. Premium erforderlich oder Verbindung prüfen.")
         }
         isGenerating = false
         planProgress = 0
@@ -549,14 +549,17 @@ struct MealPlansView: View {
 // MARK: - Plan generating overlay
 
 private struct PlanGeneratingOverlay: View {
+    @Environment(LanguageManager.self) private var lang
     let progress: Double   // 0.0 → 1.0 from generatePlan()
 
-    private let tips = [
-        "Deine Ernährungsziele werden berücksichtigt…",
-        "Proteinreiche Mahlzeiten werden ausgewählt…",
-        "Mahlzeiten werden auf die Woche verteilt…",
-        "Nährwerte werden berechnet…",
-    ]
+    private var tips: [String] {
+        [
+            lang.t("Deine Ernährungsziele werden berücksichtigt…"),
+            lang.t("Proteinreiche Mahlzeiten werden ausgewählt…"),
+            lang.t("Mahlzeiten werden auf die Woche verteilt…"),
+            lang.t("Nährwerte werden berechnet…"),
+        ]
+    }
     // Tip index driven by progress: 0–24% tip0, 25–49% tip1, etc.
     private var tipIndex: Int { min(3, Int(progress * 4)) }
 
@@ -571,7 +574,7 @@ private struct PlanGeneratingOverlay: View {
                     .foregroundColor(FrigyBrand.primary)
 
                 VStack(spacing: 8) {
-                    Text("Wochenplan wird erstellt")
+                    Text(lang.t("Wochenplan wird erstellt"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                     Text(tips[tipIndex])
@@ -689,6 +692,7 @@ private func makeDemoWeek() -> [DayPlan] {
 struct FridgeScanSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(MainTabCoordinator.self) private var tabCoordinator
+    @Environment(LanguageManager.self) private var lang
     let weekMeals: [PlannedMeal]
 
     @State private var images: [UIImage] = []
@@ -762,11 +766,11 @@ struct FridgeScanSheet: View {
 
     private var header: some View {
         HStack {
-            Button("Schließen") { dismiss() }
+            Button(lang.t("Schließen")) { dismiss() }
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(FrigyBrand.primaryDark)
             Spacer()
-            Text("Kühlschrank scannen")
+            Text(lang.t("Kühlschrank scannen"))
                 .font(.system(size: 17, weight: .bold))
                 .foregroundColor(FrigyBrand.text)
             Spacer()
@@ -777,7 +781,7 @@ struct FridgeScanSheet: View {
     }
 
     private var introText: some View {
-        Text("Mache ein oder mehrere Fotos deines Kühlschranks oder wähle sie aus der Galerie. Die KI erkennt automatisch alle vorhandenen Zutaten und zeigt, was für deinen Wochenplan noch fehlt.")
+        Text(lang.t("Mache ein oder mehrere Fotos deines Kühlschranks oder wähle sie aus der Galerie. Die KI erkennt automatisch alle vorhandenen Zutaten und zeigt, was für deinen Wochenplan noch fehlt."))
             .font(.system(size: 13))
             .foregroundColor(FrigyBrand.textMuted)
             .multilineTextAlignment(.center)
@@ -796,7 +800,7 @@ struct FridgeScanSheet: View {
                     Image(systemName: "refrigerator.fill")
                         .font(.system(size: 44))
                         .foregroundColor(FrigyBrand.primary)
-                    Text("Noch keine Fotos")
+                    Text(lang.t("Noch keine Fotos"))
                         .font(.system(size: 14))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
@@ -839,7 +843,7 @@ struct FridgeScanSheet: View {
     private var actionButtons: some View {
         HStack(spacing: 12) {
             Button { showCamera = true } label: {
-                Label(images.isEmpty ? "Kamera" : "Foto hinzufügen", systemImage: "camera.fill")
+                Label(images.isEmpty ? lang.t("Kamera") : lang.t("Foto hinzufügen"), systemImage: "camera.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color(hex: "#082013"))
                     .frame(maxWidth: .infinity)
@@ -855,7 +859,7 @@ struct FridgeScanSheet: View {
             .buttonStyle(.plain)
 
             PhotosPicker(selection: $pickerItems, maxSelectionCount: 0, matching: .images) {
-                Label("Galerie", systemImage: "photo.on.rectangle")
+                Label(lang.t("Galerie"), systemImage: "photo.on.rectangle")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(FrigyBrand.primaryDark)
                     .frame(maxWidth: .infinity)
@@ -873,8 +877,8 @@ struct FridgeScanSheet: View {
 
     private var analyzeButton: some View {
         let title = hasAnalyzed
-            ? "Erneut analysieren (\(images.count))"
-            : "\(images.count) Foto\(images.count == 1 ? "" : "s") analysieren"
+            ? "\(lang.t("Erneut analysieren")) (\(images.count))"
+            : "\(images.count) \(images.count == 1 ? lang.t("Foto analysieren") : lang.t("Fotos analysieren"))"
         return Button {
             Task { await analyzeAll() }
         } label: {
@@ -901,7 +905,7 @@ struct FridgeScanSheet: View {
     private var progressView: some View {
         VStack(spacing: 8) {
             ProgressView().scaleEffect(1.3)
-            Text("Bild \(analyzeIndex) von \(images.count) wird analysiert…")
+            Text("\(lang.t("Bild")) \(analyzeIndex) \(lang.t("von")) \(images.count) \(lang.t("wird analysiert…"))")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(FrigyBrand.textMuted)
         }
@@ -915,13 +919,13 @@ struct FridgeScanSheet: View {
             if !neededDetectedItems.isEmpty { detectedCard }
             if !missingItems.isEmpty { missingCard }
             if hasAnalyzed && detectedItems.isEmpty && analysisError == nil {
-                Text("Es wurden keine Zutaten erkannt. Versuche ein deutlicheres Foto.")
+                Text(lang.t("Es wurden keine Zutaten erkannt. Versuche ein deutlicheres Foto."))
                     .font(.system(size: 13))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
             } else if hasAnalyzed && neededDetectedItems.isEmpty && missingItems.isEmpty && analysisError == nil {
-                Text("Alles erkannt, was dein Wochenplan benötigt – nichts fehlt! 🎉")
+                Text(lang.t("Alles erkannt, was dein Wochenplan benötigt – nichts fehlt! 🎉"))
                     .font(.system(size: 13))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -939,7 +943,7 @@ struct FridgeScanSheet: View {
 
     private var detectedCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Vorhanden (\(neededDetectedItems.count))", systemImage: "checkmark.circle.fill")
+            Label("\(lang.t("Vorhanden")) (\(neededDetectedItems.count))", systemImage: "checkmark.circle.fill")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(FrigyBrand.primaryDark)
             ForEach(neededDetectedItems, id: \.self) { item in
@@ -956,7 +960,7 @@ struct FridgeScanSheet: View {
     private var missingCard: some View {
         let red = Color(hex: "#EF4444")
         return VStack(alignment: .leading, spacing: 10) {
-            Label("Fehlend – kaufen (\(missingItems.count))", systemImage: "cart.fill")
+            Label("\(lang.t("Fehlend – kaufen")) (\(missingItems.count))", systemImage: "cart.fill")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(red)
             ForEach(missingItems, id: \.self) { item in
@@ -983,7 +987,7 @@ struct FridgeScanSheet: View {
     private var addToListButton: some View {
         let done = addedToListCount != nil
         let bg: Color = done ? FrigyBrand.primaryDark : Color(hex: "#EF4444")
-        let label = done ? "\(addedToListCount ?? 0) hinzugefügt – zur Liste…" : "Einkaufsliste erstellen"
+        let label = done ? "\(addedToListCount ?? 0) \(lang.t("hinzugefügt – zur Liste…"))" : lang.t("Einkaufsliste erstellen")
         return Button {
             let added = ShoppingListStore.add(names: missingItems, category: .other)
             addedToListCount = added
