@@ -990,5 +990,23 @@ enum Translations {
         "§6 Änderungen der AGB": [.en: "§6 Changes to the terms", .fr: "§6 Modifications des CGU", .es: "§6 Cambios en los términos", .it: "§6 Modifiche ai termini", .hi: "§6 शर्तों में परिवर्तन"],
         "Frigy behält sich das Recht vor, diese AGB jederzeit zu ändern. Wesentliche Änderungen werden 30 Tage vor Inkrafttreten mitgeteilt.": [.en: "Frigy reserves the right to change these Terms and Conditions at any time. Material changes will be communicated 30 days before they take effect.", .fr: "Frigy se réserve le droit de modifier les présentes conditions générales à tout moment. Les modifications substantielles seront communiquées 30 jours avant leur entrée en vigueur.", .es: "Frigy se reserva el derecho de modificar estos términos y condiciones en cualquier momento. Los cambios importantes se comunicarán 30 días antes de que entren en vigor.", .it: "Frigy si riserva il diritto di modificare questi termini e condizioni in qualsiasi momento. Le modifiche sostanziali verranno comunicate 30 giorni prima della loro entrata in vigore.", .hi: "Frigy किसी भी समय इन नियमों और शर्तों को बदलने का अधिकार सुरक्षित रखता है। महत्वपूर्ण परिवर्तनों की सूचना प्रभावी होने से 30 दिन पहले दी जाएगी।"],
         "Stand: Januar 2025\nEs gilt deutsches Recht.": [.en: "Last updated: January 2025\nGerman law applies.", .fr: "Mise à jour : janvier 2025\nLe droit allemand s'applique.", .es: "Actualizado: enero de 2025\nSe aplica la ley alemana.", .it: "Aggiornato: gennaio 2025\nSi applica la legge tedesca.", .hi: "अद्यतन: जनवरी 2025\nजर्मन कानून लागू होता है।"],
+
+        // ===== SHOPPING: CATEGORY / ITEM DETAIL / EDIT =====
+        "Keine Artikel in dieser Kategorie": [.en: "No items in this category", .fr: "Aucun article dans cette catégorie", .es: "No hay artículos en esta categoría", .it: "Nessun articolo in questa categoria", .hi: "इस श्रेणी में कोई आइटम नहीं"],
+        "Artikel": [.en: "Item", .fr: "Article", .es: "Artículo", .it: "Articolo", .hi: "आइटम"],
+        "Kategorie": [.en: "Category", .fr: "Catégorie", .es: "Categoría", .it: "Categoria", .hi: "श्रेणी"],
+        "Menge": [.en: "Amount", .fr: "Quantité", .es: "Cantidad", .it: "Quantità", .hi: "मात्रा"],
+        "Preis": [.en: "Price", .fr: "Prix", .es: "Precio", .it: "Prezzo", .hi: "कीमत"],
+        "Status": [.en: "Status", .fr: "Statut", .es: "Estado", .it: "Stato", .hi: "स्थिति"],
+        "Erledigt ✓": [.en: "Done ✓", .fr: "Fait ✓", .es: "Hecho ✓", .it: "Fatto ✓", .hi: "पूर्ण ✓"],
+        "Offen": [.en: "Open", .fr: "Ouvert", .es: "Abierto", .it: "Aperto", .hi: "खुला"],
+        "Bearbeiten": [.en: "Edit", .fr: "Modifier", .es: "Editar", .it: "Modifica", .hi: "संपादित करें"],
+        "Artikel nicht gefunden": [.en: "Item not found", .fr: "Article introuvable", .es: "Artículo no encontrado", .it: "Articolo non trovato", .hi: "आइटम नहीं मिला"],
+        "Artikel löschen?": [.en: "Delete item?", .fr: "Supprimer l'article ?", .es: "¿Eliminar artículo?", .it: "Eliminare l'articolo?", .hi: "आइटम हटाएं?"],
+        "Löschen": [.en: "Delete", .fr: "Supprimer", .es: "Eliminar", .it: "Elimina", .hi: "हटाएं"],
+        "MENGE": [.en: "AMOUNT", .fr: "QUANTITÉ", .es: "CANTIDAD", .it: "QUANTITÀ", .hi: "मात्रा"],
+        "PREIS (€)": [.en: "PRICE (€)", .fr: "PRIX (€)", .es: "PRECIO (€)", .it: "PREZZO (€)", .hi: "कीमत (€)"],
+        "z.B. 500g, 2 Stück": [.en: "e.g. 500g, 2 pieces", .fr: "p. ex. 500g, 2 pièces", .es: "p. ej. 500g, 2 piezas", .it: "es. 500g, 2 pezzi", .hi: "जैसे 500ग्राम, 2 टुकड़े"],
+        "Artikelname": [.en: "Item name", .fr: "Nom de l'article", .es: "Nombre del artículo", .it: "Nome articolo", .hi: "आइटम का नाम"],
     ]
 }

@@ -3071,6 +3071,7 @@ private func legalFooter(_ text: String) -> some View {
 // MARK: - Shopping sub-views
 
 struct ShoppingCategoryView: View {
+    @Environment(LanguageManager.self) private var lang
     let name: String
 
     private var category: ShoppingCategory? { ShoppingCategory.allCases.first { $0.rawValue == name } }
@@ -3083,14 +3084,14 @@ struct ShoppingCategoryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: name)
+            FrigyNavBar(title: lang.t(name))
 
             if items.isEmpty {
                 Spacer()
                 VStack(spacing: 12) {
                     Image(systemName: category?.icon ?? "bag")
                         .font(.system(size: 44)).foregroundColor(FrigyBrand.cardBorder)
-                    Text("Keine Artikel in dieser Kategorie")
+                    Text(lang.t("Keine Artikel in dieser Kategorie"))
                         .font(.system(size: 16, weight: .semibold)).foregroundColor(FrigyBrand.text)
                 }
                 Spacer()
@@ -3139,6 +3140,7 @@ struct ShoppingCategoryView: View {
 
 struct ShoppingItemDetailView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
     let id: String
 
     @State private var item: ShoppingItem? = nil
@@ -3162,7 +3164,7 @@ struct ShoppingItemDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(
-                title: item?.name ?? "Artikel",
+                title: item?.name ?? lang.t("Artikel"),
                 trailingIcon: "trash",
                 trailingAction: { showDeleteConfirm = true }
             )
@@ -3181,17 +3183,17 @@ struct ShoppingItemDetailView: View {
                             .font(.system(size: 22, weight: .black)).foregroundColor(FrigyBrand.text)
 
                         VStack(spacing: 0) {
-                            detailRow("Kategorie", value: it.category.rawValue)
+                            detailRow(lang.t("Kategorie"), value: lang.t(it.category.rawValue))
                             Divider().padding(.leading, 16)
                             if !it.amount.isEmpty {
-                                detailRow("Menge", value: it.amount)
+                                detailRow(lang.t("Menge"), value: it.amount)
                                 Divider().padding(.leading, 16)
                             }
                             if it.price > 0 {
-                                detailRow("Preis", value: String(format: "%.2f €", it.price))
+                                detailRow(lang.t("Preis"), value: String(format: "%.2f €", it.price))
                                 Divider().padding(.leading, 16)
                             }
-                            detailRow("Status", value: it.isChecked ? "Erledigt ✓" : "Offen")
+                            detailRow(lang.t("Status"), value: it.isChecked ? lang.t("Erledigt ✓") : lang.t("Offen"))
                         }
                         .frigyCard(cornerRadius: 16)
                         .padding(.horizontal, 20)
@@ -3199,7 +3201,7 @@ struct ShoppingItemDetailView: View {
                         Button {
                             showEdit = true
                         } label: {
-                            Label("Bearbeiten", systemImage: "pencil")
+                            Label(lang.t("Bearbeiten"), systemImage: "pencil")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(FrigyBrand.primaryDark)
                                 .frame(maxWidth: .infinity)
@@ -3219,7 +3221,7 @@ struct ShoppingItemDetailView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "bag.badge.questionmark")
                         .font(.system(size: 44)).foregroundColor(FrigyBrand.cardBorder)
-                    Text("Artikel nicht gefunden")
+                    Text(lang.t("Artikel nicht gefunden"))
                         .font(.system(size: 16, weight: .semibold)).foregroundColor(FrigyBrand.text)
                 }
                 Spacer()
@@ -3233,9 +3235,9 @@ struct ShoppingItemDetailView: View {
                 EditShoppingItemSheet(item: it)
             }
         }
-        .confirmationDialog("Artikel löschen?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Löschen", role: .destructive) { deleteItem() }
-            Button("Abbrechen", role: .cancel) { }
+        .confirmationDialog(lang.t("Artikel löschen?"), isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button(lang.t("Löschen"), role: .destructive) { deleteItem() }
+            Button(lang.t("Abbrechen"), role: .cancel) { }
         }
     }
 
@@ -3251,6 +3253,7 @@ struct ShoppingItemDetailView: View {
 
 struct EditShoppingItemSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
     let item: ShoppingItem
 
     @State private var name: String
@@ -3269,15 +3272,15 @@ struct EditShoppingItemSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Abbrechen") { dismiss() }
+                Button(lang.t("Abbrechen")) { dismiss() }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDark)
                 Spacer()
-                Text("Bearbeiten")
+                Text(lang.t("Bearbeiten"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
-                Button("Speichern") { saveAndDismiss() }
+                Button(lang.t("Speichern")) { saveAndDismiss() }
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(name.trimmingCharacters(in: .whitespaces).isEmpty ? FrigyBrand.textMuted : FrigyBrand.primaryDark)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -3288,8 +3291,8 @@ struct EditShoppingItemSheet: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("NAME").font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
-                        TextField("Artikelname", text: $name)
+                        Text(lang.t("NAME")).font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
+                        TextField(lang.t("Artikelname"), text: $name)
                             .font(.system(size: 16))
                             .foregroundColor(FrigyBrand.text)
                             .padding(12)
@@ -3298,8 +3301,8 @@ struct EditShoppingItemSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("MENGE").font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
-                        TextField("z.B. 500g, 2 Stück", text: $amount)
+                        Text(lang.t("MENGE")).font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
+                        TextField(lang.t("z.B. 500g, 2 Stück"), text: $amount)
                             .font(.system(size: 16))
                             .foregroundColor(FrigyBrand.text)
                             .padding(12)
@@ -3308,7 +3311,7 @@ struct EditShoppingItemSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("PREIS (€)").font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
+                        Text(lang.t("PREIS (€)")).font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
                         TextField("0.00", text: $price)
                             .font(.system(size: 16))
                             .foregroundColor(FrigyBrand.text)
@@ -3319,7 +3322,7 @@ struct EditShoppingItemSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("KATEGORIE").font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
+                        Text(lang.t("KATEGORIE")).font(.system(size: 10, weight: .bold)).tracking(1.2).foregroundColor(FrigyBrand.textMuted)
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                             ForEach(ShoppingCategory.allCases, id: \.self) { cat in
                                 Button {
@@ -3329,7 +3332,7 @@ struct EditShoppingItemSheet: View {
                                         Image(systemName: cat.icon)
                                             .font(.system(size: 18, weight: .semibold))
                                             .foregroundColor(category == cat ? .white : cat.color)
-                                        Text(cat.rawValue)
+                                        Text(lang.t(cat.rawValue))
                                             .font(.system(size: 10, weight: .semibold))
                                             .foregroundColor(category == cat ? .white : FrigyBrand.text)
                                             .lineLimit(2)
