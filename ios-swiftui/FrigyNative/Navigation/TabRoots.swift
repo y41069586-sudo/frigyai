@@ -2165,6 +2165,7 @@ struct ReminderItem: Identifiable, Codable, Equatable {
 private let remindersKey = "frigy.reminders.v1"
 
 struct RemindersView: View {
+    @Environment(LanguageManager.self) private var lang
     @State private var reminders: [ReminderItem] = Self.defaultReminders()
     @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
     @State private var expandedId: String? = nil
@@ -2187,7 +2188,7 @@ struct RemindersView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Erinnerungen")
+            FrigyNavBar(title: lang.t("Erinnerungen"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
@@ -2196,16 +2197,16 @@ struct RemindersView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Label(
                                 isDenied
-                                    ? "Benachrichtigungen blockiert"
-                                    : "Benachrichtigungen aktivieren",
+                                    ? lang.t("Benachrichtigungen blockiert")
+                                    : lang.t("Benachrichtigungen aktivieren"),
                                 systemImage: isDenied ? "bell.slash.fill" : "bell.badge.fill"
                             )
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(isDenied ? Color(hex: "#EF4444") : Color(hex: "#F59E0B"))
 
                             Text(isDenied
-                                 ? "Öffne die Einstellungen und erlaube Frigy Benachrichtigungen zu senden."
-                                 : "Aktiviere Benachrichtigungen, um tägliche Mahlzeit-Erinnerungen zu erhalten.")
+                                 ? lang.t("Öffne die Einstellungen und erlaube Frigy Benachrichtigungen zu senden.")
+                                 : lang.t("Aktiviere Benachrichtigungen, um tägliche Mahlzeit-Erinnerungen zu erhalten."))
                                 .font(.system(size: 13))
                                 .foregroundColor(FrigyBrand.textMuted)
 
@@ -2218,7 +2219,7 @@ struct RemindersView: View {
                                     Task { await requestPermission() }
                                 }
                             } label: {
-                                Text(isDenied ? "Einstellungen öffnen" : "Jetzt aktivieren")
+                                Text(isDenied ? lang.t("Einstellungen öffnen") : lang.t("Jetzt aktivieren"))
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -2260,7 +2261,7 @@ struct RemindersView: View {
                                             }
                                         }
                                         .buttonStyle(.plain)
-                                        Text(reminder.label)
+                                        Text(lang.t(reminder.label))
                                             .font(.system(size: 13))
                                             .foregroundColor(FrigyBrand.textMuted)
                                     }
@@ -2355,7 +2356,7 @@ struct RemindersView: View {
         guard item.enabled else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "\(item.emoji) \(item.label)"
+        content.title = "\(item.emoji) \(lang.t(item.label))"
         content.body  = notificationBody(for: item)
         content.sound = .default
         content.badge = 1
@@ -2370,11 +2371,11 @@ struct RemindersView: View {
 
     private func notificationBody(for item: ReminderItem) -> String {
         switch item.id {
-        case "frigy.breakfast": return "Guten Morgen! ☀️ Zeit, dein Frühstück in Frigy zu tracken."
-        case "frigy.lunch":     return "Mittagspause! 🕛 Vergiss nicht, dein Mittagessen zu loggen."
-        case "frigy.dinner":    return "Abendzeit! 🌙 Trag dein Abendessen ein und schau, wie dein Tag war."
-        case "frigy.snack":     return "Snack-Zeit! 🍎 Kleiner Hunger? Tracke deinen Snack."
-        default:                return "Zeit zum Tracken in Frigy! 📊"
+        case "frigy.breakfast": return lang.t("Guten Morgen! ☀️ Zeit, dein Frühstück in Frigy zu tracken.")
+        case "frigy.lunch":     return lang.t("Mittagspause! 🕛 Vergiss nicht, dein Mittagessen zu loggen.")
+        case "frigy.dinner":    return lang.t("Abendzeit! 🌙 Trag dein Abendessen ein und schau, wie dein Tag war.")
+        case "frigy.snack":     return lang.t("Snack-Zeit! 🍎 Kleiner Hunger? Tracke deinen Snack.")
+        default:                return lang.t("Zeit zum Tracken in Frigy! 📊")
         }
     }
 
@@ -2427,6 +2428,7 @@ let mealPlanCuisineOptions: [MealPlanCuisineOption] = [
 
 struct EditProfileView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     private static let stateKey = "onboardingPersistedState"
 
@@ -2464,14 +2466,14 @@ struct EditProfileView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FrigyNavBar(title: "Profil bearbeiten")
+            FrigyNavBar(title: lang.t("Profil bearbeiten"))
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
 
                     // Name
-                    profileSection(title: "NAME") {
-                        TextField("Dein Name", text: $draft.name)
+                    profileSection(title: lang.t("NAME")) {
+                        TextField(lang.t("Dein Name"), text: $draft.name)
                             .font(.system(size: 16)).foregroundColor(FrigyBrand.text)
                             .padding(12)
                             .background(Color(UIColor.secondarySystemBackground))
@@ -2479,17 +2481,17 @@ struct EditProfileView: View {
                     }
 
                     // Body stats
-                    profileSection(title: "KÖRPERDATEN") {
+                    profileSection(title: lang.t("KÖRPERDATEN")) {
                         VStack(spacing: 12) {
-                            stepperRow(label: "Gewicht (kg)", value: Int(draft.weightKg), range: 40...200) {
+                            stepperRow(label: lang.t("Gewicht (kg)"), value: Int(draft.weightKg), range: 40...200) {
                                 draft.weightKg = Double($0)
                             }
                             Divider()
-                            stepperRow(label: "Größe (cm)", value: Int(draft.heightCm), range: 140...220) {
+                            stepperRow(label: lang.t("Größe (cm)"), value: Int(draft.heightCm), range: 140...220) {
                                 draft.heightCm = Double($0)
                             }
                             Divider()
-                            stepperRow(label: "Alter", value: draft.age, range: 16...99) {
+                            stepperRow(label: lang.t("Alter"), value: draft.age, range: 16...99) {
                                 draft.age = $0
                             }
                         }
@@ -2498,46 +2500,46 @@ struct EditProfileView: View {
                     }
 
                     // Goal
-                    profileSection(title: "ZIEL") {
+                    profileSection(title: lang.t("ZIEL")) {
                         HStack(spacing: 8) {
-                            segmentButton(label: "Abnehmen", isSelected: draft.goalMode == "lose") { draft.goalMode = "lose" }
-                            segmentButton(label: "Halten", isSelected: draft.goalMode == "maintain") { draft.goalMode = "maintain" }
-                            segmentButton(label: "Zunehmen", isSelected: draft.goalMode == "gain") { draft.goalMode = "gain" }
+                            segmentButton(label: lang.t("Abnehmen"), isSelected: draft.goalMode == "lose") { draft.goalMode = "lose" }
+                            segmentButton(label: lang.t("Halten"), isSelected: draft.goalMode == "maintain") { draft.goalMode = "maintain" }
+                            segmentButton(label: lang.t("Zunehmen"), isSelected: draft.goalMode == "gain") { draft.goalMode = "gain" }
                         }
                     }
 
                     // Activity
-                    profileSection(title: "AKTIVITÄTSLEVEL") {
+                    profileSection(title: lang.t("AKTIVITÄTSLEVEL")) {
                         HStack(spacing: 8) {
-                            segmentButton(label: "Wenig", isSelected: draft.activityLevel == "low") { draft.activityLevel = "low" }
-                            segmentButton(label: "Mittel", isSelected: draft.activityLevel == "medium") { draft.activityLevel = "medium" }
-                            segmentButton(label: "Viel", isSelected: draft.activityLevel == "high") { draft.activityLevel = "high" }
+                            segmentButton(label: lang.t("Wenig"), isSelected: draft.activityLevel == "low") { draft.activityLevel = "low" }
+                            segmentButton(label: lang.t("Mittel"), isSelected: draft.activityLevel == "medium") { draft.activityLevel = "medium" }
+                            segmentButton(label: lang.t("Viel"), isSelected: draft.activityLevel == "high") { draft.activityLevel = "high" }
                         }
                     }
 
                     // Dietary preferences
-                    profileSection(title: "ERNÄHRUNGSWEISE") {
+                    profileSection(title: lang.t("ERNÄHRUNGSWEISE")) {
                         chipGrid(options: ["Vegan","Vegetarisch","Flexitarisch","Pescetarisch","Omnivor"],
                                  selected: $draft.dietaryPreferences)
                     }
 
                     // Allergies
-                    profileSection(title: "UNVERTRÄGLICHKEITEN") {
+                    profileSection(title: lang.t("UNVERTRÄGLICHKEITEN")) {
                         chipGrid(options: ["Laktose","Gluten","Nüsse","Soja","Eier","Fisch","Schalentiere"],
                                  selected: $draft.allergies)
                     }
 
                     // Recalculated macros preview
                     if draft.dailyCalories > 0 {
-                        profileSection(title: "BERECHNETE ZIELE") {
+                        profileSection(title: lang.t("BERECHNETE ZIELE")) {
                             HStack(spacing: 0) {
-                                macroPreview(value: draft.dailyCalories, unit: "kcal", label: "Kalorien", color: FrigyBrand.primaryDark)
+                                macroPreview(value: draft.dailyCalories, unit: "kcal", label: lang.t("Kalorien"), color: FrigyBrand.primaryDark)
                                 Divider().frame(height: 40)
-                                macroPreview(value: draft.dailyProtein, unit: "g", label: "Protein", color: Color(hex: "#F87171"))
+                                macroPreview(value: draft.dailyProtein, unit: "g", label: lang.t("Protein"), color: Color(hex: "#F87171"))
                                 Divider().frame(height: 40)
-                                macroPreview(value: draft.dailyCarbs, unit: "g", label: "Kohlenhydrate", color: Color(hex: "#FBBF24"))
+                                macroPreview(value: draft.dailyCarbs, unit: "g", label: lang.t("Kohlenhydrate"), color: Color(hex: "#FBBF24"))
                                 Divider().frame(height: 40)
-                                macroPreview(value: draft.dailyFat, unit: "g", label: "Fett", color: Color(hex: "#60A5FA"))
+                                macroPreview(value: draft.dailyFat, unit: "g", label: lang.t("Fett"), color: Color(hex: "#60A5FA"))
                             }
                             .padding(.vertical, 8)
                             .frigyCard(cornerRadius: 14)
@@ -2563,7 +2565,7 @@ struct EditProfileView: View {
     }
 
     private var saveButton: some View {
-        let label: String = saveSuccess ? "Gespeichert!" : "Speichern"
+        let label: String = saveSuccess ? lang.t("Gespeichert!") : lang.t("Speichern")
         let bg: AnyShapeStyle = saveSuccess ? AnyShapeStyle(FrigyBrand.primaryDark) : AnyShapeStyle(FrigyBrand.buttonGradient)
         return Button {
             Task { await save() }
@@ -2643,7 +2645,7 @@ struct EditProfileView: View {
                     if isOn { selected.wrappedValue.removeAll { $0 == opt } }
                     else { selected.wrappedValue.append(opt) }
                 } label: {
-                    Text(opt)
+                    Text(lang.t(opt))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(isOn ? .white : FrigyBrand.text)
                         .padding(.horizontal, 14).padding(.vertical, 8)
