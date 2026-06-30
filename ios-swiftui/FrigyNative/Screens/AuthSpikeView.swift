@@ -9,6 +9,8 @@ struct AuthSpikeView: View {
 
     static let returningKey = "frigy.hasSignedInBefore"
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         ZStack {
             FrigyGlassBackground().ignoresSafeArea()
@@ -46,11 +48,11 @@ struct AuthSpikeView: View {
                     .shadow(color: FrigyBrand.primaryDark.opacity(0.28), radius: 26, y: 12)
 
                     VStack(spacing: 8) {
-                        Text(isReturning ? "Willkommen zurück bei Frigy" : "Willkommen bei Frigy")
+                        Text(isReturning ? lang.t("Willkommen zurück bei Frigy") : lang.t("Willkommen bei Frigy"))
                             .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundColor(FrigyBrand.text)
                             .multilineTextAlignment(.center)
-                        Text("Dein KI-Ernährungscoach")
+                        Text(lang.t("Dein KI-Ernährungscoach"))
                             .font(.system(size: 15))
                             .foregroundColor(FrigyBrand.textMuted)
                     }
@@ -79,7 +81,7 @@ struct AuthSpikeView: View {
                             } else {
                                 Image(systemName: "apple.logo")
                                     .font(.system(size: 19, weight: .semibold))
-                                Text("Mit Apple anmelden")
+                                Text(lang.t("Mit Apple anmelden"))
                                     .font(.system(size: 17, weight: .semibold))
                             }
                         }
@@ -100,7 +102,7 @@ struct AuthSpikeView: View {
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 20, height: 20)
-                            Text("Mit Google anmelden")
+                            Text(lang.t("Mit Google anmelden"))
                                 .font(.system(size: 17, weight: .semibold))
                         }
                         .foregroundColor(FrigyBrand.text)
@@ -124,7 +126,7 @@ struct AuthSpikeView: View {
                             .padding(.top, 4)
                     }
 
-                    Text("Mit der Anmeldung stimmst du unserer Datenschutzerklärung\nund den Nutzungsbedingungen zu.")
+                    Text(lang.t("Mit der Anmeldung stimmst du unserer Datenschutzerklärung\nund den Nutzungsbedingungen zu."))
                         .font(.system(size: 11))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)

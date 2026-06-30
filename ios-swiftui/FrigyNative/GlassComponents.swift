@@ -344,10 +344,11 @@ struct FrigyGlassBackground: View {
 struct FrigyNavBar: View {
     let title: String
     var showBack: Bool = true
-    var dismissLabel: String = "Zurück"
+    var dismissLabel: String? = nil
     var trailingIcon: String? = nil
     var trailingAction: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     var body: some View {
         HStack(spacing: 0) {
@@ -357,7 +358,7 @@ struct FrigyNavBar: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 15, weight: .semibold))
-                            Text(dismissLabel)
+                            Text(dismissLabel ?? lang.t("Zurück"))
                                 .font(.system(size: 15, weight: .medium))
                         }
                         .foregroundColor(FrigyBrand.primaryDark)

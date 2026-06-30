@@ -765,5 +765,12 @@ enum Translations {
         "Plan übernehmen": [.en: "Apply plan", .fr: "Appliquer le plan", .es: "Aplicar plan", .it: "Applica piano", .hi: "योजना लागू करें"],
         "Sa": [.en: "Sat", .fr: "Sam", .es: "Sáb", .it: "Sab", .hi: "शनि"],
         "So": [.en: "Sun", .fr: "Dim", .es: "Dom", .it: "Dom", .hi: "रवि"],
+
+        // ===== SHARED CHROME / AUTH =====
+        "Zurück": [.en: "Back", .fr: "Retour", .es: "Atrás", .it: "Indietro", .hi: "वापस"],
+        "Willkommen zurück bei Frigy": [.en: "Welcome back to Frigy", .fr: "Bon retour sur Frigy", .es: "Bienvenido de nuevo a Frigy", .it: "Bentornato su Frigy", .hi: "Frigy में आपका पुनः स्वागत है"],
+        "Mit Apple anmelden": [.en: "Sign in with Apple", .fr: "Se connecter avec Apple", .es: "Iniciar sesión con Apple", .it: "Accedi con Apple", .hi: "Apple से साइन इन करें"],
+        "Mit Google anmelden": [.en: "Sign in with Google", .fr: "Se connecter avec Google", .es: "Iniciar sesión con Google", .it: "Accedi con Google", .hi: "Google से साइन इन करें"],
+        "Mit der Anmeldung stimmst du unserer Datenschutzerklärung\nund den Nutzungsbedingungen zu.": [.en: "By signing in, you agree to our Privacy Policy\nand Terms of Service.", .fr: "En te connectant, tu acceptes notre politique de confidentialité\net nos conditions d'utilisation.", .es: "Al iniciar sesión, aceptas nuestra política de privacidad\ny nuestros términos de servicio.", .it: "Accedendo, accetti la nostra informativa sulla privacy\ne i termini di servizio.", .hi: "साइन इन करके, आप हमारी गोपनीयता नीति\nऔर सेवा की शर्तों से सहमत होते हैं।"],
     ]
 }
