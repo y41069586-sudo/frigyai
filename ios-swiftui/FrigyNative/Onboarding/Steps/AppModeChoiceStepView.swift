@@ -5,6 +5,7 @@ struct AppModeChoiceStepView: View {
     let onBack: (() -> Void)?
     let onNext: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
     @State private var selected: String? = nil
 
     var body: some View {
@@ -12,21 +13,21 @@ struct AppModeChoiceStepView: View {
             Spacer()
 
             VStack(spacing: 28) {
-                OnboardingQuestion(text: "Wie möchtest du Frigy verwenden?")
+                OnboardingQuestion(text: lang.t("Wie möchtest du Frigy verwenden?"))
 
                 VStack(spacing: 12) {
                     modeCard(
                         id: "structured",
                         icon: "calendar.badge.checkmark",
-                        title: "Mit Wochenplan",
-                        subtitle: "Frigy plant deine Mahlzeiten für die ganze Woche",
-                        badge: "Beliebt"
+                        title: lang.t("Mit Wochenplan"),
+                        subtitle: lang.t("Frigy plant deine Mahlzeiten für die ganze Woche"),
+                        badge: lang.t("Beliebt")
                     )
                     modeCard(
                         id: "spontan",
                         icon: "bolt.circle.fill",
-                        title: "Spontan tracken",
-                        subtitle: "Trage ein was du isst, ohne festen Plan",
+                        title: lang.t("Spontan tracken"),
+                        subtitle: lang.t("Trage ein was du isst, ohne festen Plan"),
                         badge: nil
                     )
                 }

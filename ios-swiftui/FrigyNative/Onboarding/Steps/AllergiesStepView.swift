@@ -6,6 +6,7 @@ struct AllergiesStepView: View {
     let onBack: (() -> Void)?
     let onNext: (UserProfileDraft) -> Void
 
+    @Environment(LanguageManager.self) private var lang
     @State private var draft: UserProfileDraft
     @State private var otherText: String = ""
     @FocusState private var otherFocused: Bool
@@ -18,23 +19,25 @@ struct AllergiesStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private let options: [(id: String, emoji: String, title: String, isNone: Bool, isOther: Bool)] = [
-        ("none",      "✅", "Keine Allergien",    true, false),
-        ("peanuts",   "🥜", "Erdnüsse",           false, false),
-        ("tree-nuts", "🌰", "Schalenfrüchte",     false, false),
-        ("milk",      "🥛", "Milch",              false, false),
-        ("eggs",      "🥚", "Eier",               false, false),
-        ("fish",      "🐟", "Fisch",              false, false),
-        ("shellfish", "🦐", "Schalentiere",       false, false),
-        ("soy",       "🫘", "Soja",               false, false),
-        ("wheat",     "🌾", "Weizen",             false, false),
-        ("other",     "✏️", "Andere",             false, true),
-    ]
+    private var options: [(id: String, emoji: String, title: String, isNone: Bool, isOther: Bool)] {
+        [
+            ("none",      "✅", lang.t("Keine Allergien"),    true, false),
+            ("peanuts",   "🥜", lang.t("Erdnüsse"),           false, false),
+            ("tree-nuts", "🌰", lang.t("Schalenfrüchte"),     false, false),
+            ("milk",      "🥛", lang.t("Milch"),              false, false),
+            ("eggs",      "🥚", lang.t("Eier"),               false, false),
+            ("fish",      "🐟", lang.t("Fisch"),              false, false),
+            ("shellfish", "🦐", lang.t("Schalentiere"),       false, false),
+            ("soy",       "🫘", lang.t("Soja"),               false, false),
+            ("wheat",     "🌾", lang.t("Weizen"),             false, false),
+            ("other",     "✏️", lang.t("Andere"),             false, true),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            FrigyMascotQuestion("Hast du Allergien oder Unverträglichkeiten?")
+            FrigyMascotQuestion(lang.t("Hast du Allergien oder Unverträglichkeiten?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
@@ -133,7 +136,7 @@ struct AllergiesStepView: View {
     }
 
     private var allergyOtherField: some View {
-        TextField("Beschreibe deine Allergie…", text: $otherText)
+        TextField(lang.t("Beschreibe deine Allergie…"), text: $otherText)
             .font(.system(size: 15))
             .foregroundColor(FrigyBrand.text)
             .focused($otherFocused)

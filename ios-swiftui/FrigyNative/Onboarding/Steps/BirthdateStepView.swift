@@ -6,6 +6,7 @@ struct BirthdateStepView: View {
     let onBack: (() -> Void)?
     let onNext: (UserProfileDraft) -> Void
 
+    @Environment(LanguageManager.self) private var lang
     @State private var draft: UserProfileDraft
     @State private var selectedDate: Date
 
@@ -34,7 +35,7 @@ struct BirthdateStepView: View {
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            FrigyMascotQuestion("Wann wurdest du geboren?")
+            FrigyMascotQuestion(lang.t("Wann wurdest du geboren?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)
@@ -49,7 +50,7 @@ struct BirthdateStepView: View {
             )
             .datePickerStyle(.wheel)
             .labelsHidden()
-            .environment(\.locale, Locale(identifier: "de_DE"))
+            .environment(\.locale, lang.locale)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
             .onChange(of: selectedDate) { _, date in

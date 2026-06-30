@@ -6,6 +6,7 @@ struct ActivityStepView: View {
     let onBack: (() -> Void)?
     let onNext: (UserProfileDraft) -> Void
 
+    @Environment(LanguageManager.self) private var lang
     @State private var draft: UserProfileDraft
 
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
@@ -16,17 +17,19 @@ struct ActivityStepView: View {
         _draft = State(initialValue: profile)
     }
 
-    private let options: [(id: String, icon: String, title: String, subtitle: String)] = [
-        ("sedentary", "chair.lounge.fill",    "Wenig aktiv",  "0 Tage pro Woche"),
-        ("light",     "figure.walk",           "Leicht aktiv", "1–2 Tage pro Woche"),
-        ("moderate",  "dumbbell.fill",         "Aktiv",        "3–5 Tage pro Woche"),
-        ("active",    "bolt.fill",             "Sehr aktiv",   "6–7 Tage pro Woche"),
-    ]
+    private var options: [(id: String, icon: String, title: String, subtitle: String)] {
+        [
+            ("sedentary", "chair.lounge.fill",    lang.t("Wenig aktiv"),  lang.t("0 Tage pro Woche")),
+            ("light",     "figure.walk",           lang.t("Leicht aktiv"), lang.t("1–2 Tage pro Woche")),
+            ("moderate",  "dumbbell.fill",         lang.t("Aktiv"),        lang.t("3–5 Tage pro Woche")),
+            ("active",    "bolt.fill",             lang.t("Sehr aktiv"),   lang.t("6–7 Tage pro Woche")),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             // Question
-            FrigyMascotQuestion("Wie aktiv bist du?")
+            FrigyMascotQuestion(lang.t("Wie aktiv bist du?"))
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
                 .padding(.bottom, 12)

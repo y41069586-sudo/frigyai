@@ -10,13 +10,17 @@ struct AnalyzingStepView: View {
     @State private var pulse = false
     @State private var appeared = false
 
-    private let steps: [(icon: String, label: String, delay: Double)] = [
-        ("figure.stand",     "Körperdaten analysieren",    0.4),
-        ("flame.fill",       "Kalorienbedarf berechnen",   1.2),
-        ("chart.bar.fill",   "Makronährstoffe festlegen",  2.0),
-        ("brain",            "KI-Plan personalisieren",    2.8),
-        ("checkmark.circle", "Plan ist bereit",            3.6),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var steps: [(icon: String, label: String, delay: Double)] {
+        [
+            ("figure.stand",     lang.t("Körperdaten analysieren"),    0.4),
+            ("flame.fill",       lang.t("Kalorienbedarf berechnen"),   1.2),
+            ("chart.bar.fill",   lang.t("Makronährstoffe festlegen"),  2.0),
+            ("brain",            lang.t("KI-Plan personalisieren"),    2.8),
+            ("checkmark.circle", lang.t("Plan ist bereit"),            3.6),
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -83,13 +87,13 @@ struct AnalyzingStepView: View {
 
                 // Title
                 VStack(spacing: 6) {
-                    Text(done ? "Plan ist bereit! 🎉" : "Dein Plan wird erstellt")
+                    Text(done ? lang.t("Plan ist bereit! 🎉") : lang.t("Dein Plan wird erstellt"))
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                         .contentTransition(.opacity)
                         .animation(.easeInOut(duration: 0.3), value: done)
 
-                    Text("KI berechnet deine optimalen Werte")
+                    Text(lang.t("KI berechnet deine optimalen Werte"))
                         .font(.system(size: 14))
                         .foregroundColor(FrigyBrand.textMuted)
                 }
