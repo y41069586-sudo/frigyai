@@ -7,12 +7,16 @@ struct SuccessStatsStepView: View {
 
     @State private var appeared = false
 
-    private let stats: [(String, String, String)] = [
-        ("10.000+", "aktive Nutzer",         "person.3.fill"),
-        ("Ø -8 kg", "in 3 Monaten",          "arrow.down.circle.fill"),
-        ("4,8 ★",   "App-Bewertung",          "star.fill"),
-        ("92 %",    "erreichen ihr Ziel",     "checkmark.seal.fill"),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var stats: [(String, String, String)] {
+        [
+            ("10.000+", lang.t("aktive Nutzer"),         "person.3.fill"),
+            ("Ø -8 kg", lang.t("in 3 Monaten"),          "arrow.down.circle.fill"),
+            ("4,8 ★",   lang.t("App-Bewertung"),          "star.fill"),
+            ("92 %",    lang.t("erreichen ihr Ziel"),     "checkmark.seal.fill"),
+        ]
+    }
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
@@ -20,10 +24,10 @@ struct SuccessStatsStepView: View {
 
             VStack(spacing: 28) {
                 VStack(spacing: 6) {
-                    Text("Andere schaffen es –")
+                    Text(lang.t("Andere schaffen es –"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text("du auch!")
+                    Text(lang.t("du auch!"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.primaryDark)
                 }
@@ -40,7 +44,7 @@ struct SuccessStatsStepView: View {
                 }
                 .padding(.horizontal, 24)
 
-                Text("Tausende Menschen haben mit Frigy ihre Ernährung transformiert.")
+                Text(lang.t("Tausende Menschen haben mit Frigy ihre Ernährung transformiert."))
                     .font(.system(size: 14))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -49,7 +53,7 @@ struct SuccessStatsStepView: View {
 
             Spacer()
 
-            OnboardingContinueButton("Das kann ich auch!", action: onNext)
+            OnboardingContinueButton(lang.t("Das kann ich auch!"), action: onNext)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
         }

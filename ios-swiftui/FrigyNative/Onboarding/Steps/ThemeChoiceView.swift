@@ -5,6 +5,7 @@ import SwiftUI
 /// light and dark as a preview before the user commits.
 struct ThemeChoiceView: View {
     @Environment(ThemeManager.self) private var theme
+    @Environment(LanguageManager.self) private var lang
     let onContinue: () -> Void
 
     @State private var selection: ThemePreference = ThemeManager.shared.preference
@@ -32,13 +33,13 @@ struct ThemeChoiceView: View {
                 }
                 .padding(.bottom, 22)
 
-                Text("Wie soll Frigy aussehen?")
+                Text(lang.t("Wie soll Frigy aussehen?"))
                     .font(.system(size: 26, weight: .black, design: .rounded))
                     .foregroundColor(FrigyBrand.text)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
 
-                Text("Du kannst das jederzeit in den Einstellungen ändern.")
+                Text(lang.t("Du kannst das jederzeit in den Einstellungen ändern."))
                     .font(.system(size: 15))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -61,7 +62,7 @@ struct ThemeChoiceView: View {
                     onContinue()
                 } label: {
                     HStack(spacing: 8) {
-                        Text("Weiter")
+                        Text(lang.t("Weiter"))
                             .font(.system(size: 17, weight: .black))
                             .tracking(-0.4)
                         Image(systemName: "arrow.right")
@@ -98,10 +99,10 @@ struct ThemeChoiceView: View {
                 miniPreview(pref)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(pref.label)
+                    Text(lang.t(pref.label))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
-                    Text(pref.subtitle)
+                    Text(lang.t(pref.subtitle))
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
                         .fixedSize(horizontal: false, vertical: true)

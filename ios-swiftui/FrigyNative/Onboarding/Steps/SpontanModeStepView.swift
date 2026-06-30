@@ -8,6 +8,8 @@ struct SpontanModeStepView: View {
 
     private var isStep2: Bool { step == .spontanMode2 }
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
             Spacer()
@@ -23,12 +25,12 @@ struct SpontanModeStepView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("Spontan-Modus")
+                    Text(lang.t("Spontan-Modus"))
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
                     Text(isStep2
-                         ? "So trackst du täglich flexibel deine Mahlzeiten."
-                         : "Iss was du möchtest – tracke einfach & flexibel.")
+                         ? lang.t("So trackst du täglich flexibel deine Mahlzeiten.")
+                         : lang.t("Iss was du möchtest – tracke einfach & flexibel."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -38,17 +40,17 @@ struct SpontanModeStepView: View {
 
                 if isStep2 {
                     VStack(spacing: 10) {
-                        featureRow("barcode.viewfinder", "Barcode scannen")
-                        featureRow("magnifyingglass",    "Gericht suchen & hinzufügen")
-                        featureRow("fork.knife",         "Portion anpassen")
-                        featureRow("chart.bar.fill",     "Tagesübersicht kontrollieren")
+                        featureRow("barcode.viewfinder", lang.t("Barcode scannen"))
+                        featureRow("magnifyingglass",    lang.t("Gericht suchen & hinzufügen"))
+                        featureRow("fork.knife",         lang.t("Portion anpassen"))
+                        featureRow("chart.bar.fill",     lang.t("Tagesübersicht kontrollieren"))
                     }
                     .padding(.horizontal, 24)
                 } else {
                     VStack(spacing: 10) {
-                        featureRow("checkmark.circle",  "Kein fixer Wochenplan notwendig")
-                        featureRow("clock",             "Tracke wann & was du möchtest")
-                        featureRow("heart.fill",        "Bleib trotzdem in deinem Ziel")
+                        featureRow("checkmark.circle",  lang.t("Kein fixer Wochenplan notwendig"))
+                        featureRow("clock",             lang.t("Tracke wann & was du möchtest"))
+                        featureRow("heart.fill",        lang.t("Bleib trotzdem in deinem Ziel"))
                     }
                     .padding(.horizontal, 24)
                 }

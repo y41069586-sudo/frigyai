@@ -13,6 +13,8 @@ struct TargetWeightStepView: View {
 
     private let kgPerLb = 0.45359237
 
+    @Environment(LanguageManager.self) private var lang
+
     init(profile: UserProfileDraft, progress: Double, onBack: (() -> Void)?, onNext: @escaping (UserProfileDraft) -> Void) {
         self.profile = profile
         self.progress = progress
@@ -36,9 +38,9 @@ struct TargetWeightStepView: View {
 
     private var questionTitle: String {
         switch draft.goalMode {
-        case "lose": return "Wie viel möchtest du wiegen?"
-        case "gain": return "Welches Gewicht möchtest du aufbauen?"
-        default:     return "Dein Zielgewicht"
+        case "lose": return lang.t("Wie viel möchtest du wiegen?")
+        case "gain": return lang.t("Welches Gewicht möchtest du aufbauen?")
+        default:     return lang.t("Dein Zielgewicht")
         }
     }
 
@@ -50,7 +52,7 @@ struct TargetWeightStepView: View {
                 .padding(.bottom, 12)
 
             MintSegmentedControl(
-                options: [("metric", "Metrisch"), ("imperial", "Imperial")],
+                options: [("metric", lang.t("Metrisch")), ("imperial", lang.t("Imperial"))],
                 selected: isMetric ? "metric" : "imperial"
             ) { id in
                 let wasMetric = isMetric
@@ -85,7 +87,7 @@ struct TargetWeightStepView: View {
 
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
-                OnboardingContinueButton("Ziel festlegen") {
+                OnboardingContinueButton(lang.t("Ziel festlegen")) {
                     var u = draft
                     u.targetWeightKg = isMetric ? Double(selectedKg) : Double(selectedLbs) * kgPerLb
                     onNext(u)

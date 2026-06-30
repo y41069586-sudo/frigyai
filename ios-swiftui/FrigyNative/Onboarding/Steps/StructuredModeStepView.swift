@@ -14,38 +14,42 @@ struct StructuredModeStepView: View {
         }
     }
 
-    private let pages: [(String, String, String, [(String, String)])] = [
-        (
-            "calendar",
-            "Strukturierter Modus",
-            "Ein vollständiger Wochenplan, der genau auf dich zugeschnitten ist.",
-            [
-                ("sparkles",     "KI erstellt deinen persönlichen Plan"),
-                ("calendar",     "7 Tage, 3 Mahlzeiten täglich"),
-                ("cart.fill",    "Automatische Einkaufsliste"),
-            ]
-        ),
-        (
-            "fork.knife.circle.fill",
-            "Mahlzeiten folgen",
-            "Dein Plan ist dein Leitfaden – du folgst einfach den vorgeschlagenen Mahlzeiten.",
-            [
-                ("checkmark.circle", "Tägliche Mahlzeiten vorgeplant"),
-                ("arrow.clockwise",  "Plan jederzeit anpassen"),
-                ("chart.bar.fill",   "Fortschritt automatisch getrackt"),
-            ]
-        ),
-        (
-            "trophy.fill",
-            "Ziel erreichen",
-            "Mit Struktur und KI-Unterstützung erreichst du dein Ziel zuverlässig.",
-            [
-                ("flame.fill",        "Kaloriendefizit eingehalten"),
-                ("scalemass.fill",    "Gewicht in Kontrolle"),
-                ("star.fill",         "Nachhaltige Ergebnisse"),
-            ]
-        ),
-    ]
+    @Environment(LanguageManager.self) private var lang
+
+    private var pages: [(String, String, String, [(String, String)])] {
+        [
+            (
+                "calendar",
+                lang.t("Strukturierter Modus"),
+                lang.t("Ein vollständiger Wochenplan, der genau auf dich zugeschnitten ist."),
+                [
+                    ("sparkles",     lang.t("KI erstellt deinen persönlichen Plan")),
+                    ("calendar",     lang.t("7 Tage, 3 Mahlzeiten täglich")),
+                    ("cart.fill",    lang.t("Automatische Einkaufsliste")),
+                ]
+            ),
+            (
+                "fork.knife.circle.fill",
+                lang.t("Mahlzeiten folgen"),
+                lang.t("Dein Plan ist dein Leitfaden – du folgst einfach den vorgeschlagenen Mahlzeiten."),
+                [
+                    ("checkmark.circle", lang.t("Tägliche Mahlzeiten vorgeplant")),
+                    ("arrow.clockwise",  lang.t("Plan jederzeit anpassen")),
+                    ("chart.bar.fill",   lang.t("Fortschritt automatisch getrackt")),
+                ]
+            ),
+            (
+                "trophy.fill",
+                lang.t("Ziel erreichen"),
+                lang.t("Mit Struktur und KI-Unterstützung erreichst du dein Ziel zuverlässig."),
+                [
+                    ("flame.fill",        lang.t("Kaloriendefizit eingehalten")),
+                    ("scalemass.fill",    lang.t("Gewicht in Kontrolle")),
+                    ("star.fill",         lang.t("Nachhaltige Ergebnisse")),
+                ]
+            ),
+        ]
+    }
 
     var body: some View {
         let page = pages[pageIndex]
