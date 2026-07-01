@@ -288,6 +288,12 @@ workflows:
         script: |
           set -e
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/*FrigyNative* 2>/dev/null || true
+          # ModuleCache.noindex is shared across projects and NOT covered by the
+          # glob above. A previous build killed/cancelled mid-compile (we've had
+          # several today) can leave a partially-written .pcm in here, and
+          # Xcode's explicit-module build system can hang indefinitely trying to
+          # read a corrupted precompiled module instead of failing fast.
+          rm -rf "$HOME/Library/Developer/Xcode/DerivedData/ModuleCache.noindex" 2>/dev/null || true
       - name: Build IPA
         script: |
           set -e
