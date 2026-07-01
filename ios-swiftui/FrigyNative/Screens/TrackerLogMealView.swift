@@ -280,7 +280,7 @@ struct TrackerLogMealView: View {
             } else {
                 VStack(spacing: 6) {
                     ForEach(searchResults) { food in
-                        foodRow(food)
+                        foodRow(food, isSearchResult: true)
                             .transition(.blurReplace)
                     }
                 }
@@ -332,7 +332,7 @@ struct TrackerLogMealView: View {
 
     // MARK: - Row
 
-    private func foodRow(_ food: RecentFood) -> some View {
+    private func foodRow(_ food: RecentFood, isSearchResult: Bool = false) -> some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
@@ -346,30 +346,44 @@ struct TrackerLogMealView: View {
                 Text(food.name)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(FrigyBrand.text)
+                    .lineLimit(1)
                 if food.protein > 0 || food.carbs > 0 || food.fat > 0 {
-                    Text("P \(food.protein)g · K \(food.carbs)g · F \(food.fat)g")
+                    Text(isSearchResult
+                         ? "P \(food.protein)g · K \(food.carbs)g · F \(food.fat)g · /100g"
+                         : "P \(food.protein)g · K \(food.carbs)g · F \(food.fat)g")
                         .font(.system(size: 11))
                         .foregroundColor(FrigyBrand.textMuted)
+                        .lineLimit(1)
                 }
             }
             Spacer()
             Text("\(food.calories) kcal")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(FrigyBrand.textMuted)
-            Button {
-                Task { await deleteRecentFood(food) }
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#FEE2E2"))
-                        .frame(width: 32, height: 32)
-                    Image(systemName: "trash")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(hex: "#EF4444"))
+            if !isSearchResult {
+                Button {
+                    Task { await deleteRecentFood(food) }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "#FEE2E2"))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "trash")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color(hex: "#EF4444"))
+                    }
                 }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
             Button {
+                if isSearchResult {
+                    // Per-100 values → open the portion sheet so the amount can be set.
+                    prefillFood = ScannedFood(barcode: "", name: food.name,
+                                              calories: food.calories, protein: food.protein,
+                                              carbs: food.carbs, fat: food.fat)
+                    showManualEntry = true
+                    return
+                }
                 Task {
                     let ok = await TrackerDataService.shared.addFoodEntry(
                         name: food.name, calories: food.calories,
@@ -460,6 +474,10 @@ struct TrackerLogMealView: View {
 
     /// Search via the app's own analyze-food edge function (OpenAI), not Open Food Facts.
     private func searchFood(query: String) async -> [RecentFood] {
+        // Many results from OpenFoodFacts (like MyFitnessPal), no OpenAI needed.
+        let results = await TrackerDataService.shared.searchFoodsOpenFoodFacts(query)
+        if !results.isEmpty { return results }
+        // Fallback: single AI-estimated result if the database has nothing.
         if let food = await TrackerDataService.shared.analyzeFood(query: query) {
             return [food]
         }
@@ -794,6 +812,7 @@ struct ManualFoodEntrySheet: View {
     @State private var fatText: String = ""
     @State private var category: MealCategory
     @State private var isSaving = false
+    @State private var didLog = false
     @State private var amountText: String = "100"
     @State private var saveError: String?
     // The serving unit is user-switchable (g ↔ ml); it's only pre-guessed from the
@@ -837,7 +856,7 @@ struct ManualFoodEntrySheet: View {
     private var scaledFat: Int { Int((baseFat * scale).rounded()) }
 
     private var unitLabel: String { unitIsMl ? "ml" : "g" }
-    private var quickPortions: [Int] { unitIsMl ? [200, 250, 330, 500] : [50, 100, 150, 200] }
+    private var quickPortions: [Int] { unitIsMl ? [50, 100, 250, 500] : [50, 100, 150, 200] }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && Int(caloriesText) != nil
@@ -946,6 +965,31 @@ struct ManualFoodEntrySheet: View {
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
+        .overlay {
+            if didLog {
+                ZStack {
+                    Color.black.opacity(0.12).ignoresSafeArea()
+                    VStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(width: 68, height: 68)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 30, weight: .black))
+                                .foregroundColor(.white)
+                        }
+                        Text(lang.t("Hinzugefügt!"))
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(FrigyBrand.text)
+                    }
+                    .padding(28)
+                    .background(RoundedRectangle(cornerRadius: 24).fill(.ultraThinMaterial))
+                    .shadow(color: .black.opacity(0.12), radius: 20, y: 8)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
+                }
+            }
+        }
         .alert(lang.t("Speichern fehlgeschlagen"), isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
@@ -1134,6 +1178,10 @@ struct ManualFoodEntrySheet: View {
         )
         isSaving = false
         if ok {
+            // Brief "logged" confirmation before closing (like other trackers).
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { didLog = true }
+            try? await Task.sleep(nanoseconds: 750_000_000)
             dismiss()
             onSaved()
         } else {
@@ -1231,16 +1279,15 @@ struct FoodPhotoPreviewSheet: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
-                    // The analysis auto-starts on appear (like other apps), so this
-                    // button only appears to retry after a failure.
-                    if errorMessage != nil && !isAnalyzing {
+                    // Manual analyze button (shows a cool loading overlay while running).
+                    if !isAnalyzing {
                         Button {
                             Task { await analyze() }
                         } label: {
                             HStack(spacing: 8) {
-                                Image(systemName: "arrow.clockwise")
+                                Image(systemName: errorMessage != nil ? "arrow.clockwise" : "sparkles")
                                     .font(.system(size: 16, weight: .semibold))
-                                Text(lang.t("Erneut versuchen"))
+                                Text(errorMessage != nil ? lang.t("Erneut versuchen") : lang.t("Analysieren"))
                                     .font(.system(size: 16, weight: .bold))
                             }
                             .foregroundColor(Color(hex: "#082013"))
@@ -1266,7 +1313,6 @@ struct FoodPhotoPreviewSheet: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isAnalyzing)
-        .task { await analyze() }
     }
 
     private var analyzeOverlay: some View {

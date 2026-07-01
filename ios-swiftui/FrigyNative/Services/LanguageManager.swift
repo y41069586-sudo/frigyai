@@ -317,6 +317,8 @@ enum Translations {
         "NÄHRWERTE": [.en: "NUTRITION", .fr: "VALEURS NUTRITIONNELLES", .es: "NUTRICIÓN", .it: "VALORI NUTRIZIONALI", .hi: "पोषण"],
         "Kohlenh.": [.en: "Carbs", .fr: "Gluc.", .es: "Carbs", .it: "Carb.", .hi: "कार्ब्स"],
         "Erneut versuchen": [.en: "Try again", .fr: "Réessayer", .es: "Reintentar", .it: "Riprova", .hi: "पुनः प्रयास करें"],
+        "Analysieren": [.en: "Analyze", .fr: "Analyser", .es: "Analizar", .it: "Analizza", .hi: "विश्लेषण करें"],
+        "Hinzugefügt!": [.en: "Added!", .fr: "Ajouté !", .es: "¡Añadido!", .it: "Aggiunto!", .hi: "जोड़ा गया!"],
         "📊 Nährwerte werden geladen…": [.en: "📊 Loading nutrition facts...", .fr: "📊 Chargement des valeurs nutritionnelles...", .es: "📊 Cargando información nutricional...", .it: "📊 Caricamento dei valori nutrizionali...", .hi: "📊 पोषण तथ्य लोड किए जा रहे हैं..."],
 
         // ===== ONBOARDING: ACTIVITY / ALLERGIES / ANALYZING / APP MODE / BIRTHDATE =====

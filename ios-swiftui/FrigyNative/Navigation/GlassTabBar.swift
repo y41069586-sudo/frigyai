@@ -69,10 +69,30 @@ struct GlassTabBar: View {
                 .glassEffect(.regular.interactive(), in: .capsule)
                 .frame(width: width, height: 46)
         } else {
+            // Pre-iOS-26 frosted-glass approximation: a translucent pill with a
+            // top-down sheen and a mint-tinted rim + glow so it reads as glass,
+            // not a flat white blob.
             Capsule()
                 .fill(.ultraThinMaterial)
-                .overlay(Capsule().stroke(FrigyBrand.primary.opacity(0.35), lineWidth: 1))
-                .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 8, y: 3)
+                .overlay(
+                    Capsule().fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.6), FrigyBrand.primary.opacity(0.14)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                )
+                .overlay(
+                    Capsule().stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.9), FrigyBrand.primary.opacity(0.45)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+                )
+                .shadow(color: FrigyBrand.primary.opacity(0.28), radius: 10, y: 4)
+                .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
                 .frame(width: width, height: 46)
         }
     }

@@ -404,8 +404,10 @@ extension View {
     /// and stops the content from floating vertically centered. Apply to the
     /// inner content VStack of a ScrollView on pushed detail screens.
     func detailContentColumn(maxWidth: CGFloat = 700) -> some View {
+        // Full-width, top-aligned. (Previously constrained to a 700pt column, which
+        // on iPad made detail content look like a narrow card floating in the
+        // centre instead of filling the screen.)
         self
-            .frame(maxWidth: maxWidth)
             .frame(maxWidth: .infinity, alignment: .top)
     }
 
@@ -416,8 +418,11 @@ extension View {
     /// full-bleed background filling the sides. Applied once at the routing layer
     /// so every pushed detail view is fixed in one place. No-op look on iPhone.
     func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
+        // Fill the whole navigation area and top-align (fixes the iPad bug where
+        // content floated vertically centred / "way down"). Full width so detail
+        // screens like the weight history render fullscreen instead of as a narrow
+        // centred column.
         self
-            .frame(maxWidth: maxWidth)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(FrigyGlassBackground().ignoresSafeArea())
     }

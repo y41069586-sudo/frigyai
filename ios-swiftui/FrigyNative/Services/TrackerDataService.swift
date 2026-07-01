@@ -662,6 +662,66 @@ final class TrackerDataService {
         return food.name.isEmpty ? nil : food
     }
 
+    /// Full-text food search against OpenFoodFacts — returns MANY matching
+    /// products (MyFitnessPal-style) with per-100g macros, no OpenAI required.
+    func searchFoodsOpenFoodFacts(_ query: String) async -> [RecentFood] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2,
+              let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://world.openfoodfacts.org/cgi/search.pl?search_terms=\(encoded)&search_simple=1&action=process&json=1&page_size=40&fields=product_name,product_name_de,brands,nutriments") else {
+            return []
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        request.setValue("Frigy/1.0 (support@frigy.app)", forHTTPHeaderField: "User-Agent")
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let products = json["products"] as? [[String: Any]] else {
+            return []
+        }
+
+        var results: [RecentFood] = []
+        var seenNames = Set<String>()
+        for product in products {
+            let brand = (product["brands"] as? String)?
+                .split(separator: ",").first.map { String($0).trimmingCharacters(in: .whitespaces) }
+            let baseName = firstNonEmpty([
+                product["product_name_de"] as? String,
+                product["product_name"] as? String,
+            ])
+            guard let baseName else { continue }
+            // Include brand for clarity ("Milka Schokolade") like other trackers.
+            let name = brand.map { "\(baseName) · \($0)" } ?? baseName
+
+            let key = name.lowercased()
+            guard !seenNames.contains(key) else { continue }
+            seenNames.insert(key)
+
+            let nutriments = product["nutriments"] as? [String: Any] ?? [:]
+            let kcal: Double = {
+                if let v = doubleValue(nutriments["energy-kcal_100g"]) { return v }
+                if let kj = doubleValue(nutriments["energy_100g"]) { return kj / 4.184 }
+                return 0
+            }()
+            // Skip entries with no usable energy value — they're noise in a food list.
+            guard kcal > 0 else { continue }
+
+            results.append(RecentFood(
+                id: UUID().uuidString,
+                name: name,
+                calories: Int(kcal.rounded()),
+                protein: Int((doubleValue(nutriments["proteins_100g"]) ?? 0).rounded()),
+                carbs: Int((doubleValue(nutriments["carbohydrates_100g"]) ?? 0).rounded()),
+                fat: Int((doubleValue(nutriments["fat_100g"]) ?? 0).rounded())
+            ))
+            if results.count >= 25 { break }
+        }
+        return results
+    }
+
     private func firstNonEmpty(_ candidates: [String?]) -> String? {
         for case let value? in candidates {
             let t = value.trimmingCharacters(in: .whitespacesAndNewlines)
