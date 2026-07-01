@@ -127,10 +127,14 @@ serve(async (req) => {
           isPremium = !cacheData.subscription_end || new Date(cacheData.subscription_end) > new Date();
         }
 
-        // Owner/Admin override
-        if (!isPremium && userData.user.email?.toLowerCase() === 'yousef0089mohamed@gmail.com') {
+        // Owner/Admin + env-configured bypass emails (testers / Apple review)
+        // get full premium, matching generate-meal-plan's PREMIUM_BYPASS_EMAILS.
+        const email = userData.user.email?.toLowerCase();
+        const bypassEmails = (Deno.env.get("PREMIUM_BYPASS_EMAILS") || "")
+          .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+        if (!isPremium && email && (email === 'yousef0089mohamed@gmail.com' || bypassEmails.includes(email))) {
           isPremium = true;
-          console.log(`[SCAN] Owner override premium access for ${userData.user.email}`);
+          console.log(`[SCAN] Bypass premium access for ${email}`);
         }
 
         console.log(`[SCAN] Premium: ${isPremium} | Check: ${Date.now() - startTotal}ms`);
