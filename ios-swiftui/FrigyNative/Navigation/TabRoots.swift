@@ -2465,103 +2465,122 @@ struct EditProfileView: View {
     }
 
     var body: some View {
+        editProfileBaseContent
+            .onChange(of: draft.weightKg) { _, _ in draft.recalculateMacrosIfPossible() }
+            .onChange(of: draft.heightCm) { _, _ in draft.recalculateMacrosIfPossible() }
+            .onChange(of: draft.age) { _, _ in draft.recalculateMacrosIfPossible() }
+            .onChange(of: draft.goalMode) { _, _ in draft.recalculateMacrosIfPossible() }
+            .onChange(of: draft.activityLevel) { _, _ in draft.recalculateMacrosIfPossible() }
+    }
+
+    private var editProfileBaseContent: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: lang.t("Profil bearbeiten"))
-
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-
-                    // Name
-                    profileSection(title: lang.t("NAME")) {
-                        TextField(lang.t("Dein Name"), text: $draft.name)
-                            .font(.system(size: 16)).foregroundColor(FrigyBrand.text)
-                            .padding(12)
-                            .background(Color(UIColor.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-
-                    // Body stats
-                    profileSection(title: lang.t("KÖRPERDATEN")) {
-                        VStack(spacing: 12) {
-                            stepperRow(label: lang.t("Gewicht (kg)"), value: Int(draft.weightKg), range: 40...200) {
-                                draft.weightKg = Double($0)
-                            }
-                            Divider()
-                            stepperRow(label: lang.t("Größe (cm)"), value: Int(draft.heightCm), range: 140...220) {
-                                draft.heightCm = Double($0)
-                            }
-                            Divider()
-                            stepperRow(label: lang.t("Alter"), value: draft.age, range: 16...99) {
-                                draft.age = $0
-                            }
-                        }
-                        .padding(14)
-                        .frigyCard(cornerRadius: 14)
-                    }
-
-                    // Goal
-                    profileSection(title: lang.t("ZIEL")) {
-                        HStack(spacing: 8) {
-                            segmentButton(label: lang.t("Abnehmen"), isSelected: draft.goalMode == "lose") { draft.goalMode = "lose" }
-                            segmentButton(label: lang.t("Halten"), isSelected: draft.goalMode == "maintain") { draft.goalMode = "maintain" }
-                            segmentButton(label: lang.t("Zunehmen"), isSelected: draft.goalMode == "gain") { draft.goalMode = "gain" }
-                        }
-                    }
-
-                    // Activity
-                    profileSection(title: lang.t("AKTIVITÄTSLEVEL")) {
-                        HStack(spacing: 8) {
-                            segmentButton(label: lang.t("Wenig"), isSelected: draft.activityLevel == "low") { draft.activityLevel = "low" }
-                            segmentButton(label: lang.t("Mittel"), isSelected: draft.activityLevel == "medium") { draft.activityLevel = "medium" }
-                            segmentButton(label: lang.t("Viel"), isSelected: draft.activityLevel == "high") { draft.activityLevel = "high" }
-                        }
-                    }
-
-                    // Dietary preferences
-                    profileSection(title: lang.t("ERNÄHRUNGSWEISE")) {
-                        chipGrid(options: ["Vegan","Vegetarisch","Flexitarisch","Pescetarisch","Omnivor"],
-                                 selected: $draft.dietaryPreferences)
-                    }
-
-                    // Allergies
-                    profileSection(title: lang.t("UNVERTRÄGLICHKEITEN")) {
-                        chipGrid(options: ["Laktose","Gluten","Nüsse","Soja","Eier","Fisch","Schalentiere"],
-                                 selected: $draft.allergies)
-                    }
-
-                    // Recalculated macros preview
-                    if draft.dailyCalories > 0 {
-                        profileSection(title: lang.t("BERECHNETE ZIELE")) {
-                            HStack(spacing: 0) {
-                                macroPreview(value: draft.dailyCalories, unit: "kcal", label: lang.t("Kalorien"), color: FrigyBrand.primaryDark)
-                                Divider().frame(height: 40)
-                                macroPreview(value: draft.dailyProtein, unit: "g", label: lang.t("Protein"), color: Color(hex: "#F87171"))
-                                Divider().frame(height: 40)
-                                macroPreview(value: draft.dailyCarbs, unit: "g", label: lang.t("Kohlenhydrate"), color: Color(hex: "#FBBF24"))
-                                Divider().frame(height: 40)
-                                macroPreview(value: draft.dailyFat, unit: "g", label: lang.t("Fett"), color: Color(hex: "#60A5FA"))
-                            }
-                            .padding(.vertical, 8)
-                            .frigyCard(cornerRadius: 14)
-                        }
-                    }
-
-                    // Save button
-                    saveButton
-
-                    Spacer().frame(height: 40)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                editProfileFields
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .onChange(of: draft.weightKg) { _, _ in draft.recalculateMacrosIfPossible() }
-        .onChange(of: draft.heightCm) { _, _ in draft.recalculateMacrosIfPossible() }
-        .onChange(of: draft.age) { _, _ in draft.recalculateMacrosIfPossible() }
-        .onChange(of: draft.goalMode) { _, _ in draft.recalculateMacrosIfPossible() }
-        .onChange(of: draft.activityLevel) { _, _ in draft.recalculateMacrosIfPossible() }
+    }
+
+    @ViewBuilder
+    private var editProfileFields: some View {
+        VStack(spacing: 20) {
+            nameSection
+            bodyStatsSection
+            goalSection
+            activitySection
+            dietarySection
+            allergiesSection
+            if draft.dailyCalories > 0 {
+                macroSummarySection
+            }
+            saveButton
+            Spacer().frame(height: 40)
+        }
+    }
+
+    private var nameSection: some View {
+        profileSection(title: lang.t("NAME")) {
+            TextField(lang.t("Dein Name"), text: $draft.name)
+                .font(.system(size: 16)).foregroundColor(FrigyBrand.text)
+                .padding(12)
+                .background(Color(UIColor.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private var bodyStatsSection: some View {
+        profileSection(title: lang.t("KÖRPERDATEN")) {
+            VStack(spacing: 12) {
+                stepperRow(label: lang.t("Gewicht (kg)"), value: Int(draft.weightKg), range: 40...200) {
+                    draft.weightKg = Double($0)
+                }
+                Divider()
+                stepperRow(label: lang.t("Größe (cm)"), value: Int(draft.heightCm), range: 140...220) {
+                    draft.heightCm = Double($0)
+                }
+                Divider()
+                stepperRow(label: lang.t("Alter"), value: draft.age, range: 16...99) {
+                    draft.age = $0
+                }
+            }
+            .padding(14)
+            .frigyCard(cornerRadius: 14)
+        }
+    }
+
+    private var goalSection: some View {
+        profileSection(title: lang.t("ZIEL")) {
+            HStack(spacing: 8) {
+                segmentButton(label: lang.t("Abnehmen"), isSelected: draft.goalMode == "lose") { draft.goalMode = "lose" }
+                segmentButton(label: lang.t("Halten"), isSelected: draft.goalMode == "maintain") { draft.goalMode = "maintain" }
+                segmentButton(label: lang.t("Zunehmen"), isSelected: draft.goalMode == "gain") { draft.goalMode = "gain" }
+            }
+        }
+    }
+
+    private var activitySection: some View {
+        profileSection(title: lang.t("AKTIVITÄTSLEVEL")) {
+            HStack(spacing: 8) {
+                segmentButton(label: lang.t("Wenig"), isSelected: draft.activityLevel == "low") { draft.activityLevel = "low" }
+                segmentButton(label: lang.t("Mittel"), isSelected: draft.activityLevel == "medium") { draft.activityLevel = "medium" }
+                segmentButton(label: lang.t("Viel"), isSelected: draft.activityLevel == "high") { draft.activityLevel = "high" }
+            }
+        }
+    }
+
+    private var dietarySection: some View {
+        profileSection(title: lang.t("ERNÄHRUNGSWEISE")) {
+            chipGrid(options: ["Vegan","Vegetarisch","Flexitarisch","Pescetarisch","Omnivor"],
+                     selected: $draft.dietaryPreferences)
+        }
+    }
+
+    private var allergiesSection: some View {
+        profileSection(title: lang.t("UNVERTRÄGLICHKEITEN")) {
+            chipGrid(options: ["Laktose","Gluten","Nüsse","Soja","Eier","Fisch","Schalentiere"],
+                     selected: $draft.allergies)
+        }
+    }
+
+    private var macroSummarySection: some View {
+        profileSection(title: lang.t("BERECHNETE ZIELE")) {
+            HStack(spacing: 0) {
+                macroPreview(value: draft.dailyCalories, unit: "kcal", label: lang.t("Kalorien"), color: FrigyBrand.primaryDark)
+                Divider().frame(height: 40)
+                macroPreview(value: draft.dailyProtein, unit: "g", label: lang.t("Protein"), color: Color(hex: "#F87171"))
+                Divider().frame(height: 40)
+                macroPreview(value: draft.dailyCarbs, unit: "g", label: lang.t("Kohlenhydrate"), color: Color(hex: "#FBBF24"))
+                Divider().frame(height: 40)
+                macroPreview(value: draft.dailyFat, unit: "g", label: lang.t("Fett"), color: Color(hex: "#60A5FA"))
+            }
+            .padding(.vertical, 8)
+            .frigyCard(cornerRadius: 14)
+        }
     }
 
     private var saveButton: some View {
