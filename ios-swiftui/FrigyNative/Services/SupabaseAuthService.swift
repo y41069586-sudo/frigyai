@@ -49,9 +49,18 @@ protocol SubscriptionServiceProtocol {
     func clearIdentity() async
     /// Opens the App Store's native "Offer Code einlösen" sheet (iOS 14+).
     func redeemOfferCode()
+    /// Whether this package's introductory free trial is still available to the
+    /// current App Store account. Apple review guideline 3.1.2 requires the
+    /// paywall to accurately disclose trial terms — showing "3 days free" to a
+    /// user who has already consumed their trial (and would be charged
+    /// immediately) is exactly the kind of mismatch reviewers test for.
+    /// Returns true when eligibility can't be determined, so a real trial is
+    /// never hidden just because the check was inconclusive.
+    func isTrialEligible(for package: SubscriptionPackage) async -> Bool
 }
 
 extension SubscriptionServiceProtocol {
+    func isTrialEligible(for package: SubscriptionPackage) async -> Bool { true }
     func identify(userId: String) async {}
     func clearIdentity() async {}
     func redeemOfferCode() {}

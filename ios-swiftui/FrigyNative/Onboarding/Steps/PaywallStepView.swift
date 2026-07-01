@@ -35,8 +35,10 @@ struct PaywallStepView: View {
         return selectedPkg?.isYearly == false
     }
 
-    // Trial is always shown for monthly; RevenueCat handles actual eligibility at checkout.
-    private let trialEligible = true
+    // Determined from the App Store account's real intro-offer eligibility (see
+    // `.task` below) — showing trial terms to an already-used-trial account would
+    // misstate pricing right at the point of purchase (App Review Guideline 3.1.2).
+    @State private var trialEligible = true
     private var showTrialTimeline: Bool { isMonthly && trialEligible }
 
     private var billingDate: String {
@@ -171,6 +173,10 @@ struct PaywallStepView: View {
                 }
             }
             packagesLoading = false
+
+            if let monthly = monthlyPkg {
+                trialEligible = await router.subscriptionService.isTrialEligible(for: monthly)
+            }
         }
     }
 

@@ -118,6 +118,12 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         throw SubscriptionServiceError.entitlementNotActive
     }
 
+    func isTrialEligible(for package: SubscriptionPackage) async -> Bool {
+        guard let pkg = cachedPackages.first(where: { $0.identifier == package.id }) else { return true }
+        let status = await Purchases.shared.checkTrialOrIntroDiscountEligibility(product: pkg.storeProduct)
+        return status != .ineligible
+    }
+
     func refreshPremiumState() async throws -> Bool {
         guard RevenueCatConfig.isConfigured else { return false }
         let info = try await Purchases.shared.customerInfo()
