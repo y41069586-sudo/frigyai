@@ -175,15 +175,10 @@ final class SupabaseAuthService: AuthServiceProtocol {
                 .rootViewController
         guard let rootVC else { throw AuthServiceError.oauthStartFailed }
 
-        // Nonce handshake: Google embeds the SHA256-hashed nonce in the id_token,
-        // Supabase re-hashes the raw nonce we pass and compares. Both sides must
-        // either supply a nonce or neither — otherwise Supabase rejects the token
-        // with "passed nonce and nonce in id_token should either both exist or not".
-        // Only the completion-handler signIn overload exposes the `nonce:` argument
-        // (the async-bridged variant does not), so we wrap it in a continuation.
-        let rawNonce = randomNonceString()
-        _ = sha256(rawNonce)
-
+        // GoogleSignIn-iOS's signIn(withPresenting:) does not accept a custom nonce
+        // to embed in the id_token, so we must NOT pass one to Supabase either —
+        // otherwise Supabase rejects the token with "Nonces mismatch" because it
+        // expects the (absent) nonce in the id_token to match what we send.
         let result: GIDSignInResult = try await withCheckedThrowingContinuation { continuation in
             GIDSignIn.sharedInstance.signIn(
                 withPresenting: rootVC,
@@ -208,8 +203,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
             credentials: OpenIDConnectCredentials(
                 provider: .google,
                 idToken: idToken,
-                accessToken: accessToken,
-                nonce: rawNonce
+                accessToken: accessToken
             )
         )
     }
