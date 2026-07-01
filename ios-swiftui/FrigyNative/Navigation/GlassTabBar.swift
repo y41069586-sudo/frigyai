@@ -80,10 +80,29 @@ struct GlassTabBar: View {
     private func activeGlassPill(width: CGFloat) -> some View {
         if #available(iOS 26, *) {
             // Sized FIRST, then glass. CLEAR Liquid Glass — no colour/tint, just the
-            // pure refracting glass pill around the active tab.
+            // pure refracting glass pill around the active tab. Over the app's
+            // near-white background clear glass has almost nothing to refract, so we
+            // add a neutral specular RIM (white → clear) — the same bright edge real
+            // Liquid Glass shows — so the pill visibly reads as glass without adding
+            // any colour tint.
             Color.clear
                 .frame(width: width, height: 46)
                 .glassEffect(.regular.interactive(), in: .capsule)
+                .overlay(
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.85),
+                                    Color.white.opacity(0.15),
+                                    Color.white.opacity(0.35)
+                                ],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.8
+                        )
+                )
+                .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
         } else {
             // Pre-iOS-26 frosted-glass approximation: a translucent pill with a
             // top-down sheen and a mint-tinted rim + glow so it reads as glass,
