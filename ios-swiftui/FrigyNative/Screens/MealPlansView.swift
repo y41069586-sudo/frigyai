@@ -841,9 +841,11 @@ struct FridgeScanSheet: View {
     // MARK: - Camera / Gallery
 
     private var actionButtons: some View {
-        HStack(spacing: 12) {
+        let cameraLabel = images.isEmpty ? lang.t("Kamera") : lang.t("Foto hinzufügen")
+        let galleryLabel = lang.t("Galerie")
+        return HStack(spacing: 12) {
             Button { showCamera = true } label: {
-                Label(images.isEmpty ? lang.t("Kamera") : lang.t("Foto hinzufügen"), systemImage: "camera.fill")
+                Label(cameraLabel, systemImage: "camera.fill")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color(hex: "#082013"))
                     .frame(maxWidth: .infinity)
@@ -859,7 +861,7 @@ struct FridgeScanSheet: View {
             .buttonStyle(.plain)
 
             PhotosPicker(selection: $pickerItems, maxSelectionCount: 0, matching: .images) {
-                Label(lang.t("Galerie"), systemImage: "photo.on.rectangle")
+                Label(galleryLabel, systemImage: "photo.on.rectangle")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(FrigyBrand.primaryDark)
                     .frame(maxWidth: .infinity)

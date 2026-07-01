@@ -240,7 +240,7 @@ struct HomeDashboardView: View {
         }
         .sheet(isPresented: $showEditTargets) {
             NutritionGoalsView()
-                .presentationBackground(FrigyGlassBackground())
+                .presentationBackground { FrigyGlassBackground() }
                 .presentationDetents([.large])
         }
         .overlay(alignment: .top) {
