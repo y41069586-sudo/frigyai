@@ -68,6 +68,9 @@ struct PremiumCelebrationView: View {
                         .font(.system(size: 30, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 20)
 
                     Text(isYearly
                          ? lang.t("Dein Jahresabo ist aktiv. Du hast jetzt vollen Zugriff auf alle Funktionen.")
@@ -75,8 +78,11 @@ struct PremiumCelebrationView: View {
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 36)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 28)
                 }
+                .frame(maxWidth: .infinity)
                 .opacity(appear ? 1 : 0)
                 .offset(y: appear ? 0 : 16)
 
@@ -128,9 +134,10 @@ struct PremiumCelebrationView: View {
             Text(text)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(FrigyBrand.text)
-            Spacer()
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 44)
+        .padding(.horizontal, 40)
     }
 
     private func confettiPiece(index: Int) -> some View {
