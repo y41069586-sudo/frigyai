@@ -53,52 +53,52 @@ struct ProfileView: View {
                     .padding(.top, 8)
 
                     VStack(spacing: 0) {
-                        NavigationLink(destination: EditProfileView()) {
+                        NavigationLink(destination: EditProfileView().frigyDetailContainer()) {
                             profileRow(lang.t("Profil bearbeiten"), icon: "person.crop.circle.fill", color: FrigyBrand.primaryDark)
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: TransformationView()) {
+                        NavigationLink(destination: TransformationView().frigyDetailContainer()) {
                             profileRow(lang.t("Transformation"), icon: "figure.arms.open", color: Color(hex: "#8B5CF6"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: RemindersView()) {
+                        NavigationLink(destination: RemindersView().frigyDetailContainer()) {
                             profileRow(lang.t("Benachrichtigungen"), icon: "bell.fill", color: Color(hex: "#FBBF24"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: AppearanceView()) {
+                        NavigationLink(destination: AppearanceView().frigyDetailContainer()) {
                             profileRow(lang.t("Darstellung"), icon: "circle.lefthalf.filled", color: FrigyBrand.primaryDark)
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: LanguageView()) {
+                        NavigationLink(destination: LanguageView().frigyDetailContainer()) {
                             profileRow(lang.t("Sprache"), icon: "globe", color: Color(hex: "#0EA5E9"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: SubscriptionView()) {
+                        NavigationLink(destination: SubscriptionView().frigyDetailContainer()) {
                             profileRow(lang.t("Abonnement"), icon: "crown.fill", color: Color(hex: "#F59E0B"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: PrivacyView()) {
+                        NavigationLink(destination: PrivacyView().frigyDetailContainer()) {
                             profileRow(lang.t("Datenschutz"), icon: "lock.fill", color: Color(hex: "#A78BFA"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: ImpressumView()) {
+                        NavigationLink(destination: ImpressumView().frigyDetailContainer()) {
                             profileRow(lang.t("Impressum"), icon: "doc.text.fill", color: Color(hex: "#6366F1"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: AGBView()) {
+                        NavigationLink(destination: AGBView().frigyDetailContainer()) {
                             profileRow(lang.t("AGB"), icon: "doc.badge.gearshape.fill", color: Color(hex: "#3B82F6"))
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
-                        NavigationLink(destination: HelpView()) {
+                        NavigationLink(destination: HelpView().frigyDetailContainer()) {
                             profileRow(lang.t("Hilfe & Support"), icon: "questionmark.circle.fill", color: FrigyBrand.textMuted)
                         }
                         .buttonStyle(.plain)

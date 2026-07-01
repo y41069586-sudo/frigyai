@@ -49,7 +49,9 @@ struct HomeTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .home)) {
             HomeDashboardView()
-                .navigationDestination(for: HomeRoute.self) { HomeRouteView(route: $0) }
+                .navigationDestination(for: HomeRoute.self) {
+                    HomeRouteView(route: $0).frigyDetailContainer()
+                }
         }
         .onAppear { tabCoordinator.markTabActivated(.home) }
     }
@@ -61,7 +63,9 @@ struct PlansTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .plans)) {
             MealPlansView()
-                .navigationDestination(for: PlansRoute.self) { PlansRouteView(route: $0) }
+                .navigationDestination(for: PlansRoute.self) {
+                    PlansRouteView(route: $0).frigyDetailContainer()
+                }
         }
         .onAppear { tabCoordinator.markTabActivated(.plans) }
     }
@@ -73,7 +77,9 @@ struct ShoppingTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .shopping)) {
             ShoppingListView()
-                .navigationDestination(for: ShoppingRoute.self) { ShoppingRouteView(route: $0) }
+                .navigationDestination(for: ShoppingRoute.self) {
+                    ShoppingRouteView(route: $0).frigyDetailContainer()
+                }
         }
         .onAppear { tabCoordinator.markTabActivated(.shopping) }
     }

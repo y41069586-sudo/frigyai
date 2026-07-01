@@ -409,6 +409,19 @@ extension View {
             .frame(maxWidth: .infinity, alignment: .top)
     }
 
+    /// Wraps a whole pushed detail SCREEN so it (a) fills the navigation area and
+    /// top-aligns — fixing the iPad bug where the content floated vertically
+    /// centered / "way down the screen" — and (b) constrains the screen to a
+    /// centered 700pt column so cards don't stretch edge-to-edge on iPad, with a
+    /// full-bleed background filling the sides. Applied once at the routing layer
+    /// so every pushed detail view is fixed in one place. No-op look on iPhone.
+    func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
+        self
+            .frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(FrigyGlassBackground().ignoresSafeArea())
+    }
+
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
     func frigyCard(cornerRadius: CGFloat = 16) -> some View {
         modifier(FrigyCardModifier(cornerRadius: cornerRadius))
