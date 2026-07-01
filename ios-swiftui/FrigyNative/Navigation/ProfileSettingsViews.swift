@@ -700,13 +700,13 @@ struct NutritionGoalsView: View {
                         .padding(.top, 4)
 
                     VStack(spacing: 0) {
-                        goalRow(lang.t("Kalorien"), value: $targets.calories, range: 1000...4000, step: 50, unit: "kcal", color: FrigyBrand.primaryDark)
+                        MacroSlider(label: lang.t("Kalorien"), value: $targets.calories, range: 1000...4000, step: 50, unit: "kcal", color: FrigyBrand.primaryDark)
                         Divider().padding(.leading, 16)
-                        goalRow(lang.t("Protein"), value: $targets.protein, range: 30...300, step: 5, unit: "g", color: Color(hex: "#60A5FA"))
+                        MacroSlider(label: lang.t("Protein"), value: $targets.protein, range: 30...300, step: 5, unit: "g", color: Color(hex: "#60A5FA"))
                         Divider().padding(.leading, 16)
-                        goalRow(lang.t("Kohlenhydrate"), value: $targets.carbs, range: 50...600, step: 10, unit: "g", color: Color(hex: "#FBBF24"))
+                        MacroSlider(label: lang.t("Kohlenhydrate"), value: $targets.carbs, range: 50...600, step: 10, unit: "g", color: Color(hex: "#FBBF24"))
                         Divider().padding(.leading, 16)
-                        goalRow(lang.t("Fett"), value: $targets.fat, range: 20...200, step: 5, unit: "g", color: Color(hex: "#F87171"))
+                        MacroSlider(label: lang.t("Fett"), value: $targets.fat, range: 20...200, step: 5, unit: "g", color: Color(hex: "#F87171"))
                     }
                     .frigyCard(cornerRadius: 16)
                     .padding(.horizontal, 20)
@@ -756,26 +756,6 @@ struct NutritionGoalsView: View {
         .task { await load() }
     }
 
-    private func goalRow(_ label: String, value: Binding<Int>, range: ClosedRange<Double>, step: Double, unit: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(FrigyBrand.text)
-                Spacer()
-                Text("\(value.wrappedValue) \(unit)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(color)
-            }
-            Slider(
-                value: Binding(get: { Double(value.wrappedValue) }, set: { value.wrappedValue = Int($0) }),
-                in: range, step: step
-            )
-            .tint(color)
-        }
-        .padding(16)
-    }
-
     private func load() async {
         let (_, t) = await TrackerDataService.shared.loadToday()
         targets = t
@@ -787,6 +767,61 @@ struct NutritionGoalsView: View {
         let ok = await TrackerDataService.shared.saveTargets(targets)
         isSaving = false
         if ok { saved = true }
+    }
+}
+
+/// A macro slider that drags fully continuously (no discrete 50-unit notches)
+/// and then springs smoothly to the nearest step when you let go.
+private struct MacroSlider: View {
+    let label: String
+    @Binding var value: Int
+    let range: ClosedRange<Double>
+    let step: Double
+    let unit: String
+    let color: Color
+
+    // The live continuous position of the handle. `value` (the saved Int target)
+    // is only updated to a snapped multiple of `step` once the drag ends.
+    @State private var current: Double = 0
+    @State private var isDragging = false
+
+    private var snapped: Int { Int((current / step).rounded() * step) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                // Show the live rounded value while dragging, the snapped value at rest.
+                Text("\(isDragging ? Int(current.rounded()) : snapped) \(unit)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(color)
+            }
+            Slider(
+                value: $current,
+                in: range,
+                onEditingChanged: { editing in
+                    isDragging = editing
+                    if !editing {
+                        // Snap smoothly to the nearest step and commit the value.
+                        let target = min(max((current / step).rounded() * step, range.lowerBound), range.upperBound)
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                            current = target
+                        }
+                        value = Int(target)
+                    }
+                }
+            )
+            .tint(color)
+        }
+        .padding(16)
+        .onAppear { current = Double(value) }
+        // Keep in sync when the value is loaded/changed from outside a drag.
+        .onChange(of: value) { _, newVal in
+            if !isDragging { current = Double(newVal) }
+        }
     }
 }
 
