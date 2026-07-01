@@ -184,15 +184,30 @@ final class SupabaseAuthService: AuthServiceProtocol {
                 .rootViewController
         guard let rootVC else { throw AuthServiceError.oauthStartFailed }
 
-        // GoogleSignIn-iOS's signIn(withPresenting:) does not accept a custom nonce
-        // to embed in the id_token, so we must NOT pass one to Supabase either —
-        // otherwise Supabase rejects the token with "Nonces mismatch" because it
-        // expects the (absent) nonce in the id_token to match what we send.
+        // Force a fresh consent screen so GIDSignIn can't silently hand back a
+        // cached ID token from an earlier session that was issued without our
+        // nonce (which would fail verification below regardless of our nonce logic).
+        GIDSignIn.sharedInstance.signOut()
+
+        // Nonce handshake (verified against Supabase Auth's server-side check in
+        // internal/api/token_oidc.go): it ALWAYS computes sha256(params.Nonce) and
+        // compares it to the nonce claim embedded in the id_token — for every
+        // provider, not just Apple. GoogleSignIn-iOS embeds whatever `nonce:` we
+        // pass into the id_token UNMODIFIED (confirmed in Google's own sample:
+        // GoogleSignInAuthenticator.swift decodes the token's nonce claim and
+        // compares it directly, unhashed, to the value it sent). So Google must
+        // receive the HASHED nonce (so the token ends up containing that hash),
+        // while Supabase must receive the RAW nonce (so its own sha256() of it
+        // matches what's in the token) — mirroring the Apple flow above.
+        let rawNonce = randomNonceString()
+        let hashedNonce = sha256(rawNonce)
+
         let result: GIDSignInResult = try await withCheckedThrowingContinuation { continuation in
             GIDSignIn.sharedInstance.signIn(
                 withPresenting: rootVC,
                 hint: nil,
-                additionalScopes: nil
+                additionalScopes: nil,
+                nonce: hashedNonce
             ) { signInResult, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -212,6 +227,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
             credentials: OpenIDConnectCredentials(
                 provider: .google,
                 idToken: idToken,
+                nonce: rawNonce,
                 accessToken: accessToken
             )
         )
