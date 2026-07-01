@@ -60,6 +60,23 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
 
     private var cachedPackages: [Package] = []
 
+    /// Robust premium check. A correctly-configured RevenueCat account grants the
+    /// named entitlement, but real-world misconfigurations (products attached to a
+    /// differently-named entitlement, or to NO entitlement at all) would otherwise
+    /// lock out a user who genuinely paid — the purchase succeeds via StoreKit but
+    /// `entitlements["premium"]` stays empty. We therefore treat the user as premium
+    /// if ANY of these hold, most-specific first:
+    ///   1. the configured entitlement id is active (the intended path), OR
+    ///   2. any entitlement is active (covers an entitlement-identifier mismatch), OR
+    ///   3. any subscription is active (covers products not linked to any entitlement).
+    private func isPremiumActive(_ info: CustomerInfo) -> Bool {
+        let id = RevenueCatConfig.entitlementId
+        if info.entitlements[id]?.isActive == true { return true }
+        if !info.entitlements.active.isEmpty { return true }
+        if !info.activeSubscriptions.isEmpty { return true }
+        return false
+    }
+
     /// Configure the SDK exactly once at launch (no-op when no API key is set).
     static func configureIfNeeded() {
         guard RevenueCatConfig.isConfigured, let key = RevenueCatConfig.apiKey else { return }
@@ -127,7 +144,7 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         }
 
         if result.userCancelled { return false }
-        if result.customerInfo.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
+        if isPremiumActive(result.customerInfo) {
             return true
         }
         // StoreKit charged the user, but entitlement activation can lag receipt
@@ -136,7 +153,7 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         for delaySeconds in [2, 3, 5, 8] {
             try? await Task.sleep(nanoseconds: UInt64(delaySeconds) * 1_000_000_000)
             if let refreshed = try? await Purchases.shared.customerInfo(),
-               refreshed.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
+               isPremiumActive(refreshed) {
                 return true
             }
         }
@@ -152,13 +169,13 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
     func refreshPremiumState() async throws -> Bool {
         guard RevenueCatConfig.isConfigured else { return false }
         let info = try await Purchases.shared.customerInfo()
-        return info.entitlements[RevenueCatConfig.entitlementId]?.isActive == true
+        return isPremiumActive(info)
     }
 
     func restorePurchases() async throws -> Bool {
         guard RevenueCatConfig.isConfigured else { return false }
         let info = try await Purchases.shared.restorePurchases()
-        return info.entitlements[RevenueCatConfig.entitlementId]?.isActive == true
+        return isPremiumActive(info)
     }
 
     /// Alias the RevenueCat app user ID to the Supabase user ID. Without this the
