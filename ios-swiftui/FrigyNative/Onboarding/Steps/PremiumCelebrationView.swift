@@ -8,6 +8,8 @@ struct PremiumCelebrationView: View {
 
     @State private var appear = false
     @State private var burst = false
+    @State private var ringAngle = 0.0
+    @State private var pulse = false
 
     @Environment(LanguageManager.self) private var lang
 
@@ -15,18 +17,18 @@ struct PremiumCelebrationView: View {
         ZStack {
             FrigyGlassBackground().ignoresSafeArea()
 
-            // Soft radial glow behind the crown
+            // Soft radial glow behind the badge
             Circle()
                 .fill(RadialGradient(
-                    colors: [FrigyBrand.primary.opacity(0.45), .clear],
-                    center: .center, startRadius: 10, endRadius: 220
+                    colors: [FrigyBrand.primary.opacity(0.5), .clear],
+                    center: .center, startRadius: 10, endRadius: 260
                 ))
-                .frame(width: 440, height: 440)
+                .frame(width: 520, height: 520)
                 .scaleEffect(burst ? 1 : 0.4)
                 .opacity(burst ? 1 : 0)
 
-            // Simple confetti
-            ForEach(0..<14, id: \.self) { i in
+            // Confetti
+            ForEach(0..<26, id: \.self) { i in
                 confettiPiece(index: i)
             }
 
@@ -34,27 +36,42 @@ struct PremiumCelebrationView: View {
                 Spacer()
 
                 ZStack {
+                    // Rotating glow ring
                     Circle()
-                        .fill(Color(hex: "#FFFBEB"))
+                        .stroke(
+                            AngularGradient(
+                                colors: [FrigyBrand.primary, FrigyBrand.primaryDeep, FrigyBrand.primary.opacity(0.2), FrigyBrand.primary],
+                                center: .center),
+                            lineWidth: 6
+                        )
+                        .frame(width: 150, height: 150)
+                        .rotationEffect(.degrees(ringAngle))
+                        .opacity(appear ? 0.9 : 0)
+
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 120, height: 120)
-                        .overlay(Circle().stroke(Color(hex: "#FCD34D"), lineWidth: 2))
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 56))
-                        .foregroundColor(Color(hex: "#F59E0B"))
+                        .shadow(color: FrigyBrand.primaryDeep.opacity(0.5), radius: 24, y: 8)
+
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 54, weight: .bold))
+                        .foregroundColor(.white)
                         .scaleEffect(appear ? 1 : 0.3)
                         .rotationEffect(.degrees(appear ? 0 : -25))
                 }
-                .scaleEffect(appear ? 1 : 0.5)
+                .scaleEffect(appear ? (pulse ? 1.05 : 1.0) : 0.5)
 
                 VStack(spacing: 10) {
-                    Text(lang.t("Willkommen bei\nFrigy Premium! 🎉"))
-                        .font(.system(size: 26, weight: .black, design: .rounded))
+                    Text(lang.t("Frigy AI\nfreigeschaltet! 🎉"))
+                        .font(.system(size: 30, weight: .black, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
 
                     Text(isYearly
-                         ? lang.t("Dein Jahresabo ist aktiv. Du hast jetzt vollen Zugriff auf alle Premium-Funktionen.")
-                         : lang.t("Deine Testphase läuft. Du hast jetzt vollen Zugriff auf alle Premium-Funktionen."))
+                         ? lang.t("Dein Jahresabo ist aktiv. Du hast jetzt vollen Zugriff auf alle Funktionen.")
+                         : lang.t("Deine Testphase läuft. Du hast jetzt vollen Zugriff auf alle Funktionen."))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -97,6 +114,8 @@ struct PremiumCelebrationView: View {
         .onAppear {
             withAnimation(.spring(response: 0.55, dampingFraction: 0.6)) { appear = true }
             withAnimation(.easeOut(duration: 0.7)) { burst = true }
+            withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) { ringAngle = 360 }
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) { pulse = true }
         }
     }
 

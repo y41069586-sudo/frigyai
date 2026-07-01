@@ -1612,7 +1612,7 @@ struct ChatBubble: View {
 
     var body: some View {
         HStack {
-            if isUser { Spacer() }
+            if isUser { Spacer(minLength: 40) }
             Text(text)
                 .font(.system(size: 15))
                 .foregroundColor(isUser ? .white : FrigyBrand.text)
@@ -1641,8 +1641,12 @@ struct ChatBubble: View {
                     }
                 )
                 .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
-                .containerRelativeFrame(.horizontal) { width, _ in width * 0.75 }
-            if !isUser { Spacer() }
+                // Hug the text, cap at 460pt, and let the HStack spacer push it to
+                // the correct side. (The old containerRelativeFrame forced EVERY
+                // bubble to a fixed 75% of the screen width, which is why short
+                // messages looked oddly shifted / centered, especially on iPad.)
+                .frame(maxWidth: 460, alignment: isUser ? .trailing : .leading)
+            if !isUser { Spacer(minLength: 40) }
         }
     }
 }
