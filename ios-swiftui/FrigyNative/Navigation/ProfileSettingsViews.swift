@@ -257,11 +257,18 @@ struct ProfileView: View {
             profileImage = Self.loadProfilePhoto()
         }
         .sheet(isPresented: $showPhotoPicker) {
-            ImagePickerView(image: $profileImage, sourceType: .photoLibrary)
-                .ignoresSafeArea()
-        }
-        .onChange(of: profileImage) { _, newImage in
-            saveProfilePhoto(newImage)
+            // Persist ONLY when the picker actually returns an image. Saving via
+            // onChange(of:) instead would re-encode and rewrite the whole JPEG to
+            // UserDefaults on every appear, since onAppear reloads a fresh (non-equal)
+            // UIImage instance.
+            ImagePickerView(image: Binding(
+                get: { profileImage },
+                set: { newImage in
+                    profileImage = newImage
+                    saveProfilePhoto(newImage)
+                }
+            ), sourceType: .photoLibrary)
+            .ignoresSafeArea()
         }
         .confirmationDialog(
             lang.t("Konto wirklich löschen?"),
@@ -960,7 +967,13 @@ struct AppleHealthView: View {
     // NOT report read-authorization status (authorizationStatus returns
     // .notDetermined even after the user granted read access), so basing the
     // toggle on authStatus made it show "off" while Health was actually working.
-    private var isConnected: Bool { healthKit.isLocallyConnected }
+    // Connected = the user's in-app opt-in AND not explicitly denied at the OS
+    // level. (iOS won't confirm read-*grants*, but it does report an explicit
+    // .denied, so we can at least rule that out — otherwise a denied user would
+    // show as "connected" with no data.)
+    private var isConnected: Bool {
+        healthKit.isLocallyConnected && healthKit.authStatus != .denied
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -991,7 +1004,10 @@ struct AppleHealthView: View {
     /// under Profil → Apps). This is the only place iOS lets you turn read access
     /// off — the app's own iOS-Settings page has no Health toggle.
     private func openAppleHealth() {
-        if let url = URL(string: "x-apple-health://"), UIApplication.shared.canOpenURL(url) {
+        // NB: don't gate on canOpenURL — that requires the scheme in
+        // LSApplicationQueriesSchemes and returns false otherwise. open() works
+        // without it (no-ops silently if Health isn't installed, e.g. on iPad).
+        if let url = URL(string: "x-apple-health://") {
             UIApplication.shared.open(url)
         }
     }

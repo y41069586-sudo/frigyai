@@ -624,10 +624,13 @@ final class TrackerDataService {
         // OpenFoodFacts asks every client to send an identifying User-Agent.
         request.setValue("Frigy/1.0 (support@frigy.app)", forHTTPHeaderField: "User-Agent")
 
+        // Rely on the product object being present rather than the `status` field:
+        // OpenFoodFacts returns HTTP 404 for unknown barcodes (already filtered by
+        // the 200 check) and encodes `status` inconsistently across API versions
+        // (Int 1 vs. a string), which would wrongly reject valid products.
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              (json["status"] as? Int) == 1,
               let product = json["product"] as? [String: Any] else {
             return nil
         }
