@@ -14,11 +14,16 @@ struct MainShellView: View {
     var body: some View {
         @Bindable var coordinator = tabCoordinator
 
-        ZStack {
+        // .top alignment is critical: a plain ZStack centres its children, so any
+        // pushed detail screen whose content doesn't fill the full height would be
+        // floated to the vertical centre (big gap at the top, everything pushed
+        // down). Top-anchoring keeps the nav bar at the very top.
+        ZStack(alignment: .top) {
             tabRoot(HomeTabRoot(), tab: .home, selected: coordinator.selectedTab)
             tabRoot(PlansTabRoot(), tab: .plans, selected: coordinator.selectedTab)
             tabRoot(ShoppingTabRoot(), tab: .shopping, selected: coordinator.selectedTab)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // The bar lives only on the three tab roots. As soon as a detail
             // screen is pushed (the active tab's nav path is non-empty), it is
