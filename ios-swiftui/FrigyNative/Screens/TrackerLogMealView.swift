@@ -1234,7 +1234,8 @@ struct FoodPhotoPreviewSheet: View {
 
     @State private var isAnalyzing = false
     @State private var errorMessage: String?
-    @State private var rotation: Double = 0
+    @State private var scanSweep = false
+    @State private var dotsPulse = false
 
     var body: some View {
         ZStack {
@@ -1317,54 +1318,109 @@ struct FoodPhotoPreviewSheet: View {
 
     private var analyzeOverlay: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea()
+            // Deep frosted backdrop
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .environment(\.colorScheme, .dark)
+                .ignoresSafeArea()
 
-            VStack(spacing: 20) {
+            VStack(spacing: 28) {
+                scanningPhoto
+                analyzingCaption
+            }
+            .padding(.horizontal, 40)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true)) {
+                scanSweep = true
+            }
+        }
+    }
+
+    // Camera-viewfinder style scan of the captured photo.
+    private var scanningPhoto: some View {
+        let side: CGFloat = 220
+        return ZStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: side, height: side)
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+
+            // Darken slightly so the scan glow reads
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(Color.black.opacity(0.18))
+
+            // Sweeping scan line with a soft glow, clipped to the photo
+            VStack {
                 ZStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 90, height: 90)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .blur(radius: 1)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(FrigyBrand.primary, lineWidth: 2.5)
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [FrigyBrand.primary.opacity(0), FrigyBrand.primary.opacity(0.9), FrigyBrand.primary.opacity(0)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
                         )
-
-                    Circle()
-                        .trim(from: 0, to: 0.7)
-                        .stroke(
-                            AngularGradient(colors: [FrigyBrand.primary.opacity(0), FrigyBrand.primary],
-                                            center: .center),
-                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
-                        )
-                        .frame(width: 114, height: 114)
-                        .rotationEffect(.degrees(rotation))
-                        .onAppear {
-                            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
-                                rotation = 360
-                            }
-                        }
+                        .frame(height: 3)
+                        .shadow(color: FrigyBrand.primary.opacity(0.9), radius: 10)
+                    // faint trailing band above the line
+                    LinearGradient(
+                        colors: [FrigyBrand.primary.opacity(0.28), .clear],
+                        startPoint: .bottom, endPoint: .top
+                    )
+                    .frame(height: 60)
+                    .offset(y: -30)
                 }
+                .offset(y: scanSweep ? side - 20 : 20)
+                Spacer(minLength: 0)
+            }
+            .frame(width: side, height: side)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
-                VStack(spacing: 6) {
-                    Text(lang.t("KI analysiert dein Essen…"))
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(lang.t("Kalorien und Makros werden erkannt"))
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.7))
+            // Viewfinder corner brackets
+            CornerBrackets(length: 30, radius: 28)
+                .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                .frame(width: side, height: side)
+
+            // Mint rim glow
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(FrigyBrand.primary.opacity(0.5), lineWidth: 1.5)
+                .frame(width: side, height: side)
+        }
+        .frame(width: side, height: side)
+        .shadow(color: FrigyBrand.primary.opacity(0.35), radius: 26, y: 10)
+    }
+
+    private var analyzingCaption: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(FrigyBrand.primary)
+                Text(lang.t("KI analysiert dein Essen…"))
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            Text(lang.t("Kalorien und Makros werden erkannt"))
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.7))
+
+            // Animated progress dots (staggered pulse, no timer to leak)
+            HStack(spacing: 7) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(FrigyBrand.primary)
+                        .frame(width: 7, height: 7)
+                        .opacity(dotsPulse ? 1 : 0.3)
+                        .scaleEffect(dotsPulse ? 1.2 : 0.85)
+                        .animation(
+                            .easeInOut(duration: 0.55).repeatForever().delay(Double(i) * 0.18),
+                            value: dotsPulse
+                        )
                 }
             }
-            .padding(32)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(.ultraThinMaterial)
-                    .overlay(RoundedRectangle(cornerRadius: 24)
-                        .stroke(FrigyBrand.primary.opacity(0.3), lineWidth: 1))
-            )
-            .padding(.horizontal, 48)
+            .padding(.top, 4)
+            .onAppear { dotsPulse = true }
         }
     }
 
@@ -1381,5 +1437,42 @@ struct FoodPhotoPreviewSheet: View {
             isAnalyzing = false
             errorMessage = lang.t("Erkennung fehlgeschlagen – bitte erneut versuchen.")
         }
+    }
+}
+
+// Camera-viewfinder corner brackets (four L-shaped corners that follow the
+// photo's rounded rectangle).
+private struct CornerBrackets: Shape {
+    var length: CGFloat = 30
+    var radius: CGFloat = 28
+
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let r = radius
+        // Top-left
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY + r + length))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r))
+        p.addArc(center: CGPoint(x: rect.minX + r, y: rect.minY + r), radius: r,
+                 startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.minX + r + length, y: rect.minY))
+        // Top-right
+        p.move(to: CGPoint(x: rect.maxX - r - length, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+        p.addArc(center: CGPoint(x: rect.maxX - r, y: rect.minY + r), radius: r,
+                 startAngle: .degrees(270), endAngle: .degrees(0), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + r + length))
+        // Bottom-right
+        p.move(to: CGPoint(x: rect.maxX, y: rect.maxY - r - length))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        p.addArc(center: CGPoint(x: rect.maxX - r, y: rect.maxY - r), radius: r,
+                 startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.maxX - r - length, y: rect.maxY))
+        // Bottom-left
+        p.move(to: CGPoint(x: rect.minX + r + length, y: rect.maxY))
+        p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        p.addArc(center: CGPoint(x: rect.minX + r, y: rect.maxY - r), radius: r,
+                 startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - r - length))
+        return p
     }
 }
