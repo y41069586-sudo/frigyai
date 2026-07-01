@@ -1023,10 +1023,13 @@ struct AppleHealthView: View {
             get: { isConnected },
             set: { on in
                 if on {
-                    // Request (prompts only if not yet asked) and start reading.
+                    // Flip the local flag FIRST (synchronously) so the toggle slides
+                    // ON and stays there instead of snapping back while the OS
+                    // permission sheet is up, THEN request access and start reading.
                     Task {
-                        await healthKit.requestAuthorization()
                         await healthKit.reconnect()
+                        await healthKit.requestAuthorization()
+                        await healthKit.refresh()
                     }
                 } else {
                     // Turn Frigy's use off immediately, then offer the Apple Health
