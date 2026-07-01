@@ -59,14 +59,11 @@ struct GlassTabBar: View {
         .frame(height: 58)
 
         if #available(iOS 26, *) {
-            // Real Liquid Glass. A GlassEffectContainer lets the subtle bar glass
-            // and the brighter active pill blend & morph as the pill slides. The
-            // bar backing is CLEAR glass (not an opaque white capsule) so the pill
-            // actually refracts the content behind it instead of looking white.
+            // ONLY the active pill is Liquid Glass — the bar itself stays fully
+            // transparent (no glass over the whole width, no colour). The
+            // GlassEffectContainer just lets the single pill render/morph correctly.
             GlassEffectContainer(spacing: 8) {
-                stack.background(
-                    Color.clear.glassEffect(.regular, in: .capsule)
-                )
+                stack
             }
         } else {
             // Very subtle floating backing so buttons stay legible over scrolling
@@ -82,12 +79,11 @@ struct GlassTabBar: View {
     @ViewBuilder
     private func activeGlassPill(width: CGFloat) -> some View {
         if #available(iOS 26, *) {
-            // Sized FIRST, then glass — applying glassEffect to a zero-size shape
-            // rendered nothing. A light mint tint makes the active pill read as
-            // the selected element against the clear bar glass.
+            // Sized FIRST, then glass. CLEAR Liquid Glass — no colour/tint, just the
+            // pure refracting glass pill around the active tab.
             Color.clear
                 .frame(width: width, height: 46)
-                .glassEffect(.regular.tint(FrigyBrand.primary.opacity(0.28)).interactive(), in: .capsule)
+                .glassEffect(.regular.interactive(), in: .capsule)
         } else {
             // Pre-iOS-26 frosted-glass approximation: a translucent pill with a
             // top-down sheen and a mint-tinted rim + glow so it reads as glass,
