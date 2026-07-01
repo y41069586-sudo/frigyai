@@ -229,6 +229,26 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id });
 
+    // App Review / tester bypass — accounts listed in PREMIUM_BYPASS_EMAILS are
+    // always reported as subscribed so a reviewer with the demo account sees a
+    // fully unlocked app (matches generate-meal-plan / analyze-ingredients).
+    const bypassEmails = (Deno.env.get("PREMIUM_BYPASS_EMAILS") || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (user.email && bypassEmails.includes(user.email.toLowerCase())) {
+      logStep("Premium bypass email — reporting subscribed", { email: user.email });
+      return new Response(
+        JSON.stringify({
+          subscribed: true,
+          product_id: "review_bypass",
+          subscription_end: null,
+          is_trial: false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      );
+    }
+
     const activeStore = await loadActiveStoreFromCache(supabaseClient, user.id);
     if (activeStore?.product_id === ADMIN_GRANT_PRODUCT_ID) {
       logStep("Active admin grant from cache", activeStore);
