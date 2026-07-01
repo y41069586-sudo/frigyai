@@ -31,21 +31,23 @@ struct GoalPreviewStepView: View {
 
     var body: some View {
         OnboardingStepScaffold(progress: progress, onBack: onBack) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(headlineTextAttributed)
-                    .font(.system(size: 17, weight: .black))
-                    .foregroundColor(FrigyBrand.text)
-                    .tracking(-0.5)
-                    .textCase(.uppercase)
-                    .lineSpacing(2)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 4)
-                    .padding(.bottom, 4)
-            }
+            Text(headlineTextAttributed)
+                .font(.system(size: 17, weight: .black))
+                .foregroundColor(FrigyBrand.text)
+                .tracking(-0.5)
+                .textCase(.uppercase)
+                .lineSpacing(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 4)
 
             Text(lang.t("Illustrativer Vergleich aus deinen Angaben — nur motivierend, keine medizinische Prognose."))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(FrigyBrand.textMuted)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
 
