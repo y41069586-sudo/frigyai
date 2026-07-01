@@ -210,12 +210,13 @@ struct HomeDashboardView: View {
             await reload()
             loadWater()
             loadTodayPlan()
-            // Only trigger the OS permission flow the first time — calling
-            // requestAuthorization() again on every dashboard load would silently
-            // re-flip a user's "Trennen" (local disconnect) choice back on.
-            if healthKit.authStatus == .notDetermined {
+            // Only trigger the OS permission sheet the FIRST time ever. We track
+            // that with `hasPrompted`, NOT `authStatus`: read-only HealthKit auth is
+            // permanently `.notDetermined`, so keying off it re-ran the request on
+            // every load and silently re-flipped a user's "Trennen" choice back on.
+            if !healthKit.hasPrompted {
                 await healthKit.requestAuthorization()
-            } else {
+            } else if healthKit.isLocallyConnected {
                 await healthKit.refresh()
             }
         }

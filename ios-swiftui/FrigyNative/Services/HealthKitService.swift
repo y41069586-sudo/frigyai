@@ -27,8 +27,14 @@ final class HealthKitService: ObservableObject {
     // we stop reading/displaying HealthKit data even though system authorization
     // technically remains granted.
     @Published private(set) var isLocallyConnected: Bool
+    // Whether we've ever shown the OS permission sheet. We must track this ourselves
+    // because `authorizationStatus(for:)` on READ-only types is permanently
+    // `.notDetermined` (Apple hides read-auth for privacy), so it can't be used to
+    // decide "first launch vs already prompted".
+    @Published private(set) var hasPrompted: Bool
 
     private static let connectedKey = "frigy.healthkit.locallyConnected"
+    private static let promptedKey = "frigy.healthkit.hasPrompted"
 
     private let store = HKHealthStore()
 
@@ -42,10 +48,12 @@ final class HealthKitService: ObservableObject {
         isLocallyConnected = UserDefaults.standard.object(forKey: Self.connectedKey) == nil
             ? true
             : UserDefaults.standard.bool(forKey: Self.connectedKey)
+        hasPrompted = UserDefaults.standard.bool(forKey: Self.promptedKey)
     }
 
     func requestAuthorization() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
+        setPrompted(true)
         do {
             try await store.requestAuthorization(toShare: [], read: readTypes)
             setLocallyConnected(true)
@@ -70,7 +78,11 @@ final class HealthKitService: ObservableObject {
     func refresh() async {
         guard HKHealthStore.isHealthDataAvailable(), isLocallyConnected else { return }
         await updateAuthStatus()
-        guard authStatus == .authorized else { return }
+        // Do NOT gate on `authStatus == .authorized`: for READ-only types iOS never
+        // reports `.sharingAuthorized` (it hides read grants for privacy), so that
+        // check was permanently false and no data ever loaded — the "Connect does
+        // nothing" bug. Instead we just run the query. If the user actually denied
+        // read access the query simply returns 0, which is the correct display.
         async let s = fetchToday(.stepCount, unit: .count())
         async let a = fetchToday(.activeEnergyBurned, unit: .kilocalorie())
         let (steps, active) = await (s, a)
@@ -83,6 +95,11 @@ final class HealthKitService: ObservableObject {
     private func setLocallyConnected(_ value: Bool) {
         isLocallyConnected = value
         UserDefaults.standard.set(value, forKey: Self.connectedKey)
+    }
+
+    private func setPrompted(_ value: Bool) {
+        hasPrompted = value
+        UserDefaults.standard.set(value, forKey: Self.promptedKey)
     }
 
     private func updateAuthStatus() async {
@@ -121,6 +138,7 @@ final class HealthKitService: ObservableObject {
     @Published var authStatus: HKAuthorizationStatus = .notDetermined
     @Published var isAvailable: Bool = false
     @Published private(set) var isLocallyConnected: Bool = true
+    @Published private(set) var hasPrompted: Bool = false
 
     func requestAuthorization() async {}
     func refresh() async {}
