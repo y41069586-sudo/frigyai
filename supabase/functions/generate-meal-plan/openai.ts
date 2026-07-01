@@ -156,6 +156,7 @@ async function callOpenAIOnce(params: {
   prefs: string[];
   mealPlanPrefs?: MealPlanPrefsInput;
   singleDay?: { name: string; index: number };
+  varietySeed?: string;
 }): Promise<MealPlan> {
   const L = LANG[params.lang];
   const prior = params.priorDishes ?? [];
@@ -208,8 +209,19 @@ async function callOpenAIOnce(params: {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), OPENAI_FETCH_TIMEOUT_MS);
 
-  const baseTemp = regen ? 0.55 : 0.38;
-  const temperature = params.mealPlanPrefs?.variety === "varied" ? Math.min(0.62, baseTemp + 0.12) : baseTemp;
+  // Per-request entropy. Without this, two users with the same targets/language
+  // got an IDENTICAL prompt and — at a low temperature — OpenAI returned nearly
+  // the same meals for everyone. A random variety token (falls back to a fresh
+  // UUID when the client sends none) makes each plan/user diverge; the higher
+  // temperature adds further spread.
+  const varietyToken = (params.varietySeed && params.varietySeed.length >= 4)
+    ? params.varietySeed
+    : crypto.randomUUID();
+  const userWithSeed =
+    `${user}\n[Variety token ${varietyToken.slice(0, 16)}: pick dishes that differ from other plans; never mention this token.]`;
+
+  const baseTemp = regen ? 0.7 : 0.55;
+  const temperature = params.mealPlanPrefs?.variety === "varied" ? Math.min(0.85, baseTemp + 0.15) : baseTemp;
 
   let res: Response;
   try {
@@ -227,7 +239,7 @@ async function callOpenAIOnce(params: {
             role: "system",
             content: `${system}\nReturn {"mealPlan":[${dayCount} day${dayCount === 1 ? "" : "s"} with ${params.mealsPerDay} meals each]}.`,
           },
-          { role: "user", content: user },
+          { role: "user", content: userWithSeed },
         ],
       }),
     });
@@ -303,6 +315,7 @@ export async function fetchAISingleDay(
     prefs: input.prefs,
     mealPlanPrefs: input.mealPlanPrefs,
     singleDay: { name: dayName, index: dayIndex },
+    varietySeed: input.varietySeed,
   });
 }
 
@@ -317,6 +330,7 @@ export async function fetchAIWeeklyPlan(input: PlanInput): Promise<MealPlan> {
     priorDishes: input.priorDishes,
     prefs: input.prefs,
     mealPlanPrefs: input.mealPlanPrefs,
+    varietySeed: input.varietySeed,
   });
 }
 

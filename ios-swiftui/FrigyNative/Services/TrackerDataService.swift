@@ -523,7 +523,8 @@ final class TrackerDataService {
                           mealsPerDay: Int = 4,
                           dietaryPreferences: [String] = [], allergies: [String] = [],
                           healthGoals: [String] = [],
-                          mealPlanPreferences: MealPlanPrefsPayload? = nil) async -> [GeneratedDayPlan]? {
+                          mealPlanPreferences: MealPlanPrefsPayload? = nil,
+                          isRegeneration: Bool = false) async -> [GeneratedDayPlan]? {
         #if canImport(Supabase)
         guard SupabaseConfig.isConfigured,
               let base = SupabaseConfig.urlString,
@@ -540,7 +541,9 @@ final class TrackerDataService {
             dailyCalories: calories, dailyProtein: protein,
             dailyCarbs: carbs, dailyFat: fat, mealsPerDay: mealsPerDay,
             dietaryPreferences: dietaryPreferences, allergies: allergies, healthGoals: healthGoals,
-            mealPlanPreferences: mealPlanPreferences
+            mealPlanPreferences: mealPlanPreferences,
+            varietySeed: UUID().uuidString,
+            isRegeneration: isRegeneration
         ))
 
         do {
@@ -981,6 +984,11 @@ private struct MealPlanRequest: Encodable {
     let allergies: [String]
     let healthGoals: [String]
     let mealPlanPreferences: MealPlanPrefsPayload?
+    // Fresh per request so two users (and successive regenerations) never get an
+    // identical OpenAI prompt — the server threads this into the prompt as a
+    // variety token.
+    let varietySeed: String
+    let isRegeneration: Bool
 }
 
 /// Mirrors `MealPlanPrefsInput` in `supabase/functions/generate-meal-plan/mealPlanPrefs.ts`.

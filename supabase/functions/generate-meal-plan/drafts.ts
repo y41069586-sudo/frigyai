@@ -40,7 +40,17 @@ export function expandPlanToSevenDays(
 ): MealPlan {
   if (!Array.isArray(plan) || plan.length >= 7) return plan;
 
-  const filler = generateFallbackDraft(input, banned);
+  // Seed the filler's banned set with the dish names already present in the kept
+  // days, so padded days don't duplicate a meal that's already in the week.
+  const usedNames = new Set(banned);
+  for (const day of plan) {
+    for (const meal of day?.meals ?? []) {
+      const n = String(meal?.name ?? "").toLowerCase().trim();
+      if (n) usedNames.add(n);
+    }
+  }
+
+  const filler = generateFallbackDraft(input, usedNames);
   const L = LANG[input.lang];
   const out: MealPlan = [];
 
