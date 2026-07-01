@@ -211,7 +211,7 @@ struct MealPlansView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(tpl.emoji)
                                 .font(.system(size: 24))
-                            Text(tpl.name)
+                            Text(lang.t(tpl.name))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(FrigyBrand.text)
                                 .lineLimit(2)
