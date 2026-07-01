@@ -981,15 +981,21 @@ struct AppleHealthView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    Text(lang.t("Frigy kann deine Schritte und aktiven Kalorien aus Apple Health lesen, um deine Aktivität im Dashboard anzuzeigen. Zum vollständigen Widerruf des Zugriffs verwalte Frigy in der Apple-Health-App."))
-                        .font(.system(size: 14))
-                        .foregroundColor(FrigyBrand.textMuted)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
+                    if !healthKit.isAvailable {
+                        // HealthKit doesn't exist on iPad — a Connect button here would
+                        // do nothing (requestAuthorization bails on isHealthDataAvailable).
+                        unavailableCard
+                    } else {
+                        Text(lang.t("Frigy kann deine Schritte und aktiven Kalorien aus Apple Health lesen, um deine Aktivität im Dashboard anzuzeigen. Zum vollständigen Widerruf des Zugriffs verwalte Frigy in der Apple-Health-App."))
+                            .font(.system(size: 14))
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
 
-                    healthToggleCard
-                    manageInHealthButton
+                        healthToggleCard
+                        manageInHealthButton
+                    }
 
                     Spacer().frame(height: 40)
                 }
@@ -1030,6 +1036,27 @@ struct AppleHealthView: View {
                 }
             }
         )
+    }
+
+    private var unavailableCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "heart.slash.fill")
+                .font(.system(size: 34))
+                .foregroundColor(FrigyBrand.textMuted)
+            Text(lang.t("Apple Health ist auf diesem Gerät nicht verfügbar"))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(FrigyBrand.text)
+                .multilineTextAlignment(.center)
+            Text(lang.t("Apple Health gibt es nur auf dem iPhone. Öffne Frigy auf deinem iPhone, um Schritte und Aktivität zu verbinden."))
+                .font(.system(size: 13))
+                .foregroundColor(FrigyBrand.textMuted)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .frigyCard(cornerRadius: 18)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
     }
 
     private var healthToggleCard: some View {
