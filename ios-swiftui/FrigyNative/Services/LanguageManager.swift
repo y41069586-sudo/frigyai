@@ -1151,5 +1151,10 @@ enum Translations {
 
         // ===== SHOPPING LIST SCREEN =====
         "Artikeln übrig": [.en: "items remaining", .fr: "articles restants", .es: "artículos restantes", .it: "articoli rimasti", .hi: "आइटम शेष"],
+
+        // ===== BARCODE SCANNER =====
+        "Manuell eingeben": [.en: "Enter manually", .fr: "Saisir manuellement", .es: "Introducir manualmente", .it: "Inserisci manualmente", .hi: "मैन्युअल दर्ज करें"],
+        "Halte den Barcode in den Rahmen": [.en: "Hold the barcode inside the frame", .fr: "Placez le code-barres dans le cadre", .es: "Mantén el código de barras dentro del marco", .it: "Tieni il codice a barre nel riquadro", .hi: "बारकोड को फ्रेम के अंदर रखें"],
+        "Produkt nicht gefunden. Manuell eingeben?": [.en: "Product not found. Enter manually?", .fr: "Produit non trouvé. Saisir manuellement ?", .es: "Producto no encontrado. ¿Introducir manualmente?", .it: "Prodotto non trovato. Inserire manualmente?", .hi: "उत्पाद नहीं मिला। मैन्युअल दर्ज करें?"],
     ]
 }

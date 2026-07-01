@@ -60,7 +60,7 @@ struct BarcodeScannerView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Schließen")
+                    Text(lang.t("Schließen"))
                         .font(.system(size: 14, weight: .medium))
                 }
                 .foregroundColor(.white)
@@ -134,7 +134,7 @@ struct BarcodeScannerView: View {
                         .padding(.vertical, 8)
                         .background(Color.black.opacity(0.65))
                         .clipShape(Capsule())
-                    Button("Manuell eingeben") {
+                    Button(lang.t("Manuell eingeben")) {
                         onResult(ScannedFood(barcode: lastScanned ?? "", name: "", calories: 0,
                                              protein: 0, carbs: 0, fat: 0))
                         dismiss()
@@ -149,7 +149,7 @@ struct BarcodeScannerView: View {
                 .padding(.top, 14)
             }
 
-            Text(isLookingUp ? "" : "Halte den Barcode in den Rahmen")
+            Text(isLookingUp ? "" : lang.t("Halte den Barcode in den Rahmen"))
                 .font(.system(size: 14))
                 .foregroundColor(.white.opacity(0.75))
                 .padding(.top, 14)
@@ -164,15 +164,15 @@ struct BarcodeScannerView: View {
             Image(systemName: "camera.fill.badge.ellipsis")
                 .font(.system(size: 48))
                 .foregroundColor(.white.opacity(0.6))
-            Text("Kamera-Zugriff verweigert")
+            Text(lang.t("Kamera-Zugriff verweigert"))
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(.white)
-            Text("Aktiviere den Kamera-Zugriff in den Einstellungen.")
+            Text(lang.t("Aktiviere den Kamera-Zugriff in den Einstellungen."))
                 .font(.system(size: 14))
                 .foregroundColor(.white.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Einstellungen öffnen") {
+            Button(lang.t("Einstellungen öffnen")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
@@ -224,7 +224,7 @@ struct BarcodeScannerView: View {
                 onResult(result)
                 dismiss()
             } else {
-                statusMessage = "Produkt nicht gefunden. Manuell eingeben?"
+                statusMessage = lang.t("Produkt nicht gefunden. Manuell eingeben?")
                 try? await Task.sleep(nanoseconds: 2_500_000_000)
                 lastScanned = nil
                 statusMessage = nil
