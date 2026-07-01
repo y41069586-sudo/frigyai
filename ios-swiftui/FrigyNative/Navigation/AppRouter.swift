@@ -222,8 +222,11 @@ final class AppRouter {
         } else {
             // Never downgrade a freshly-completed purchase: if the entitlement is
             // already active in this session, keep it even if the server lookup
-            // hasn't caught up yet (avoids bouncing a user who just paid).
-            let refreshed = try await subscriptionService.refreshPremiumState()
+            // hasn't caught up yet (avoids bouncing a user who just paid). Using
+            // `try?` here is deliberate — a transient network error on this refresh
+            // must NOT throw out of routeAfterOnboarding() and bounce a user who
+            // just paid back to the auth screen instead of the dashboard.
+            let refreshed = (try? await subscriptionService.refreshPremiumState()) ?? false
             isPremium = refreshed || isPremium
         }
 
@@ -266,7 +269,9 @@ final class AppRouter {
                 if isPaywallBypassed(for: session.email) {
                     isPremium = true
                 } else {
-                    let refreshed = try await subscriptionService.refreshPremiumState()
+                    // Same rationale as routeAfterOnboarding(): don't let a transient
+                    // network error on this refresh bounce an already-premium user.
+                    let refreshed = (try? await subscriptionService.refreshPremiumState()) ?? false
                     isPremium = refreshed || isPremium
                 }
 
