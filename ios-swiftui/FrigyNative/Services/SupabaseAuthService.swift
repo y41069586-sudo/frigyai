@@ -227,8 +227,8 @@ final class SupabaseAuthService: AuthServiceProtocol {
             credentials: OpenIDConnectCredentials(
                 provider: .google,
                 idToken: idToken,
-                nonce: rawNonce,
-                accessToken: accessToken
+                accessToken: accessToken,
+                nonce: rawNonce
             )
         )
     }
