@@ -640,7 +640,7 @@ struct AGBView: View {
 
 // MARK: - Shared legal helpers
 
-private func legalBanner(icon: String, color: String, title: String, subtitle: String) -> some View {
+func legalBanner(icon: String, color: String, title: String, subtitle: String) -> some View {
     HStack(spacing: 16) {
         ZStack {
             RoundedRectangle(cornerRadius: 18)
@@ -664,7 +664,7 @@ private func legalBanner(icon: String, color: String, title: String, subtitle: S
     .frigyCard(cornerRadius: 18)
 }
 
-private func legalCard(sections: [(icon: String, color: String, title: String, text: String)]) -> some View {
+func legalCard(sections: [(icon: String, color: String, title: String, text: String)]) -> some View {
     VStack(spacing: 0) {
         ForEach(Array(sections.enumerated()), id: \.offset) { idx, section in
             VStack(alignment: .leading, spacing: 0) {
@@ -704,7 +704,7 @@ private func legalCard(sections: [(icon: String, color: String, title: String, t
     .frigyCard(cornerRadius: 18)
 }
 
-private func legalFooter(_ text: String) -> some View {
+func legalFooter(_ text: String) -> some View {
     Text(text)
         .font(.system(size: 11))
         .foregroundColor(FrigyBrand.textMuted.opacity(0.6))
