@@ -138,6 +138,12 @@ enum Translations {
              .es: "No se pudo confirmar la compra. Si se te cobró, toca «Restaurar compras» o inténtalo de nuevo en unos minutos.",
              .it: "Impossibile confermare l'acquisto. Se ti è stato addebitato un importo, tocca \"Ripristina acquisti\" o riprova tra qualche minuto.",
              .hi: "खरीद की पुष्टि नहीं हो सकी। यदि आपसे शुल्क लिया गया है, तो \"खरीदारी पुनर्स्थापित करें\" पर टैप करें या कुछ मिनटों में पुनः प्रयास करें।"],
+        "Der Kauf hat zu lange gedauert. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“, ansonsten versuche es erneut.":
+            [.en: "The purchase took too long. If you were charged, tap \"Restore purchases\", otherwise try again.",
+             .fr: "L'achat a pris trop de temps. Si vous avez été débité, appuyez sur « Restaurer les achats », sinon réessayez.",
+             .es: "La compra tardó demasiado. Si se te cobró, toca «Restaurar compras»; de lo contrario, inténtalo de nuevo.",
+             .it: "L'acquisto ha impiegato troppo tempo. Se ti è stato addebitato un importo, tocca \"Ripristina acquisti\", altrimenti riprova.",
+             .hi: "खरीद में बहुत अधिक समय लगा। यदि आपसे शुल्क लिया गया है, तो \"खरीदारी पुनर्स्थापित करें\" पर टैप करें, अन्यथा पुनः प्रयास करें।"],
 
         // ===== TRACKER SAVE ERRORS =====
         "Speichern fehlgeschlagen": [.en: "Save failed", .fr: "Échec de l'enregistrement", .es: "Error al guardar", .it: "Salvataggio non riuscito", .hi: "सहेजना विफल"],

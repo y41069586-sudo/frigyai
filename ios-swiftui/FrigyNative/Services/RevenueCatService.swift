@@ -23,6 +23,7 @@ enum RevenueCatConfig {
 enum SubscriptionServiceError: LocalizedError {
     case packageNotFound
     case entitlementNotActive
+    case purchaseTimedOut
 
     var errorDescription: String? {
         switch self {
@@ -30,6 +31,8 @@ enum SubscriptionServiceError: LocalizedError {
             return "Dieses Abo konnte nicht gefunden werden. Bitte versuche es erneut."
         case .entitlementNotActive:
             return "Der Kauf konnte nicht bestätigt werden. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“ oder versuche es in ein paar Minuten erneut."
+        case .purchaseTimedOut:
+            return "Der Kauf hat zu lange gedauert. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“, ansonsten versuche es erneut."
         }
     }
 }
@@ -102,18 +105,40 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         guard let pkg = cachedPackages.first(where: { $0.identifier == package.id }) else {
             throw SubscriptionServiceError.packageNotFound
         }
-        let result = try await Purchases.shared.purchase(package: pkg)
+
+        // Wrap the StoreKit purchase in a hard timeout. A stuck/unfinished
+        // transaction left over from an earlier sandbox test can make RevenueCat's
+        // purchase call hang indefinitely waiting for a transaction update that
+        // never arrives — without this, the paywall spins forever with no error,
+        // which looks identical to "nothing happened" to the user.
+        let result = try await withThrowingTaskGroup(of: PurchaseResultData.self) { group in
+            group.addTask {
+                try await Purchases.shared.purchase(package: pkg)
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: 45_000_000_000)
+                throw SubscriptionServiceError.purchaseTimedOut
+            }
+            guard let first = try await group.next() else {
+                throw SubscriptionServiceError.purchaseTimedOut
+            }
+            group.cancelAll()
+            return first
+        }
+
         if result.userCancelled { return false }
         if result.customerInfo.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
             return true
         }
         // StoreKit charged the user, but entitlement activation can lag receipt
-        // validation by a moment — without this retry, a legitimate purchase can
-        // read as "not active" and the paywall silently does nothing after payment.
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
-        if let refreshed = try? await Purchases.shared.customerInfo(),
-           refreshed.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
-            return true
+        // validation — sandbox/TestFlight builds can lag noticeably longer than
+        // production, so poll a few times with backoff instead of checking once.
+        for delaySeconds in [2, 3, 5, 8] {
+            try? await Task.sleep(nanoseconds: UInt64(delaySeconds) * 1_000_000_000)
+            if let refreshed = try? await Purchases.shared.customerInfo(),
+               refreshed.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
+                return true
+            }
         }
         throw SubscriptionServiceError.entitlementNotActive
     }
