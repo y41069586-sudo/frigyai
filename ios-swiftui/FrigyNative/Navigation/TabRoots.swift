@@ -2750,6 +2750,28 @@ struct MealPlanPreferencesView: View {
     ]
 
     var body: some View {
+        baseContent
+            .onChange(of: mealsPerDay) { _, v in
+                UserDefaults.standard.set(v, forKey: prefMealsKey)
+            }
+            .onChange(of: selectedCuisines) { _, v in
+                UserDefaults.standard.set(v, forKey: prefCuisinesKey)
+            }
+            .onChange(of: maxPrepTime) { _, v in
+                UserDefaults.standard.set(v, forKey: prefMaxPrepTimeKey)
+            }
+            .onChange(of: cookFrequency) { _, v in
+                UserDefaults.standard.set(v, forKey: prefCookFrequencyKey)
+            }
+            .onChange(of: budget) { _, v in
+                UserDefaults.standard.set(v, forKey: prefBudgetKey)
+            }
+            .onChange(of: variety) { _, v in
+                UserDefaults.standard.set(v, forKey: prefVarietyKey)
+            }
+    }
+
+    private var baseContent: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: lang.t("Plan-Einstellungen"))
             ScrollView(showsIndicators: false) {
@@ -2760,24 +2782,6 @@ struct MealPlanPreferencesView: View {
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .onChange(of: mealsPerDay) { _, v in
-            UserDefaults.standard.set(v, forKey: prefMealsKey)
-        }
-        .onChange(of: selectedCuisines) { _, v in
-            UserDefaults.standard.set(v, forKey: prefCuisinesKey)
-        }
-        .onChange(of: maxPrepTime) { _, v in
-            UserDefaults.standard.set(v, forKey: prefMaxPrepTimeKey)
-        }
-        .onChange(of: cookFrequency) { _, v in
-            UserDefaults.standard.set(v, forKey: prefCookFrequencyKey)
-        }
-        .onChange(of: budget) { _, v in
-            UserDefaults.standard.set(v, forKey: prefBudgetKey)
-        }
-        .onChange(of: variety) { _, v in
-            UserDefaults.standard.set(v, forKey: prefVarietyKey)
-        }
     }
 
     @ViewBuilder

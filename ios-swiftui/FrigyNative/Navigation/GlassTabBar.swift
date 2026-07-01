@@ -38,7 +38,7 @@ struct GlassTabBar: View {
         let containerWidth = UIScreen.main.bounds.width - 64 - 20
         let tabCount: CGFloat = 3
         let tabWidth = (containerWidth - 4) / tabCount
-        let baseIndex = selection == .home ? 0 : selection == .plans ? 1 : 2
+        let baseIndex: CGFloat = selection == .home ? 0 : selection == .plans ? 1 : 2
         let offset = (tabWidth + 2) * baseIndex
 
         return Capsule()
