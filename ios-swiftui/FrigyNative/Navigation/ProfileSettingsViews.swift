@@ -85,6 +85,11 @@ struct ProfileView: View {
                         }
                         .buttonStyle(.plain)
                         Divider().padding(.leading, 52)
+                        NavigationLink(destination: AppleHealthView().frigyDetailContainer()) {
+                            profileRow(lang.t("Apple Health"), icon: "heart.fill", color: Color(hex: "#EF4444"))
+                        }
+                        .buttonStyle(.plain)
+                        Divider().padding(.leading, 52)
                         NavigationLink(destination: AppearanceView().frigyDetailContainer()) {
                             profileRow(lang.t("Darstellung"), icon: "circle.lefthalf.filled", color: FrigyBrand.primaryDark)
                         }
@@ -855,6 +860,109 @@ struct AppearanceView: View {
     }
 }
 
+// MARK: - Apple Health
+
+struct AppleHealthView: View {
+    @Environment(LanguageManager.self) private var lang
+    @StateObject private var healthKit = HealthKitService.shared
+
+    // Connected == system authorized AND the user hasn't turned it off in-app.
+    private var isConnected: Bool {
+        healthKit.authStatus == .authorized && healthKit.isLocallyConnected
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            FrigyNavBar(title: lang.t("Apple Health"))
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    Text(lang.t("Frigy kann deine Schritte und aktiven Kalorien aus Apple Health lesen, um deine Aktivität im Dashboard anzuzeigen. Du kannst die Verbindung jederzeit hier trennen."))
+                        .font(.system(size: 14))
+                        .foregroundColor(FrigyBrand.textMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+
+                    // Connection toggle card
+                    VStack(spacing: 0) {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 9)
+                                    .fill(Color(hex: "#EF4444").opacity(0.12))
+                                    .frame(width: 38, height: 38)
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(Color(hex: "#EF4444"))
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lang.t("Mit Apple Health verbinden"))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(FrigyBrand.text)
+                                Text(isConnected ? lang.t("Verbunden") : lang.t("Nicht verbunden"))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(isConnected ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { isConnected },
+                                set: { on in
+                                    if on {
+                                        Task {
+                                            if healthKit.authStatus == .notDetermined {
+                                                await healthKit.requestAuthorization()
+                                            } else {
+                                                await healthKit.reconnect()
+                                            }
+                                        }
+                                    } else {
+                                        healthKit.disconnect()
+                                    }
+                                }
+                            ))
+                            .labelsHidden()
+                            .tint(FrigyBrand.primaryDark)
+                        }
+                        .padding(14)
+                    }
+                    .frigyCard(cornerRadius: 18)
+                    .padding(.horizontal, 20)
+
+                    // When permission was denied at the system level, the toggle can't
+                    // re-grant it — only iOS Settings can. Offer a shortcut.
+                    if healthKit.authStatus == .denied {
+                        Button {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text(lang.t("In den iOS-Einstellungen aktivieren"))
+                                    .font(.system(size: 14, weight: .semibold))
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundColor(FrigyBrand.primaryDark)
+                            .padding(14)
+                            .frigyCard(cornerRadius: 16)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+                    }
+
+                    Spacer().frame(height: 40)
+                }
+            }
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .task { await healthKit.refresh() }
+    }
+}
+
 // MARK: - Subscription
 
 struct SubscriptionView: View {
@@ -927,6 +1035,30 @@ struct SubscriptionView: View {
                         .buttonStyle(.plain)
                         .padding(.horizontal, 20)
                     }
+
+                    // Manage / cancel subscription — opens the native App Store sheet.
+                    // Apple requires an in-app path to manage & cancel auto-renewable subs.
+                    Button {
+                        Task { await router.subscriptionService.showManageSubscriptions() }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "creditcard.fill")
+                                .font(.system(size: 15))
+                                .foregroundColor(FrigyBrand.text)
+                            Text(lang.t("Abo kündigen oder verwalten"))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(FrigyBrand.text)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(FrigyBrand.textMuted)
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 52)
+                        .frigyCard(cornerRadius: 14)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
 
                     // Redeem offer code (influencer/promo codes from App Store Connect)
                     Button {
@@ -1033,8 +1165,6 @@ struct HelpView: View {
                 VStack(spacing: 20) {
                     VStack(spacing: 0) {
                         contactRow("support@frigy.app", icon: "envelope.fill")
-                        Divider().padding(.leading, 52)
-                        contactRow("app.frigy.app", icon: "globe")
                     }
                     .frigyCard(cornerRadius: 16)
 

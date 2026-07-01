@@ -123,6 +123,16 @@ enum Translations {
         "Käufe wiederherstellen": [.en: "Restore purchases", .fr: "Restaurer les achats", .es: "Restaurar compras", .it: "Ripristina acquisti", .hi: "खरीदारी पुनर्स्थापित करें"],
         "Abmelden": [.en: "Sign out", .fr: "Se déconnecter", .es: "Cerrar sesión", .it: "Esci", .hi: "साइन आउट"],
         "Konto löschen": [.en: "Delete account", .fr: "Supprimer le compte", .es: "Eliminar cuenta", .it: "Elimina account", .hi: "खाता हटाएं"],
+        "Apple Health": [.en: "Apple Health", .fr: "Apple Santé", .es: "Apple Salud", .it: "Apple Salute", .hi: "Apple Health"],
+        "Mit Apple Health verbinden": [.en: "Connect to Apple Health", .fr: "Connecter à Apple Santé", .es: "Conectar con Apple Salud", .it: "Collega ad Apple Salute", .hi: "Apple Health से कनेक्ट करें"],
+        "Verbunden": [.en: "Connected", .fr: "Connecté", .es: "Conectado", .it: "Collegato", .hi: "कनेक्टेड"],
+        "Nicht verbunden": [.en: "Not connected", .fr: "Non connecté", .es: "No conectado", .it: "Non collegato", .hi: "कनेक्ट नहीं है"],
+        "Frigy kann deine Schritte und aktiven Kalorien aus Apple Health lesen, um deine Aktivität im Dashboard anzuzeigen. Du kannst die Verbindung jederzeit hier trennen.": [.en: "Frigy can read your steps and active calories from Apple Health to show your activity on the dashboard. You can disconnect anytime here.", .fr: "Frigy peut lire vos pas et calories actives depuis Apple Santé pour afficher votre activité sur le tableau de bord. Vous pouvez vous déconnecter à tout moment ici.", .es: "Frigy puede leer tus pasos y calorías activas de Apple Salud para mostrar tu actividad en el panel. Puedes desconectarte aquí en cualquier momento.", .it: "Frigy può leggere i tuoi passi e le calorie attive da Apple Salute per mostrare la tua attività nella dashboard. Puoi scollegarti qui in qualsiasi momento.", .hi: "Frigy आपकी गतिविधि दिखाने के लिए Apple Health से आपके कदम और सक्रिय कैलोरी पढ़ सकता है। आप यहाँ कभी भी डिस्कनेक्ट कर सकते हैं।"],
+        "In den iOS-Einstellungen aktivieren": [.en: "Enable in iOS Settings", .fr: "Activer dans les réglages iOS", .es: "Activar en Ajustes de iOS", .it: "Attiva nelle impostazioni iOS", .hi: "iOS सेटिंग्स में सक्षम करें"],
+        "Sichere Zahlung": [.en: "Secure payment", .fr: "Paiement sécurisé", .es: "Pago seguro", .it: "Pagamento sicuro", .hi: "सुरक्षित भुगतान"],
+        "Abrechnung über deinen App-Store-Account": [.en: "Billed through your App Store account", .fr: "Facturé via votre compte App Store", .es: "Facturado a través de tu cuenta de App Store", .it: "Addebitato tramite il tuo account App Store", .hi: "आपके App Store खाते के माध्यम से बिल किया गया"],
+        "Abo verwalten": [.en: "Manage subscription", .fr: "Gérer l'abonnement", .es: "Gestionar suscripción", .it: "Gestisci abbonamento", .hi: "सदस्यता प्रबंधित करें"],
+        "Abo kündigen oder verwalten": [.en: "Cancel or manage subscription", .fr: "Annuler ou gérer l'abonnement", .es: "Cancelar o gestionar suscripción", .it: "Annulla o gestisci abbonamento", .hi: "सदस्यता रद्द करें या प्रबंधित करें"],
 
         // ===== PAYWALL PURCHASE ERRORS =====
         "Kauf fehlgeschlagen": [.en: "Purchase failed", .fr: "Achat échoué", .es: "Compra fallida", .it: "Acquisto non riuscito", .hi: "खरीद विफल"],

@@ -49,6 +49,10 @@ protocol SubscriptionServiceProtocol {
     func clearIdentity() async
     /// Opens the App Store's native "Offer Code einlösen" sheet (iOS 14+).
     func redeemOfferCode()
+    /// Opens the App Store's native manage-subscriptions sheet so the user can
+    /// cancel or change their plan from inside the app (Apple manages the actual
+    /// cancellation — third-party apps cannot cancel an IAP subscription directly).
+    func showManageSubscriptions() async
     /// Whether this package's introductory free trial is still available to the
     /// current App Store account. Apple review guideline 3.1.2 requires the
     /// paywall to accurately disclose trial terms — showing "3 days free" to a
@@ -64,6 +68,7 @@ extension SubscriptionServiceProtocol {
     func identify(userId: String) async {}
     func clearIdentity() async {}
     func redeemOfferCode() {}
+    func showManageSubscriptions() async {}
 }
 
 @MainActor

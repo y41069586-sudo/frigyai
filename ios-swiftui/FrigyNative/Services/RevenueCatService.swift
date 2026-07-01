@@ -50,6 +50,7 @@ enum RevenueCatBootstrap {
 
 #if canImport(RevenueCat)
 import RevenueCat
+import UIKit
 
 /// Live subscription service backed by RevenueCat. Loads store-localized
 /// monthly/yearly prices and drives purchase / restore against the configured
@@ -200,6 +201,22 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
     func redeemOfferCode() {
         guard RevenueCatConfig.isConfigured, Purchases.isConfigured else { return }
         Purchases.shared.presentCodeRedemptionSheet()
+    }
+
+    /// Presents the native manage-subscriptions sheet (where the user can cancel).
+    /// Falls back to the App Store subscriptions URL if the sheet can't be shown.
+    func showManageSubscriptions() async {
+        if RevenueCatConfig.isConfigured, Purchases.isConfigured {
+            do {
+                try await Purchases.shared.showManageSubscriptions()
+                return
+            } catch {
+                // fall through to URL fallback below
+            }
+        }
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            await UIApplication.shared.open(url)
+        }
     }
 }
 #endif

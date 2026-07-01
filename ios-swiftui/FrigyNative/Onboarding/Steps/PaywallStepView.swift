@@ -62,7 +62,7 @@ struct PaywallStepView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             FrigyGlassBackground().ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
@@ -89,30 +89,30 @@ struct PaywallStepView: View {
                         .foregroundColor(FrigyBrand.text)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
-                        .id(showTrialTimeline)
-                        .animation(.easeInOut(duration: 0.22), value: showTrialTimeline)
 
                     Spacer().frame(height: 28)
 
-                    if showTrialTimeline {
-                        trialTimelineSection
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal:   .move(edge: .leading).combined(with: .opacity)
-                            ))
-                    } else {
-                        featuresSection
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .leading).combined(with: .opacity),
-                                removal:   .move(edge: .trailing).combined(with: .opacity)
-                            ))
+                    // Timeline (monthly + trial) or feature list — a plain crossfade
+                    // instead of a sliding move transition, which fought the ScrollView
+                    // and caused the content to jump/snap while scrolling.
+                    Group {
+                        if showTrialTimeline {
+                            trialTimelineSection
+                        } else {
+                            featuresSection
+                        }
                     }
+                    .transition(.opacity)
 
-                    Spacer().frame(height: 320)
+                    Spacer().frame(height: 24)
                 }
             }
-
-            bottomBar
+            // Reserve space for the bottom bar so the ScrollView knows its true content
+            // area — content is always reachable and there is no empty spacer to
+            // rubber-band against.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                bottomBar
+            }
 
             if showCelebration {
                 PremiumCelebrationView(isYearly: selectedPkg?.isYearly ?? false) {
@@ -252,73 +252,12 @@ struct PaywallStepView: View {
 
     private var featuresSection: some View {
         VStack(spacing: 16) {
-            // Savings highlight card
-            VStack(spacing: 12) {
-                HStack(spacing: 10) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(FrigyBrand.primaryDark.opacity(0.12))
-                            .frame(width: 40, height: 40)
-                        Image(systemName: "tag.fill")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(FrigyBrand.primaryDark)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(lang.t("Bestes Angebot"))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(FrigyBrand.text)
-                        if let perMonth = yearlyPkg?.pricePerMonthString {
-                            Text(lang.t("Nur %@ pro Monat").replacingOccurrences(of: "%@", with: perMonth))
-                                .font(.system(size: 13))
-                                .foregroundColor(FrigyBrand.textMuted)
-                        }
-                    }
-                    Spacer()
-                    Text(lang.t("JÄHRLICH"))
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(FrigyBrand.primaryDeep))
-                }
-
-                Divider()
-
-                // Price breakdown
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(lang.t("Jährliche Abrechnung"))
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(FrigyBrand.textMuted)
-                        Text(yearlyPkg?.priceString ?? "—")
-                            .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundColor(FrigyBrand.text)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(lang.t("Im Vergleich zu monatlich"))
-                            .font(.system(size: 11))
-                            .foregroundColor(FrigyBrand.textMuted)
-                        if let monthly = monthlyPkg?.priceString {
-                            Text(lang.t("%@ × 12").replacingOccurrences(of: "%@", with: monthly))
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(hex: "#EF4444"))
-                                .strikethrough(color: Color(hex: "#EF4444"))
-                        }
-                    }
-                }
-            }
-            .padding(16)
-            .background(FrigyBrand.selectedBg)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(FrigyBrand.cardBorder, lineWidth: 1.5))
-
             // Feature list
             VStack(spacing: 14) {
                 ForEach([
                     ("checkmark.circle.fill", lang.t("Alle Premium-Funktionen"), lang.t("KI-Scan, Tracker, Wochenpläne & mehr")),
                     ("arrow.clockwise.circle.fill", lang.t("Jederzeit kündbar"), lang.t("Über deine App-Store-Einstellungen")),
-                    ("lock.shield.fill", lang.t("Einmalig pro Jahr abgerechnet"), lang.t("Keine monatlichen Abbuchungen")),
+                    ("lock.shield.fill", lang.t("Sichere Zahlung"), lang.t("Abrechnung über deinen App-Store-Account")),
                 ], id: \.0) { icon, title, desc in
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: icon)
