@@ -164,6 +164,7 @@ enum Translations {
 
         // ===== COMMON ACTIONS =====
         "Speichern": [.en: "Save", .fr: "Enregistrer", .es: "Guardar", .it: "Salva", .hi: "सहेजें"],
+        "Neu generieren": [.en: "Generate new", .fr: "Régénérer", .es: "Generar nuevo", .it: "Rigenera", .hi: "नया बनाएं"],
         "Abbrechen": [.en: "Cancel", .fr: "Annuler", .es: "Cancelar", .it: "Annulla", .hi: "रद्द करें"],
         "Fertig": [.en: "Done", .fr: "Terminé", .es: "Hecho", .it: "Fatto", .hi: "पूर्ण"],
         "Los geht's": [.en: "Let's go", .fr: "C'est parti", .es: "Vamos", .it: "Iniziamo", .hi: "चलिए शुरू करें"],

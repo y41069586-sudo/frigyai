@@ -71,6 +71,9 @@ struct PlannedMeal: Identifiable, Codable {
 let weekPlanKey = "frigy.weekPlan.v1"
 extension Notification.Name {
     static let weekPlanDidUpdate = Notification.Name("frigy.weekPlanDidUpdate")
+    /// Posted by the plan-settings screen's "Neu generieren" button so the
+    /// meal-plan screen regenerates the week with the just-saved preferences.
+    static let weekPlanShouldRegenerate = Notification.Name("frigy.weekPlanShouldRegenerate")
 }
 
 struct MealPlansView: View {
@@ -188,6 +191,10 @@ struct MealPlansView: View {
         }
         .sheet(isPresented: $showFridgeScan) {
             FridgeScanSheet(weekMeals: weekPlan.flatMap { $0.meals })
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .weekPlanShouldRegenerate)) { _ in
+            guard !isGenerating else { return }
+            Task { await generatePlan() }
         }
     }
 

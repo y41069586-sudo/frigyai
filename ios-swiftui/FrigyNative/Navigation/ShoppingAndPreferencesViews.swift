@@ -98,8 +98,9 @@ struct EditProfileView: View {
             bodyStatsSection
             goalSection
             activitySection
-            dietarySection
-            allergiesSection
+            // Dietary preferences (Ernährungsweise) and allergies are configured
+            // in the weekly-plan settings, so they were removed here to avoid a
+            // duplicate, confusing second place to edit them.
             if draft.dailyCalories > 0 {
                 macroSummarySection
             }
@@ -155,20 +156,6 @@ struct EditProfileView: View {
                 segmentButton(label: lang.t("Mittel"), isSelected: draft.activityLevel == "medium") { draft.activityLevel = "medium" }
                 segmentButton(label: lang.t("Viel"), isSelected: draft.activityLevel == "high") { draft.activityLevel = "high" }
             }
-        }
-    }
-
-    private var dietarySection: some View {
-        profileSection(title: lang.t("ERNÄHRUNGSWEISE")) {
-            chipGrid(options: ["Vegan","Vegetarisch","Flexitarisch","Pescetarisch","Omnivor"],
-                     selected: $draft.dietaryPreferences)
-        }
-    }
-
-    private var allergiesSection: some View {
-        profileSection(title: lang.t("UNVERTRÄGLICHKEITEN")) {
-            chipGrid(options: ["Laktose","Gluten","Nüsse","Soja","Eier","Fisch","Schalentiere"],
-                     selected: $draft.allergies)
         }
     }
 
@@ -257,28 +244,6 @@ struct EditProfileView: View {
                         .font(.system(size: 22)).foregroundColor(value < range.upperBound ? FrigyBrand.primaryDark : FrigyBrand.textMuted.opacity(0.4))
                 }
                 .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private func chipGrid(options: [String], selected: Binding<[String]>) -> some View {
-        FlowLayout(spacing: 8) {
-            ForEach(options, id: \.self) { opt in
-                let isOn = selected.wrappedValue.contains(opt)
-                Button {
-                    if isOn { selected.wrappedValue.removeAll { $0 == opt } }
-                    else { selected.wrappedValue.append(opt) }
-                } label: {
-                    Text(lang.t(opt))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(isOn ? .white : FrigyBrand.text)
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .background(isOn ? FrigyBrand.primaryDark : Color(UIColor.secondarySystemBackground))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(isOn ? FrigyBrand.primaryDark : FrigyBrand.cardBorder, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .animation(.spring(response: 0.25), value: isOn)
             }
         }
     }
@@ -402,6 +367,7 @@ struct MealPlanPreferencesView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
             }
+            actionButtons
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -416,8 +382,57 @@ struct MealPlanPreferencesView: View {
             cookFreqSection
             budgetSection
             varietySection
-            Spacer().frame(height: 32)
+            Spacer().frame(height: 16)
         }
+    }
+
+    // Left: just save the settings and go back. Right: save AND kick off a fresh
+    // week-plan generation with these settings, then go back to the plan screen.
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            Button {
+                dismiss()
+            } label: {
+                Text(lang.t("Speichern"))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(FrigyBrand.primaryDark)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(UIColor.secondarySystemBackground))
+                            .overlay(RoundedRectangle(cornerRadius: 16)
+                                .stroke(FrigyBrand.primaryDark.opacity(0.4), lineWidth: 1.5))
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                NotificationCenter.default.post(name: .weekPlanShouldRegenerate, object: nil)
+                dismiss()
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "sparkles")
+                    Text(lang.t("Neu generieren"))
+                }
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .shadow(color: FrigyBrand.primaryDeep.opacity(0.28), radius: 12, y: 6)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+        .frame(maxWidth: 700)
+        .frame(maxWidth: .infinity)
     }
 
     private var mealsSection: some View {
