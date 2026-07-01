@@ -418,18 +418,23 @@ extension View {
     /// full-bleed background filling the sides. Applied once at the routing layer
     /// so every pushed detail view is fixed in one place. No-op look on iPhone.
     func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
-        // Top-anchor pushed detail screens on iPad. The bug: in a pushed
-        // NavigationStack detail the content resolved to less than the full height
-        // and the detail area CENTRED it — big gap at the top, everything pushed
-        // down. A ZStack(alignment: .top) that fills the area pins the content to
-        // the very top regardless of how its height resolves; the background fills
-        // behind it. This is more robust than a GeometryReader frame, which still
-        // let the NavigationStack centre the result.
-        ZStack(alignment: .top) {
-            FrigyGlassBackground().ignoresSafeArea()
-            self
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Top-anchor pushed detail screens on iPad.
+        //
+        // Root screens (dashboard) fill fine, but PUSHED NavigationStack
+        // destinations on iPad receive an effectively UNBOUNDED height proposal.
+        // Under that, `.frame(maxHeight: .infinity)`, a GeometryReader, and even a
+        // Color background all collapse to their content height, and the detail
+        // area then CENTRES the block — the "everything floats in the middle /
+        // gap at the top" bug.
+        //
+        // `containerRelativeFrame([.vertical])` sizes the view to the enclosing
+        // container's real height regardless of the proposal, giving the inner
+        // ScrollView a concrete height (so it scrolls) and pinning the nav bar to
+        // the top.
+        self
+            .frame(maxWidth: .infinity, alignment: .top)
+            .containerRelativeFrame([.vertical], alignment: .top)
+            .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
