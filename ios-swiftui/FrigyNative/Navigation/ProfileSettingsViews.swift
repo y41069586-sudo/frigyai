@@ -171,8 +171,10 @@ struct ProfileView: View {
 
                     Spacer().frame(height: 32)
                 }
+                .detailContentColumn()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task {
@@ -720,8 +722,10 @@ struct NutritionGoalsView: View {
 
                     Spacer().frame(height: 32)
                 }
+                .detailContentColumn()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await load() }

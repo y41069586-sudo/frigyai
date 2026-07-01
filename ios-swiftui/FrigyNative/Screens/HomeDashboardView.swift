@@ -732,74 +732,102 @@ struct HomeDashboardView: View {
     }
 
     private var waterWidget: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(hex: "#BFDBFE").opacity(0.5))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "drop.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Color(hex: "#3B82F6"))
+        // The water now fills the ENTIRE widget from the bottom, rising with
+        // progress. Text/controls sit on top; colors are tuned (dark navy labels,
+        // light control chips) so everything stays legible both over the empty
+        // light-blue base and over the filled blue water.
+        let prog = waterGoal > 0 ? min(1.0, Double(waterGlasses) / Double(waterGoal)) : 0
+        let navy = Color(hex: "#0C2E4E")
+        return ZStack(alignment: .bottom) {
+            // Rising water fill
+            GeometryReader { geo in
+                let fillH = prog <= 0 ? 0 : max(10, geo.size.height * prog + 4)
+                TimelineView(.animation) { timeline in
+                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    let wavePhase = t.truncatingRemainder(dividingBy: 3) / 3 * 2 * .pi
+                    WaterWaveShape(phase: wavePhase, amplitude: 4)
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "#BFDBFE"), Color(hex: "#60A5FA")],
+                            startPoint: .top, endPoint: .bottom))
                 }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(lang.t("WASSER"))
-                        .font(.system(size: 9, weight: .bold)).tracking(1.5)
-                        .foregroundColor(FrigyBrand.textMuted)
-                    Text("\(liters(waterGlasses)) / \(liters(waterGoal)) L")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(FrigyBrand.text)
-                }
-                Spacer()
-                // Adjustable daily goal
-                Menu {
-                    ForEach([6, 8, 10, 12], id: \.self) { g in
-                        Button("\(liters(g)) L (\(g) \(lang.t("Gläser")))") {
-                            waterGoal = g
-                            if waterGlasses > g { setWater(g) }
+                .frame(height: fillH)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                .animation(.spring(response: 0.7, dampingFraction: 0.82), value: prog)
+            }
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.white.opacity(0.7))
+                            .frame(width: 36, height: 36)
+                        Image(systemName: "drop.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color(hex: "#2563EB"))
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(lang.t("WASSER"))
+                            .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                            .foregroundColor(navy.opacity(0.7))
+                        Text("\(liters(waterGlasses)) / \(liters(waterGoal)) L")
+                            .font(.system(size: 16, weight: .heavy))
+                            .foregroundColor(navy)
+                    }
+                    Spacer()
+                    Menu {
+                        ForEach([6, 8, 10, 12], id: \.self) { g in
+                            Button("\(liters(g)) L (\(g) \(lang.t("Gläser")))") {
+                                waterGoal = g
+                                if waterGlasses > g { setWater(g) }
+                            }
                         }
+                    } label: {
+                        Image(systemName: "target")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(hex: "#2563EB"))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white.opacity(0.85)))
                     }
-                } label: {
-                    Image(systemName: "target")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color(hex: "#3B82F6"))
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color(hex: "#EFF6FF")))
+                    HStack(spacing: 6) {
+                        Button { setWater(waterGlasses - 1) } label: {
+                            Image(systemName: "minus")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(waterGlasses > 0 ? Color(hex: "#2563EB") : navy.opacity(0.35))
+                                .frame(width: 32, height: 32)
+                                .background(Circle().fill(.white.opacity(0.85)))
+                        }
+                        .buttonStyle(.plain).disabled(waterGlasses == 0)
+                        Button { setWater(waterGlasses + 1) } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Circle().fill(Color(hex: "#2563EB")))
+                        }
+                        .buttonStyle(.plain).disabled(waterGlasses >= waterGoal)
+                    }
                 }
-                HStack(spacing: 6) {
-                    Button { setWater(waterGlasses - 1) } label: {
-                        Image(systemName: "minus")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(waterGlasses > 0 ? Color(hex: "#3B82F6") : FrigyBrand.textMuted.opacity(0.5))
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(Color(hex: "#EFF6FF")))
+
+                Spacer(minLength: 34)
+
+                if waterGlasses >= waterGoal {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill").foregroundColor(navy)
+                        Text(lang.t("Tagesziel erreicht! Super!"))
+                            .font(.system(size: 13, weight: .heavy)).foregroundColor(navy)
                     }
-                    .buttonStyle(.plain).disabled(waterGlasses == 0)
-                    Button { setWater(waterGlasses + 1) } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(waterGlasses < waterGoal ? .white : FrigyBrand.textMuted.opacity(0.5))
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(waterGlasses < waterGoal ? Color(hex: "#3B82F6") : Color(hex: "#E0F2FE")))
-                    }
-                    .buttonStyle(.plain).disabled(waterGlasses >= waterGoal)
+                } else {
+                    Text(lang.t("Noch") + " \(liters(waterGoal - waterGlasses)) L " + lang.t("bis zum Tagesziel"))
+                        .font(.system(size: 12, weight: .bold)).foregroundColor(navy.opacity(0.85))
                 }
             }
-            WaterLevelBar(progress: waterGoal > 0 ? Double(waterGlasses) / Double(waterGoal) : 0)
-                .frame(height: 56)
-            if waterGlasses >= waterGoal {
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark.circle.fill").foregroundColor(Color(hex: "#3B82F6"))
-                    Text(lang.t("Tagesziel erreicht! Super!"))
-                        .font(.system(size: 13, weight: .semibold)).foregroundColor(Color(hex: "#3B82F6"))
-                }
-            } else {
-                Text(lang.t("Noch") + " \(liters(waterGoal - waterGlasses)) L " + lang.t("bis zum Tagesziel"))
-                    .font(.system(size: 12, weight: .medium)).foregroundColor(FrigyBrand.textMuted)
-            }
+            .padding(16)
         }
-        .padding(16)
-        .frigyCard(cornerRadius: 22)
+        .frame(height: 150)
+        .background(Color(hex: "#EFF6FF"))
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color(hex: "#BFDBFE"), lineWidth: 1))
+        .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
     }
 
     // MARK: - Activity Widget (Apple Health)
@@ -962,36 +990,5 @@ private struct WaterWaveShape: Shape {
         path.addLine(to: CGPoint(x: 0, y: rect.height))
         path.closeSubpath()
         return path
-    }
-}
-
-private struct WaterLevelBar: View {
-    let progress: Double // 0...1
-
-    private let amplitude: CGFloat = 3
-
-    var body: some View {
-        GeometryReader { geo in
-            let clamped = max(0, min(1, progress))
-            let fillHeight = clamped <= 0 ? 0 : max(amplitude * 2, geo.size.height * clamped + amplitude)
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(hex: "#EFF6FF"))
-                TimelineView(.animation) { timeline in
-                    let t = timeline.date.timeIntervalSinceReferenceDate
-                    let wavePhase = t.truncatingRemainder(dividingBy: 3) / 3 * 2 * .pi
-                    WaterWaveShape(phase: wavePhase, amplitude: amplitude)
-                        .fill(
-                            LinearGradient(colors: [Color(hex: "#60A5FA"), Color(hex: "#2563EB")],
-                                          startPoint: .top, endPoint: .bottom)
-                        )
-                }
-                .frame(height: fillHeight)
-                .animation(.spring(response: 0.7, dampingFraction: 0.82), value: clamped)
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color(hex: "#BFDBFE"), lineWidth: 1.5)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-        }
     }
 }

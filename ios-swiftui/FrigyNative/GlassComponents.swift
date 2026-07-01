@@ -398,6 +398,17 @@ struct FrigyNavBar: View {
 }
 
 extension View {
+    /// Constrains scrollable content to a readable centered column (max 700pt)
+    /// and top-aligns it. On iPhone this is a no-op visually (screen < 700), but
+    /// on iPad it stops cards from stretching edge-to-edge across the whole width
+    /// and stops the content from floating vertically centered. Apply to the
+    /// inner content VStack of a ScrollView on pushed detail screens.
+    func detailContentColumn(maxWidth: CGFloat = 700) -> some View {
+        self
+            .frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity, alignment: .top)
+    }
+
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
     func frigyCard(cornerRadius: CGFloat = 16) -> some View {
         modifier(FrigyCardModifier(cornerRadius: cornerRadius))

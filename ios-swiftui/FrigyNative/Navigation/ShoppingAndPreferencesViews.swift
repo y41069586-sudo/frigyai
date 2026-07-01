@@ -83,8 +83,10 @@ struct EditProfileView: View {
                 editProfileFields
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
+                    .detailContentColumn()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
     }
