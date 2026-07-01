@@ -203,17 +203,10 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         Purchases.shared.presentCodeRedemptionSheet()
     }
 
-    /// Presents the native manage-subscriptions sheet (where the user can cancel).
-    /// Falls back to the App Store subscriptions URL if the sheet can't be shown.
+    /// Opens Apple's native subscription-management page, where the user can
+    /// cancel or change their plan. This is the App Store deep link Apple itself
+    /// recommends and always resolves to the manage-subscriptions screen.
     func showManageSubscriptions() async {
-        if RevenueCatConfig.isConfigured, Purchases.isConfigured {
-            do {
-                try await Purchases.shared.showManageSubscriptions()
-                return
-            } catch {
-                // fall through to URL fallback below
-            }
-        }
         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
             UIApplication.shared.open(url)
         }

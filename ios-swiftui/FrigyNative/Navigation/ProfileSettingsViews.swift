@@ -919,73 +919,12 @@ struct AppleHealthView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
 
-                    // Connection toggle card
-                    VStack(spacing: 0) {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 9)
-                                    .fill(Color(hex: "#EF4444").opacity(0.12))
-                                    .frame(width: 38, height: 38)
-                                Image(systemName: "heart.fill")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(Color(hex: "#EF4444"))
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(lang.t("Mit Apple Health verbinden"))
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(FrigyBrand.text)
-                                Text(isConnected ? lang.t("Verbunden") : lang.t("Nicht verbunden"))
-                                    .font(.system(size: 12))
-                                    .foregroundColor(isConnected ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
-                            }
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { isConnected },
-                                set: { on in
-                                    if on {
-                                        Task {
-                                            if healthKit.authStatus == .notDetermined {
-                                                await healthKit.requestAuthorization()
-                                            } else {
-                                                await healthKit.reconnect()
-                                            }
-                                        }
-                                    } else {
-                                        healthKit.disconnect()
-                                    }
-                                }
-                            ))
-                            .labelsHidden()
-                            .tint(FrigyBrand.primaryDark)
-                        }
-                        .padding(14)
-                    }
-                    .frigyCard(cornerRadius: 18)
-                    .padding(.horizontal, 20)
+                    healthToggleCard
 
                     // When permission was denied at the system level, the toggle can't
                     // re-grant it — only iOS Settings can. Offer a shortcut.
                     if healthKit.authStatus == .denied {
-                        Button {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text(lang.t("In den iOS-Einstellungen aktivieren"))
-                                    .font(.system(size: 14, weight: .semibold))
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 12, weight: .bold))
-                            }
-                            .foregroundColor(FrigyBrand.primaryDark)
-                            .padding(14)
-                            .frigyCard(cornerRadius: 16)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 20)
+                        openSettingsButton
                     }
 
                     Spacer().frame(height: 40)
@@ -995,6 +934,78 @@ struct AppleHealthView: View {
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await healthKit.refresh() }
+    }
+
+    private var connectionBinding: Binding<Bool> {
+        Binding(
+            get: { isConnected },
+            set: { on in
+                if on {
+                    Task {
+                        if healthKit.authStatus == .notDetermined {
+                            await healthKit.requestAuthorization()
+                        } else {
+                            await healthKit.reconnect()
+                        }
+                    }
+                } else {
+                    healthKit.disconnect()
+                }
+            }
+        )
+    }
+
+    private var healthToggleCard: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Color(hex: "#EF4444").opacity(0.12))
+                        .frame(width: 38, height: 38)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(hex: "#EF4444"))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(lang.t("Mit Apple Health verbinden"))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(FrigyBrand.text)
+                    Text(isConnected ? lang.t("Verbunden") : lang.t("Nicht verbunden"))
+                        .font(.system(size: 12))
+                        .foregroundColor(isConnected ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
+                }
+                Spacer()
+                Toggle("", isOn: connectionBinding)
+                    .labelsHidden()
+                    .tint(FrigyBrand.primaryDark)
+            }
+            .padding(14)
+        }
+        .frigyCard(cornerRadius: 18)
+        .padding(.horizontal, 20)
+    }
+
+    private var openSettingsButton: some View {
+        Button {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                Text(lang.t("In den iOS-Einstellungen aktivieren"))
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .foregroundColor(FrigyBrand.primaryDark)
+            .padding(14)
+            .frigyCard(cornerRadius: 16)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
     }
 }
 
@@ -1044,77 +1055,11 @@ struct SubscriptionView: View {
                         }
                         .padding(.horizontal, 20)
 
-                        Button { showPaywall = true } label: {
-                            let monthly = packages.first { !$0.isYearly }
-                            let priceLabel = monthly.map {
-                                lang.t("Jetzt upgraden – %1 / %2")
-                                    .replacingOccurrences(of: "%1", with: $0.priceString)
-                                    .replacingOccurrences(of: "%2", with: $0.period)
-                            } ?? lang.t("Jetzt upgraden")
-                            Text(priceLabel)
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(LinearGradient(
-                                            colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                            startPoint: .topLeading, endPoint: .bottomTrailing
-                                        ))
-                                        .overlay(RoundedRectangle(cornerRadius: 16)
-                                            .stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
-                                )
-                                .shadow(color: FrigyBrand.primaryDeep.opacity(0.28), radius: 12, y: 6)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 20)
+                        upgradeButton
                     }
 
-                    // Manage / cancel subscription — opens the native App Store sheet.
-                    // Apple requires an in-app path to manage & cancel auto-renewable subs.
-                    Button {
-                        Task { await router.subscriptionService.showManageSubscriptions() }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "creditcard.fill")
-                                .font(.system(size: 15))
-                                .foregroundColor(FrigyBrand.text)
-                            Text(lang.t("Abo kündigen oder verwalten"))
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(FrigyBrand.text)
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(FrigyBrand.textMuted)
-                        }
-                        .padding(.horizontal, 16)
-                        .frame(height: 52)
-                        .frigyCard(cornerRadius: 14)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 20)
-
-                    // Redeem offer code (influencer/promo codes from App Store Connect)
-                    Button {
-                        router.subscriptionService.redeemOfferCode()
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "gift.fill")
-                                .font(.system(size: 15))
-                                .foregroundColor(FrigyBrand.primaryDark)
-                            Text(lang.t("Gutscheincode einlösen"))
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(FrigyBrand.primaryDark)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(FrigyBrand.selectedBg)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.borderMint, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 20)
+                    manageButton
+                    redeemButton
 
                     Spacer().frame(height: 32)
                 }
@@ -1126,6 +1071,85 @@ struct SubscriptionView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallStepView(onBack: nil, onNext: { showPaywall = false })
         }
+    }
+
+    private var upgradeButtonLabel: String {
+        let monthly = packages.first { !$0.isYearly }
+        guard let monthly else { return lang.t("Jetzt upgraden") }
+        return lang.t("Jetzt upgraden – %1 / %2")
+            .replacingOccurrences(of: "%1", with: monthly.priceString)
+            .replacingOccurrences(of: "%2", with: monthly.period)
+    }
+
+    private var upgradeButton: some View {
+        Button { showPaywall = true } label: {
+            Text(upgradeButtonLabel)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(LinearGradient(
+                            colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ))
+                        .overlay(RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(0.35), lineWidth: 1).blendMode(.overlay))
+                )
+                .shadow(color: FrigyBrand.primaryDeep.opacity(0.28), radius: 12, y: 6)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+    }
+
+    // Manage / cancel subscription — opens the native App Store page.
+    // Apple requires an in-app path to manage & cancel auto-renewable subs.
+    private var manageButton: some View {
+        Button {
+            Task { await router.subscriptionService.showManageSubscriptions() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "creditcard.fill")
+                    .font(.system(size: 15))
+                    .foregroundColor(FrigyBrand.text)
+                Text(lang.t("Abo kündigen oder verwalten"))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(FrigyBrand.text)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(FrigyBrand.textMuted)
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+            .frigyCard(cornerRadius: 14)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+    }
+
+    // Redeem offer code (influencer/promo codes from App Store Connect)
+    private var redeemButton: some View {
+        Button {
+            router.subscriptionService.redeemOfferCode()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "gift.fill")
+                    .font(.system(size: 15))
+                    .foregroundColor(FrigyBrand.primaryDark)
+                Text(lang.t("Gutscheincode einlösen"))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(FrigyBrand.primaryDark)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(FrigyBrand.selectedBg)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(FrigyBrand.borderMint, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
     }
 
     private func featureRow(_ text: String, icon: String) -> some View {
