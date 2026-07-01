@@ -208,7 +208,9 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
     /// recommends and always resolves to the manage-subscriptions screen.
     func showManageSubscriptions() async {
         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-            UIApplication.shared.open(url)
+            // In an async context `open(_:)` resolves to the async overload, which
+            // must be awaited.
+            await UIApplication.shared.open(url)
         }
     }
 }
