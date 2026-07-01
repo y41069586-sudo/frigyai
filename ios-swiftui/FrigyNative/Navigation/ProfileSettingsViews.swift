@@ -8,10 +8,20 @@ struct ProfileView: View {
     @Environment(AppRouter.self) private var router
     @Environment(LanguageManager.self) private var lang
     @State private var userEmail: String = ""
+    @State private var userName: String = ""
     @State private var isRestoring = false
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
     @State private var accountDeleteFailed = false
+
+    /// Reads the user's name from the persisted onboarding profile (the same
+    /// store EditProfileView reads/writes) so a name edited there shows here.
+    private static func loadProfileName() -> String {
+        guard let data = UserDefaults.standard.data(forKey: "onboardingPersistedState"),
+              let state = try? JSONDecoder().decode(OnboardingPersistedState.self, from: data),
+              let name = state.context.userProfile?.name else { return "" }
+        return name.trimmingCharacters(in: .whitespaces)
+    }
 
     private var appVersion: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -34,10 +44,17 @@ struct ProfileView: View {
                                 .font(.system(size: 40))
                                 .foregroundColor(FrigyBrand.primaryDark)
                         }
-                        Text(userEmail.isEmpty ? lang.t("Mein Profil") : userEmail)
-                            .font(.system(size: userEmail.isEmpty ? 20 : 15, weight: .bold))
+                        Text(userName.isEmpty ? (userEmail.isEmpty ? lang.t("Mein Profil") : userEmail) : userName)
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
                             .lineLimit(1)
+
+                        if !userName.isEmpty && !userEmail.isEmpty {
+                            Text(userEmail)
+                                .font(.system(size: 13))
+                                .foregroundColor(FrigyBrand.textMuted)
+                                .lineLimit(1)
+                        }
 
                         HStack(spacing: 5) {
                             Image(systemName: router.isPremium ? "crown.fill" : "leaf.fill")
@@ -183,6 +200,9 @@ struct ProfileView: View {
                 router.isPremium = premium
             }
         }
+        // Re-read on every appear so a name just edited in EditProfileView (and
+        // saved back to the persisted profile) is reflected when we return here.
+        .onAppear { userName = Self.loadProfileName() }
         .confirmationDialog(
             lang.t("Konto wirklich löschen?"),
             isPresented: $showDeleteConfirm,

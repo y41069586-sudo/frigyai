@@ -181,10 +181,19 @@ final class AppRouter {
     /// silently revoked on every foregrounding.
     func refreshPremiumOnForeground() async {
         guard case .main = rootRoute else { return }
-        if let session = try? await authService.currentSession(),
-           isPaywallBypassed(for: session.email) {
-            isPremium = true
-            return
+        // Re-assert the RevenueCat ↔ Supabase user link on every foreground. This
+        // is what makes a purchase visible to the SERVER-side premium check
+        // (check-subscription queries RevenueCat by the Supabase user id). If the
+        // purchase originally landed on an anonymous RevenueCat user, logIn here
+        // transfers it to the Supabase user, so server-gated features like the
+        // weekly meal plan start working even though the on-device SDK already
+        // reported premium.
+        if let session = try? await authService.currentSession() {
+            await subscriptionService.identify(userId: session.userId)
+            if isPaywallBypassed(for: session.email) {
+                isPremium = true
+                return
+            }
         }
         if let current = try? await subscriptionService.refreshPremiumState() {
             isPremium = current
