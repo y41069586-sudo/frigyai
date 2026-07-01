@@ -4,8 +4,17 @@ import SwiftUI
 @MainActor
 @Observable
 final class AppRouter {
+    private static let isPremiumCacheKey = "frigy.isPremium.cached.v1"
+
     var rootRoute: AppRoute = .loading
-    var isPremium = false
+    // Seeded from the last known entitlement state so a cold relaunch right after
+    // a successful purchase (before the network refresh completes) doesn't briefly
+    // show the paywall to a user who already paid.
+    var isPremium = UserDefaults.standard.bool(forKey: AppRouter.isPremiumCacheKey) {
+        didSet {
+            UserDefaults.standard.set(isPremium, forKey: Self.isPremiumCacheKey)
+        }
+    }
     var pendingDeepLink: AppDeepLink?
     var lastHandledDeepLink: AppDeepLink?
     var authStatusMessage: String?

@@ -139,6 +139,15 @@ enum Translations {
              .it: "Impossibile confermare l'acquisto. Se ti è stato addebitato un importo, tocca \"Ripristina acquisti\" o riprova tra qualche minuto.",
              .hi: "खरीद की पुष्टि नहीं हो सकी। यदि आपसे शुल्क लिया गया है, तो \"खरीदारी पुनर्स्थापित करें\" पर टैप करें या कुछ मिनटों में पुनः प्रयास करें।"],
 
+        // ===== TRACKER SAVE ERRORS =====
+        "Speichern fehlgeschlagen": [.en: "Save failed", .fr: "Échec de l'enregistrement", .es: "Error al guardar", .it: "Salvataggio non riuscito", .hi: "सहेजना विफल"],
+        "Der Eintrag konnte nicht gespeichert werden. Bitte prüfe deine Internetverbindung und versuche es erneut.":
+            [.en: "The entry could not be saved. Please check your internet connection and try again.",
+             .fr: "L'entrée n'a pas pu être enregistrée. Veuillez vérifier votre connexion internet et réessayer.",
+             .es: "No se pudo guardar la entrada. Comprueba tu conexión a internet e inténtalo de nuevo.",
+             .it: "Impossibile salvare la voce. Controlla la tua connessione a internet e riprova.",
+             .hi: "प्रविष्टि सहेजी नहीं जा सकी। कृपया अपना इंटरनेट कनेक्शन जांचें और पुनः प्रयास करें।"],
+
         // ===== LANGUAGE SCREEN =====
         "Wähle deine bevorzugte Sprache. Die Änderung wird sofort übernommen.":
             [.en: "Choose your preferred language. The change applies immediately.",

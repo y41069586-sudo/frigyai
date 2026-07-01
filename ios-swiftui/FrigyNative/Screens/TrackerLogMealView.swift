@@ -28,6 +28,7 @@ struct TrackerLogMealView: View {
     @State private var capturedImage: UIImage?
     @State private var showPhotoPreview = false
     @State private var selectedTemplate: FoodTemplate?
+    @State private var quickAddError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -202,6 +203,14 @@ struct TrackerLogMealView: View {
         .sheet(item: $selectedTemplate) { tpl in
             FoodTemplateDetailSheet(template: tpl, category: selectedCategory) { dismiss() }
         }
+        .alert(lang.t("Speichern fehlgeschlagen"), isPresented: Binding(
+            get: { quickAddError != nil },
+            set: { if !$0 { quickAddError = nil } }
+        )) {
+            Button(lang.t("OK"), role: .cancel) { quickAddError = nil }
+        } message: {
+            Text(quickAddError ?? "")
+        }
     }
 
     // MARK: - Category picker
@@ -356,12 +365,16 @@ struct TrackerLogMealView: View {
             .buttonStyle(.plain)
             Button {
                 Task {
-                    await TrackerDataService.shared.addFoodEntry(
+                    let ok = await TrackerDataService.shared.addFoodEntry(
                         name: food.name, calories: food.calories,
                         protein: food.protein, carbs: food.carbs, fat: food.fat,
                         portion: "1 Portion", category: selectedCategory
                     )
-                    dismiss()
+                    if ok {
+                        dismiss()
+                    } else {
+                        quickAddError = lang.t("Der Eintrag konnte nicht gespeichert werden. Bitte prüfe deine Internetverbindung und versuche es erneut.")
+                    }
                 }
             } label: {
                 ZStack {
@@ -626,6 +639,7 @@ struct FoodTemplateDetailSheet: View {
     let onSaved: () -> Void
 
     @State private var isSaving = false
+    @State private var saveError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -691,7 +705,7 @@ struct FoodTemplateDetailSheet: View {
                     Button {
                         isSaving = true
                         Task {
-                            await TrackerDataService.shared.addFoodEntry(
+                            let ok = await TrackerDataService.shared.addFoodEntry(
                                 name: template.name,
                                 calories: template.calories,
                                 protein: template.protein,
@@ -701,8 +715,12 @@ struct FoodTemplateDetailSheet: View {
                                 category: category
                             )
                             isSaving = false
-                            dismiss()
-                            onSaved()
+                            if ok {
+                                dismiss()
+                                onSaved()
+                            } else {
+                                saveError = lang.t("Der Eintrag konnte nicht gespeichert werden. Bitte prüfe deine Internetverbindung und versuche es erneut.")
+                            }
                         }
                     } label: {
                         HStack(spacing: 8) {
@@ -725,6 +743,14 @@ struct FoodTemplateDetailSheet: View {
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
+        .alert(lang.t("Speichern fehlgeschlagen"), isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button(lang.t("OK"), role: .cancel) { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private func macroChip(_ label: String, value: String, unit: String, color: Color) -> some View {
@@ -763,6 +789,7 @@ struct ManualFoodEntrySheet: View {
     @State private var category: MealCategory
     @State private var isSaving = false
     @State private var amountText: String = "100"
+    @State private var saveError: String?
     private let isDrink: Bool
 
     // The macro fields above represent values per 100 g/ml — these are the
@@ -928,6 +955,14 @@ struct ManualFoodEntrySheet: View {
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
+        .alert(lang.t("Speichern fehlgeschlagen"), isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button(lang.t("OK"), role: .cancel) { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private var addMealButton: some View {
@@ -971,7 +1006,7 @@ struct ManualFoodEntrySheet: View {
         let portionLabel = prefill != nil
             ? "\(amountText)\(isDrink ? "ml" : "g")"
             : "1 Portion"
-        await TrackerDataService.shared.addFoodEntry(
+        let ok = await TrackerDataService.shared.addFoodEntry(
             name: name.trimmingCharacters(in: .whitespaces),
             calories: useScaled ? scaledCalories : (Int(caloriesText) ?? 0),
             protein: useScaled ? scaledProtein : (Int(proteinText) ?? 0),
@@ -981,8 +1016,12 @@ struct ManualFoodEntrySheet: View {
             category: category
         )
         isSaving = false
-        dismiss()
-        onSaved()
+        if ok {
+            dismiss()
+            onSaved()
+        } else {
+            saveError = lang.t("Der Eintrag konnte nicht gespeichert werden. Bitte prüfe deine Internetverbindung und versuche es erneut.")
+        }
     }
 }
 
