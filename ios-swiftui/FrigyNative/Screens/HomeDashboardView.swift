@@ -563,6 +563,30 @@ struct HomeDashboardView: View {
         return symbols.enumerated().map { (index, short) in (short, index == todayIdx) }
     }
 
+    /// The single meal that's relevant right now, chosen by time of day: morning
+    /// → breakfast, midday → lunch, afternoon → snack, evening → dinner. If that
+    /// slot isn't in the plan we show the next upcoming meal, and once the day's
+    /// later meals are gone we fall back to the most recent earlier one.
+    private var currentPlannedMeal: PlannedMeal? {
+        guard !todayPlanMeals.isEmpty else { return nil }
+        let hour = Calendar.current.component(.hour, from: Date())
+        let order: [MealCategory] = [.breakfast, .lunch, .snack, .dinner]
+        let targetIndex: Int
+        switch hour {
+        case ..<11: targetIndex = 0
+        case ..<15: targetIndex = 1
+        case ..<18: targetIndex = 2
+        default:    targetIndex = 3
+        }
+        for i in targetIndex..<order.count {
+            if let m = todayPlanMeals.first(where: { $0.category == order[i] }) { return m }
+        }
+        for i in stride(from: targetIndex - 1, through: 0, by: -1) {
+            if let m = todayPlanMeals.first(where: { $0.category == order[i] }) { return m }
+        }
+        return todayPlanMeals.first
+    }
+
     private var weeklyPlanWidget: some View {
         Button { tabCoordinator.selectedTab = .plans } label: {
             VStack(alignment: .leading, spacing: 16) {
@@ -589,7 +613,29 @@ struct HomeDashboardView: View {
                         .foregroundColor(FrigyBrand.primary.opacity(0.4))
                 }
 
-                if todayPlanMeals.isEmpty {
+                if let meal = currentPlannedMeal {
+                    // Only the meal that's relevant right now (by time of day).
+                    HStack(spacing: 12) {
+                        Text(meal.category.emoji)
+                            .font(.system(size: 26))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(lang.t(meal.category.shortLabel).uppercased())
+                                .font(.system(size: 9, weight: .bold)).tracking(1.2)
+                                .foregroundColor(FrigyBrand.primaryDark.opacity(0.8))
+                            Text(meal.name)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(FrigyBrand.text)
+                                .lineLimit(2)
+                        }
+                        Spacer()
+                        Text("\(meal.calories) kcal")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(FrigyBrand.textMuted)
+                    }
+                    .padding(14)
+                    .background(FrigyBrand.primary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                } else {
                     Text(hasSavedWeekPlan
                          ? lang.t("Für heute sind noch keine Mahlzeiten geplant.")
                          : lang.t("Tippe, um deinen Wochenplan zu öffnen und Mahlzeiten zu generieren."))
@@ -599,26 +645,6 @@ struct HomeDashboardView: View {
                         .padding(14)
                         .background(FrigyBrand.primary.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 16))
-                } else {
-                    VStack(spacing: 8) {
-                        ForEach(todayPlanMeals) { meal in
-                            HStack(spacing: 10) {
-                                Text(meal.category.emoji)
-                                    .font(.system(size: 16))
-                                Text(meal.name)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(FrigyBrand.text)
-                                    .lineLimit(1)
-                                Spacer()
-                                Text("\(meal.calories) kcal")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(FrigyBrand.textMuted)
-                            }
-                        }
-                    }
-                    .padding(14)
-                    .background(FrigyBrand.primary.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
 
                 HStack(spacing: 0) {
