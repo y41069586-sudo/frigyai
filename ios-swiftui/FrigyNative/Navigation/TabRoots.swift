@@ -2779,85 +2779,10 @@ struct MealPlanPreferencesView: View {
     var body: some View {
         VStack(spacing: 0) {
             FrigyNavBar(title: lang.t("Plan-Einstellungen"))
-
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 20) {
-                    sectionCard(title: lang.t("MAHLZEITEN PRO TAG")) {
-                        HStack {
-                            Button {
-                                if mealsPerDay > 3 { mealsPerDay -= 1 }
-                            } label: {
-                                Image(systemName: "minus")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(mealsPerDay > 3 ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
-                                    .frame(width: 40, height: 40)
-                                    .background(Circle().fill(FrigyBrand.primary.opacity(mealsPerDay > 3 ? 0.15 : 0.05)))
-                            }
-                            .buttonStyle(.plain)
-
-                            Spacer()
-                            Text("\(mealsPerDay) \(lang.t("Mahlzeiten"))")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(FrigyBrand.text)
-                            Spacer()
-
-                            Button {
-                                if mealsPerDay < 6 { mealsPerDay += 1 }
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(mealsPerDay < 6 ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
-                                    .frame(width: 40, height: 40)
-                                    .background(Circle().fill(FrigyBrand.primary.opacity(mealsPerDay < 6 ? 0.15 : 0.05)))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    sectionCard(title: lang.t("KÜCHEN-STILE")) {
-                        FlowLayout(spacing: 8) {
-                            ForEach(mealPlanCuisineOptions) { opt in
-                                cuisineChip(opt)
-                            }
-                        }
-                    }
-
-                    sectionCard(title: lang.t("MAX. ZUBEREITUNGSZEIT")) {
-                        FlowLayout(spacing: 8) {
-                            ForEach(maxPrepTimeOptions, id: \.id) { opt in
-                                optionChip(id: opt.id, label: opt.label, selection: $maxPrepTime)
-                            }
-                        }
-                    }
-
-                    sectionCard(title: lang.t("KOCHHÄUFIGKEIT")) {
-                        FlowLayout(spacing: 8) {
-                            ForEach(cookFrequencyOptions, id: \.id) { opt in
-                                optionChip(id: opt.id, label: opt.label, selection: $cookFrequency)
-                            }
-                        }
-                    }
-
-                    sectionCard(title: lang.t("BUDGET")) {
-                        FlowLayout(spacing: 8) {
-                            ForEach(budgetOptions, id: \.id) { opt in
-                                optionChip(id: opt.id, label: opt.label, selection: $budget)
-                            }
-                        }
-                    }
-
-                    sectionCard(title: lang.t("ABWECHSLUNG")) {
-                        FlowLayout(spacing: 8) {
-                            ForEach(varietyOptions, id: \.id) { opt in
-                                optionChip(id: opt.id, label: opt.label, selection: $variety)
-                            }
-                        }
-                    }
-
-                    Spacer().frame(height: 32)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                preferencesContent
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
             }
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
@@ -2879,6 +2804,77 @@ struct MealPlanPreferencesView: View {
         }
         .onChange(of: variety) { _, v in
             UserDefaults.standard.set(v, forKey: prefVarietyKey)
+        }
+    }
+
+    @ViewBuilder
+    private var preferencesContent: some View {
+        VStack(spacing: 20) {
+            sectionCard(title: lang.t("MAHLZEITEN PRO TAG")) {
+                HStack {
+                    Button {
+                        if mealsPerDay > 3 { mealsPerDay -= 1 }
+                    } label: {
+                        Image(systemName: "minus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(mealsPerDay > 3 ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
+                            .frame(width: 40, height: 40)
+                            .background(Circle().fill(FrigyBrand.primary.opacity(mealsPerDay > 3 ? 0.15 : 0.05)))
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                    Text("\(mealsPerDay) \(lang.t("Mahlzeiten"))")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(FrigyBrand.text)
+                    Spacer()
+                    Button {
+                        if mealsPerDay < 6 { mealsPerDay += 1 }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(mealsPerDay < 6 ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
+                            .frame(width: 40, height: 40)
+                            .background(Circle().fill(FrigyBrand.primary.opacity(mealsPerDay < 6 ? 0.15 : 0.05)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            sectionCard(title: lang.t("KÜCHEN-STILE")) {
+                FlowLayout(spacing: 8) {
+                    ForEach(mealPlanCuisineOptions) { opt in
+                        cuisineChip(opt)
+                    }
+                }
+            }
+            sectionCard(title: lang.t("MAX. ZUBEREITUNGSZEIT")) {
+                FlowLayout(spacing: 8) {
+                    ForEach(maxPrepTimeOptions, id: \.id) { opt in
+                        optionChip(id: opt.id, label: opt.label, selection: $maxPrepTime)
+                    }
+                }
+            }
+            sectionCard(title: lang.t("KOCHHÄUFIGKEIT")) {
+                FlowLayout(spacing: 8) {
+                    ForEach(cookFrequencyOptions, id: \.id) { opt in
+                        optionChip(id: opt.id, label: opt.label, selection: $cookFrequency)
+                    }
+                }
+            }
+            sectionCard(title: lang.t("BUDGET")) {
+                FlowLayout(spacing: 8) {
+                    ForEach(budgetOptions, id: \.id) { opt in
+                        optionChip(id: opt.id, label: opt.label, selection: $budget)
+                    }
+                }
+            }
+            sectionCard(title: lang.t("ABWECHSLUNG")) {
+                FlowLayout(spacing: 8) {
+                    ForEach(varietyOptions, id: \.id) { opt in
+                        optionChip(id: opt.id, label: opt.label, selection: $variety)
+                    }
+                }
+            }
+            Spacer().frame(height: 32)
         }
     }
 
