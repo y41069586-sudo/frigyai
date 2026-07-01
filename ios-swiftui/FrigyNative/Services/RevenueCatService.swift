@@ -215,7 +215,7 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
             }
         }
         if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-            await UIApplication.shared.open(url)
+            UIApplication.shared.open(url)
         }
     }
 }
