@@ -22,18 +22,34 @@ struct GlassTabBar: View {
     // MARK: - Shared bar contents
 
     private func barContent(plusSize: CGFloat) -> some View {
-        HStack(spacing: 2) {
-            tabButton(.home)
-            tabButton(.plans)
-            tabButton(.shopping)
-            plusButton(mealCount: mealCount, size: plusSize)
+        ZStack(alignment: .leading) {
+            activeTabIndicator()
+
+            HStack(spacing: 2) {
+                tabButton(.home)
+                tabButton(.plans)
+                tabButton(.shopping)
+                plusButton(mealCount: mealCount, size: plusSize)
+            }
         }
+    }
+
+    private func activeTabIndicator() -> some View {
+        let tabWidth = (UIScreen.main.bounds.width - 32) / 3 - 2
+        let offset = CGFloat(selection == .home ? 0 : selection == .plans ? tabWidth + 2 : (tabWidth + 2) * 2)
+
+        return Capsule()
+            .fill(.ultraThinMaterial)
+            .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
+            .frame(width: tabWidth, height: 42)
+            .offset(x: offset + 8, y: 4)
+            .animation(.easeOut(duration: 0.2), value: selection)
     }
 
     private func tabButton(_ tab: AppTab) -> some View {
         let active = selection == tab
         return Button {
-            withAnimation(.easeOut(duration: 0.16)) { selection = tab }
+            withAnimation(.easeOut(duration: 0.2)) { selection = tab }
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: tab.systemImage)
@@ -43,7 +59,6 @@ struct GlassTabBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            // Green only on text + icon for the active tab; muted otherwise.
             .foregroundColor(active ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
