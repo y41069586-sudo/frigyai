@@ -312,6 +312,11 @@ enum Translations {
         "🔍 Barcode erkannt": [.en: "🔍 Barcode scanned", .fr: "🔍 Code-barres scannné", .es: "🔍 Código de barras escaneado", .it: "🔍 Codice a barre scansionato", .hi: "🔍 बारकोड स्कैन किया गया"],
         "🤖 KI analysiert Produkt…": [.en: "🤖 AI analyzing product...", .fr: "🤖 L'IA analyse le produit...", .es: "🤖 La IA analiza el producto...", .it: "🤖 L'IA sta analizzando il prodotto...", .hi: "🤖 AI उत्पाद का विश्लेषण कर रहा है..."],
         "🔎 Produkt wird gesucht…": [.en: "🔎 Looking up product...", .fr: "🔎 Recherche du produit...", .es: "🔎 Buscando producto...", .it: "🔎 Ricerca del prodotto...", .hi: "🔎 उत्पाद खोजा जा रहा है..."],
+        "PORTION": [.en: "SERVING", .fr: "PORTION", .es: "PORCIÓN", .it: "PORZIONE", .hi: "सर्विंग"],
+        "WERTE PRO": [.en: "VALUES PER", .fr: "VALEURS POUR", .es: "VALORES POR", .it: "VALORI PER", .hi: "प्रति मान"],
+        "NÄHRWERTE": [.en: "NUTRITION", .fr: "VALEURS NUTRITIONNELLES", .es: "NUTRICIÓN", .it: "VALORI NUTRIZIONALI", .hi: "पोषण"],
+        "Kohlenh.": [.en: "Carbs", .fr: "Gluc.", .es: "Carbs", .it: "Carb.", .hi: "कार्ब्स"],
+        "Erneut versuchen": [.en: "Try again", .fr: "Réessayer", .es: "Reintentar", .it: "Riprova", .hi: "पुनः प्रयास करें"],
         "📊 Nährwerte werden geladen…": [.en: "📊 Loading nutrition facts...", .fr: "📊 Chargement des valeurs nutritionnelles...", .es: "📊 Cargando información nutricional...", .it: "📊 Caricamento dei valori nutrizionali...", .hi: "📊 पोषण तथ्य लोड किए जा रहे हैं..."],
 
         // ===== ONBOARDING: ACTIVITY / ALLERGIES / ANALYZING / APP MODE / BIRTHDATE =====

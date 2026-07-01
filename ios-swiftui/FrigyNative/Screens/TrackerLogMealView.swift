@@ -796,14 +796,17 @@ struct ManualFoodEntrySheet: View {
     @State private var isSaving = false
     @State private var amountText: String = "100"
     @State private var saveError: String?
-    private let isDrink: Bool
+    // The serving unit is user-switchable (g ↔ ml); it's only pre-guessed from the
+    // product name so a scanned drink starts on ml and a solid food starts on g.
+    @State private var unitIsMl: Bool
 
-    // The macro fields above represent values per 100 g/ml — these are the
-    // unscaled baseline so the "Menge" field can recompute totals live.
-    private let baseCalories: Double
-    private let baseProtein: Double
-    private let baseCarbs: Double
-    private let baseFat: Double
+    // The macro fields represent values per 100 g/ml. They are read LIVE from the
+    // editable reference fields so that correcting a value there instantly
+    // recomputes the scaled total for the chosen portion.
+    private var baseCalories: Double { Double(caloriesText.replacingOccurrences(of: ",", with: ".")) ?? 0 }
+    private var baseProtein: Double { Double(proteinText.replacingOccurrences(of: ",", with: ".")) ?? 0 }
+    private var baseCarbs: Double { Double(carbsText.replacingOccurrences(of: ",", with: ".")) ?? 0 }
+    private var baseFat: Double { Double(fatText.replacingOccurrences(of: ",", with: ".")) ?? 0 }
 
     private static let drinkKeywords = [
         "wasser", "saft", "shake", "kaffee", "tee", "milch", "smoothie",
@@ -816,19 +819,13 @@ struct ManualFoodEntrySheet: View {
         self.onSaved = onSaved
         _category = State(initialValue: selectedCategory)
         let lowerName = prefill?.name.lowercased() ?? ""
-        self.isDrink = Self.drinkKeywords.contains { lowerName.contains($0) }
+        _unitIsMl = State(initialValue: Self.drinkKeywords.contains { lowerName.contains($0) })
         if let f = prefill {
             _name = State(initialValue: f.name)
             _caloriesText = State(initialValue: f.calories > 0 ? "\(f.calories)" : "")
             _proteinText = State(initialValue: f.protein > 0 ? "\(f.protein)" : "")
             _carbsText = State(initialValue: f.carbs > 0 ? "\(f.carbs)" : "")
             _fatText = State(initialValue: f.fat > 0 ? "\(f.fat)" : "")
-            baseCalories = Double(f.calories)
-            baseProtein = Double(f.protein)
-            baseCarbs = Double(f.carbs)
-            baseFat = Double(f.fat)
-        } else {
-            baseCalories = 0; baseProtein = 0; baseCarbs = 0; baseFat = 0
         }
     }
 
@@ -838,6 +835,9 @@ struct ManualFoodEntrySheet: View {
     private var scaledProtein: Int { Int((baseProtein * scale).rounded()) }
     private var scaledCarbs: Int { Int((baseCarbs * scale).rounded()) }
     private var scaledFat: Int { Int((baseFat * scale).rounded()) }
+
+    private var unitLabel: String { unitIsMl ? "ml" : "g" }
+    private var quickPortions: [Int] { unitIsMl ? [200, 250, 330, 500] : [50, 100, 150, 200] }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && Int(caloriesText) != nil
@@ -884,41 +884,26 @@ struct ManualFoodEntrySheet: View {
                     }
                     .padding(16).frigyCard(cornerRadius: 16)
 
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(lang.t("NÄHRWERTE (PRO 100g)"))
-                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
-                            .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 4)
-                        VStack(spacing: 0) {
-                            macroRow(lang.t("Kalorien"), unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
-                            Divider().padding(.leading, 8)
-                            macroRow(lang.t("Protein"),  unit: "g", text: $proteinText,  color: Color(hex: "#60A5FA"))
-                            Divider().padding(.leading, 8)
-                            macroRow(lang.t("Kohlenhydrate"), unit: "g", text: $carbsText, color: Color(hex: "#FBBF24"))
-                            Divider().padding(.leading, 8)
-                            macroRow(lang.t("Fett"), unit: "g", text: $fatText, color: Color(hex: "#F87171"))
-                        }
-                    }
-                    .padding(16).frigyCard(cornerRadius: 16)
-
+                    // For a scanned/photographed food the macros are a per-100 baseline
+                    // and the serving amount drives the real totals (like every other
+                    // tracking app). For pure manual entry the typed values ARE the
+                    // total, so we skip the portion scaling entirely.
                     if prefill != nil {
+                        portionCard
+                        referenceValuesCard
+                    } else {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(isDrink ? lang.t("MENGE (ml)") : lang.t("MENGE (g)"))
+                            Text(lang.t("NÄHRWERTE"))
                                 .font(.system(size: 10, weight: .bold)).tracking(1.5)
-                                .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 10)
-                            HStack {
-                                TextField("100", text: $amountText)
-                                    .keyboardType(.decimalPad)
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(FrigyBrand.text)
-                                Text(isDrink ? "ml" : "g")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(FrigyBrand.textMuted)
-                            }
-                            if amount != 100 {
-                                Divider().padding(.vertical, 10)
-                                Text("≈ \(scaledCalories) kcal · \(scaledProtein)g P · \(scaledCarbs)g K · \(scaledFat)g F \(lang.t("bei")) \(amountText)\(isDrink ? "ml" : "g")")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(FrigyBrand.primaryDark)
+                                .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 4)
+                            VStack(spacing: 0) {
+                                macroRow(lang.t("Kalorien"), unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
+                                Divider().padding(.leading, 8)
+                                macroRow(lang.t("Protein"),  unit: "g", text: $proteinText,  color: Color(hex: "#60A5FA"))
+                                Divider().padding(.leading, 8)
+                                macroRow(lang.t("Kohlenhydrate"), unit: "g", text: $carbsText, color: Color(hex: "#FBBF24"))
+                                Divider().padding(.leading, 8)
+                                macroRow(lang.t("Fett"), unit: "g", text: $fatText, color: Color(hex: "#F87171"))
                             }
                         }
                         .padding(16).frigyCard(cornerRadius: 16)
@@ -971,6 +956,130 @@ struct ManualFoodEntrySheet: View {
         }
     }
 
+    // Prominent serving picker with a live total — the primary control so the
+    // amount you actually ate/drank drives the logged nutrition.
+    private var portionCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(lang.t("PORTION"))
+                    .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                    .foregroundColor(FrigyBrand.textMuted)
+                Spacer()
+                // g ↔ ml unit toggle
+                HStack(spacing: 0) {
+                    ForEach([false, true], id: \.self) { isMl in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) { unitIsMl = isMl }
+                        } label: {
+                            Text(isMl ? "ml" : "g")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(unitIsMl == isMl ? .white : FrigyBrand.textMuted)
+                                .frame(width: 40, height: 28)
+                                .background(
+                                    Capsule().fill(unitIsMl == isMl
+                                        ? AnyShapeStyle(FrigyBrand.primaryDark)
+                                        : AnyShapeStyle(Color.clear))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(2)
+                .background(Capsule().fill(FrigyBrand.selectedBg))
+            }
+
+            HStack {
+                TextField("100", text: $amountText)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundColor(FrigyBrand.text)
+                Text(unitLabel)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(FrigyBrand.textMuted)
+                Spacer()
+            }
+
+            // Quick portion chips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(quickPortions, id: \.self) { p in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) { amountText = "\(p)" }
+                        } label: {
+                            Text("\(p) \(unitLabel)")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Int(amount) == p ? .white : FrigyBrand.primaryDark)
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                                .background(
+                                    Capsule().fill(Int(amount) == p
+                                        ? AnyShapeStyle(FrigyBrand.primaryDark)
+                                        : AnyShapeStyle(FrigyBrand.selectedBg))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Divider()
+
+            // Live total for the chosen amount — this is what gets logged.
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(scaledCalories)")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundColor(FrigyBrand.primaryDeep)
+                    .contentTransition(.numericText())
+                Text("kcal")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(FrigyBrand.textMuted)
+                Spacer()
+            }
+            .animation(.easeInOut(duration: 0.2), value: scaledCalories)
+
+            HStack(spacing: 8) {
+                macroChip(lang.t("Protein"), value: scaledProtein, color: Color(hex: "#60A5FA"))
+                macroChip(lang.t("Kohlenh."), value: scaledCarbs, color: Color(hex: "#FBBF24"))
+                macroChip(lang.t("Fett"), value: scaledFat, color: Color(hex: "#F87171"))
+            }
+        }
+        .padding(16).frigyCard(cornerRadius: 16)
+    }
+
+    private func macroChip(_ label: String, value: Int, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text("\(value) g")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(color)
+                .contentTransition(.numericText())
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(FrigyBrand.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(RoundedRectangle(cornerRadius: 12).fill(color.opacity(0.10)))
+        .animation(.easeInOut(duration: 0.2), value: value)
+    }
+
+    // Editable per-100 reference values (in case the scan was slightly off).
+    private var referenceValuesCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("\(lang.t("WERTE PRO")) 100 \(unitLabel)")
+                .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 4)
+            VStack(spacing: 0) {
+                macroRow(lang.t("Kalorien"), unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
+                Divider().padding(.leading, 8)
+                macroRow(lang.t("Protein"),  unit: "g", text: $proteinText,  color: Color(hex: "#60A5FA"))
+                Divider().padding(.leading, 8)
+                macroRow(lang.t("Kohlenhydrate"), unit: "g", text: $carbsText, color: Color(hex: "#FBBF24"))
+                Divider().padding(.leading, 8)
+                macroRow(lang.t("Fett"), unit: "g", text: $fatText, color: Color(hex: "#F87171"))
+            }
+        }
+        .padding(16).frigyCard(cornerRadius: 16)
+    }
+
     private var addMealButton: some View {
         let label: String = isSaving ? lang.t("Wird gespeichert...") : lang.t("Hinzufügen")
         let fill: AnyShapeStyle = canSave
@@ -1008,9 +1117,11 @@ struct ManualFoodEntrySheet: View {
     private func save() async {
         guard canSave else { return }
         isSaving = true
-        let useScaled = prefill != nil && amount != 100
+        // For a scanned/photo food the logged values are always the portion-scaled
+        // totals (per-100 baseline × amount); manual entries log the typed values.
+        let useScaled = prefill != nil
         let portionLabel = prefill != nil
-            ? "\(amountText)\(isDrink ? "ml" : "g")"
+            ? "\(amountText)\(unitLabel)"
             : "1 Portion"
         let ok = await TrackerDataService.shared.addFoodEntry(
             name: name.trimmingCharacters(in: .whitespaces),
@@ -1120,28 +1231,31 @@ struct FoodPhotoPreviewSheet: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
-                    Button {
-                        Task { await analyze() }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text(lang.t("KI Analyse starten"))
-                                .font(.system(size: 16, weight: .bold))
+                    // The analysis auto-starts on appear (like other apps), so this
+                    // button only appears to retry after a failure.
+                    if errorMessage != nil && !isAnalyzing {
+                        Button {
+                            Task { await analyze() }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text(lang.t("Erneut versuchen"))
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .foregroundColor(Color(hex: "#082013"))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(
+                                LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: FrigyBrand.primary.opacity(0.4), radius: 12, y: 4)
                         }
-                        .foregroundColor(Color(hex: "#082013"))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(
-                            LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .shadow(color: FrigyBrand.primary.opacity(0.4), radius: 12, y: 4)
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 24)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isAnalyzing)
-                    .padding(.horizontal, 24)
                 }
                 .padding(.bottom, 40)
             }
@@ -1152,6 +1266,7 @@ struct FoodPhotoPreviewSheet: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isAnalyzing)
+        .task { await analyze() }
     }
 
     private var analyzeOverlay: some View {
