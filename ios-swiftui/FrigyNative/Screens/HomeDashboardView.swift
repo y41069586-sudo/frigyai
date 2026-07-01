@@ -239,7 +239,11 @@ struct HomeDashboardView: View {
             loadTodayPlan()
         }
         .sheet(isPresented: $showEditTargets) {
+            // frigyDetailContainer gives the sheet content a definite height and
+            // top-anchors it, so the nav bar/sliders sit at the top instead of
+            // floating in the vertical centre of the sheet.
             NutritionGoalsView()
+                .frigyDetailContainer()
                 .presentationBackground { FrigyGlassBackground() }
                 .presentationDetents([.large])
         }

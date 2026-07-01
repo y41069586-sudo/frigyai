@@ -418,13 +418,21 @@ extension View {
     /// full-bleed background filling the sides. Applied once at the routing layer
     /// so every pushed detail view is fixed in one place. No-op look on iPhone.
     func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
-        // Fill the whole navigation area and top-align (fixes the iPad bug where
-        // content floated vertically centred / "way down"). Full width so detail
-        // screens like the weight history render fullscreen instead of as a narrow
-        // centred column.
-        self
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(FrigyGlassBackground().ignoresSafeArea())
+        // Give the screen a DEFINITE height via GeometryReader and top-anchor it.
+        //
+        // The iPad "content floats vertically centred / everything is at the
+        // bottom" bug came from `.frame(maxHeight: .infinity)` being proposed an
+        // UNBOUNDED height in a pushed NavigationStack detail / form sheet: a
+        // flexible frame under an unbounded proposal collapses to its content's
+        // height, and the parent then centres that block. GeometryReader always
+        // reports a concrete size, so the inner ScrollView becomes greedy and the
+        // nav bar sits at the very top. Full width → fullscreen (not a narrow
+        // centred column).
+        GeometryReader { geo in
+            self
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+        .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
