@@ -57,7 +57,7 @@ struct HomeTabRoot: View {
     @ViewBuilder
     private func homeRouteView(_ route: HomeRoute) -> some View {
         if #available(iOS 18, *) {
-            HomeRouteView(route: route).navigationTransition(.slide)
+            HomeRouteView(route: route).navigationTransition(.default)
         } else {
             HomeRouteView(route: route)
         }

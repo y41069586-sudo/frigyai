@@ -26,7 +26,7 @@ struct OnboardingSkeletonView: View {
     @ViewBuilder
     private func stepContent(step: OnboardingStep, progress: Double, canGoBack: Bool) -> some View {
         switch step {
-        case .splash:
+        case .splash, .languageSelect:
             SplashStepView(onNext: next, onSignIn: { router.navigateToAuth() })
 
         case .welcome:
