@@ -60,6 +60,7 @@ enum HomeRoute: Hashable {
     case foodEntry(entryId: String)
     case chatbot(initialPrompt: String?)
     case weightProgress
+    case appleHealth
 }
 
 enum PlansRoute: Hashable {

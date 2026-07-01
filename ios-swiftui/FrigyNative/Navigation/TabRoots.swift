@@ -14,6 +14,7 @@ struct HomeRouteView: View {
         case .foodEntry(let id):  FoodEntryView(entryId: id)
         case .chatbot(let prompt): ChatbotView(initialPrompt: prompt)
         case .weightProgress:     WeightProgressView()
+        case .appleHealth:        AppleHealthView()
         }
     }
 }

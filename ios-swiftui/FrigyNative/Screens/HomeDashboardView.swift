@@ -878,9 +878,19 @@ struct HomeDashboardView: View {
                         .foregroundColor(FrigyBrand.text)
                 }
                 Spacer()
-                if healthKit.authStatus == .notDetermined {
+                // notDetermined / reconnect → request or re-enable in-app.
+                // Otherwise the "Einstellungen" button opens Apple's system Settings,
+                // where the user can turn Frigy's Apple Health access off directly.
+                if healthKit.authStatus == .notDetermined ||
+                    (healthKit.authStatus == .authorized && !healthKit.isLocallyConnected) {
                     Button {
-                        Task { await healthKit.requestAuthorization() }
+                        Task {
+                            if healthKit.authStatus == .notDetermined {
+                                await healthKit.requestAuthorization()
+                            } else {
+                                await healthKit.reconnect()
+                            }
+                        }
                     } label: {
                         Text(lang.t("Verbinden"))
                             .font(.system(size: 12, weight: .bold))
@@ -890,7 +900,7 @@ struct HomeDashboardView: View {
                             .background(Capsule().fill(Color(hex: "#F59E0B")))
                     }
                     .buttonStyle(.plain)
-                } else if healthKit.authStatus == .denied {
+                } else {
                     Button {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
                             UIApplication.shared.open(url)
@@ -904,32 +914,6 @@ struct HomeDashboardView: View {
                             .background(Capsule().fill(Color(hex: "#FEF3C7")))
                     }
                     .buttonStyle(.plain)
-                } else if healthKit.authStatus == .authorized {
-                    if healthKit.isLocallyConnected {
-                        Button {
-                            healthKit.disconnect()
-                        } label: {
-                            Text(lang.t("Trennen"))
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(FrigyBrand.textMuted)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Capsule().fill(Color(hex: "#F3F4F6")))
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        Button {
-                            Task { await healthKit.reconnect() }
-                        } label: {
-                            Text(lang.t("Verbinden"))
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Capsule().fill(Color(hex: "#F59E0B")))
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
             }
 
