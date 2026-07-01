@@ -49,7 +49,13 @@ struct HomeTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .home)) {
             HomeDashboardView()
-                .navigationDestination(for: HomeRoute.self) { HomeRouteView(route: $0) }
+                .navigationDestination(for: HomeRoute.self) { route in
+                    if #available(iOS 18, *) {
+                        HomeRouteView(route: route).navigationTransition(.slide)
+                    } else {
+                        HomeRouteView(route: route)
+                    }
+                }
         }
         .onAppear { tabCoordinator.markTabActivated(.home) }
     }
@@ -61,7 +67,13 @@ struct PlansTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .plans)) {
             MealPlansView()
-                .navigationDestination(for: PlansRoute.self) { PlansRouteView(route: $0) }
+                .navigationDestination(for: PlansRoute.self) { route in
+                    if #available(iOS 18, *) {
+                        PlansRouteView(route: route).navigationTransition(.slide)
+                    } else {
+                        PlansRouteView(route: route)
+                    }
+                }
         }
         .onAppear { tabCoordinator.markTabActivated(.plans) }
     }
@@ -73,7 +85,13 @@ struct ShoppingTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .shopping)) {
             ShoppingListView()
-                .navigationDestination(for: ShoppingRoute.self) { ShoppingRouteView(route: $0) }
+                .navigationDestination(for: ShoppingRoute.self) { route in
+                    if #available(iOS 18, *) {
+                        ShoppingRouteView(route: route).navigationTransition(.slide)
+                    } else {
+                        ShoppingRouteView(route: route)
+                    }
+                }
         }
         .onAppear { tabCoordinator.markTabActivated(.shopping) }
     }
