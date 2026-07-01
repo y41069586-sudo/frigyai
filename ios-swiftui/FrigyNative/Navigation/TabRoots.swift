@@ -2465,12 +2465,11 @@ struct EditProfileView: View {
     }
 
     var body: some View {
-        editProfileBaseContent
-            .onChange(of: draft.weightKg) { _, _ in draft.recalculateMacrosIfPossible() }
-            .onChange(of: draft.heightCm) { _, _ in draft.recalculateMacrosIfPossible() }
-            .onChange(of: draft.age) { _, _ in draft.recalculateMacrosIfPossible() }
-            .onChange(of: draft.goalMode) { _, _ in draft.recalculateMacrosIfPossible() }
-            .onChange(of: draft.activityLevel) { _, _ in draft.recalculateMacrosIfPossible() }
+        let step1 = editProfileBaseContent.onChange(of: draft.weightKg) { _, _ in draft.recalculateMacrosIfPossible() }
+        let step2 = step1.onChange(of: draft.heightCm) { _, _ in draft.recalculateMacrosIfPossible() }
+        let step3 = step2.onChange(of: draft.age) { _, _ in draft.recalculateMacrosIfPossible() }
+        let step4 = step3.onChange(of: draft.goalMode) { _, _ in draft.recalculateMacrosIfPossible() }
+        return step4.onChange(of: draft.activityLevel) { _, _ in draft.recalculateMacrosIfPossible() }
     }
 
     private var editProfileBaseContent: some View {
@@ -2769,25 +2768,24 @@ struct MealPlanPreferencesView: View {
     ]
 
     var body: some View {
-        baseContent
-            .onChange(of: mealsPerDay) { _, v in
-                UserDefaults.standard.set(v, forKey: prefMealsKey)
-            }
-            .onChange(of: selectedCuisines) { _, v in
-                UserDefaults.standard.set(v, forKey: prefCuisinesKey)
-            }
-            .onChange(of: maxPrepTime) { _, v in
-                UserDefaults.standard.set(v, forKey: prefMaxPrepTimeKey)
-            }
-            .onChange(of: cookFrequency) { _, v in
-                UserDefaults.standard.set(v, forKey: prefCookFrequencyKey)
-            }
-            .onChange(of: budget) { _, v in
-                UserDefaults.standard.set(v, forKey: prefBudgetKey)
-            }
-            .onChange(of: variety) { _, v in
-                UserDefaults.standard.set(v, forKey: prefVarietyKey)
-            }
+        let step1 = baseContent.onChange(of: mealsPerDay) { _, v in
+            UserDefaults.standard.set(v, forKey: prefMealsKey)
+        }
+        let step2 = step1.onChange(of: selectedCuisines) { _, v in
+            UserDefaults.standard.set(v, forKey: prefCuisinesKey)
+        }
+        let step3 = step2.onChange(of: maxPrepTime) { _, v in
+            UserDefaults.standard.set(v, forKey: prefMaxPrepTimeKey)
+        }
+        let step4 = step3.onChange(of: cookFrequency) { _, v in
+            UserDefaults.standard.set(v, forKey: prefCookFrequencyKey)
+        }
+        let step5 = step4.onChange(of: budget) { _, v in
+            UserDefaults.standard.set(v, forKey: prefBudgetKey)
+        }
+        return step5.onChange(of: variety) { _, v in
+            UserDefaults.standard.set(v, forKey: prefVarietyKey)
+        }
     }
 
     private var baseContent: some View {
