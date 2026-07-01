@@ -158,7 +158,7 @@ struct AuthSpikeView: View {
             markSignedIn()
             router.rootRoute = .main
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = lang.t(error.localizedDescription)
         }
     }
 
@@ -174,7 +174,7 @@ struct AuthSpikeView: View {
             markSignedIn()
             router.rootRoute = .main
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = lang.t(error.localizedDescription)
         }
     }
 }

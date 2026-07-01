@@ -1990,7 +1990,7 @@ struct MealDetailView: View {
                                             .background(Circle().fill(FrigyBrand.primary))
                                         VStack(alignment: .leading, spacing: 4) {
                                             HStack(spacing: 6) {
-                                                Text(step.phase)
+                                                Text(lang.t(step.phase))
                                                     .font(.system(size: 10, weight: .bold))
                                                     .foregroundColor(FrigyBrand.primaryDark)
                                                 Text("· \(step.minutes) \(lang.t("Min."))")

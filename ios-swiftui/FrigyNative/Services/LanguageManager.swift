@@ -1156,5 +1156,38 @@ enum Translations {
         "Manuell eingeben": [.en: "Enter manually", .fr: "Saisir manuellement", .es: "Introducir manualmente", .it: "Inserisci manualmente", .hi: "मैन्युअल दर्ज करें"],
         "Halte den Barcode in den Rahmen": [.en: "Hold the barcode inside the frame", .fr: "Placez le code-barres dans le cadre", .es: "Mantén el código de barras dentro del marco", .it: "Tieni il codice a barre nel riquadro", .hi: "बारकोड को फ्रेम के अंदर रखें"],
         "Produkt nicht gefunden. Manuell eingeben?": [.en: "Product not found. Enter manually?", .fr: "Produit non trouvé. Saisir manuellement ?", .es: "Producto no encontrado. ¿Introducir manualmente?", .it: "Prodotto non trovato. Inserire manualmente?", .hi: "उत्पाद नहीं मिला। मैन्युअल दर्ज करें?"],
+
+        // ===== AUTH / ACCOUNT CREATION =====
+        "Registrieren": [.en: "Sign up", .fr: "S'inscrire", .es: "Registrarse", .it: "Registrati", .hi: "साइन अप करें"],
+        "Konto erstellen": [.en: "Create account", .fr: "Créer un compte", .es: "Crear cuenta", .it: "Crea account", .hi: "खाता बनाएं"],
+        "E-Mail-Adresse": [.en: "Email address", .fr: "Adresse e-mail", .es: "Dirección de correo", .it: "Indirizzo e-mail", .hi: "ईमेल पता"],
+        "Passwort (min. 6 Zeichen)": [.en: "Password (min. 6 characters)", .fr: "Mot de passe (min. 6 caractères)", .es: "Contraseña (mín. 6 caracteres)", .it: "Password (min. 6 caratteri)", .hi: "पासवर्ड (न्यूनतम 6 अक्षर)"],
+        "E-Mail gesendet": [.en: "Email sent", .fr: "E-mail envoyé", .es: "Correo enviado", .it: "Email inviata", .hi: "ईमेल भेजा गया"],
+        "Wir haben eine Bestätigungs-E-Mail an %@ gesendet.\n\nTippe auf den Link darin — du wirst direkt zur App weitergeleitet.": [.en: "We sent a confirmation email to %@.\n\nTap the link inside — you'll be taken directly to the app.", .fr: "Nous avons envoyé un e-mail de confirmation à %@.\n\nAppuyez sur le lien — vous serez redirigé vers l'app.", .es: "Enviamos un correo de confirmación a %@.\n\nToca el enlace — serás redirigido a la app.", .it: "Abbiamo inviato un'email di conferma a %@.\n\nTocca il link — verrai reindirizzato all'app.", .hi: "हमने %@ पर एक पुष्टिकरण ईमेल भेजा।\n\nउसमें लिंक पर टैप करें — आपको सीधे ऐप पर भेजा जाएगा।"],
+        "Ich habe bestätigt": [.en: "I have confirmed", .fr: "J'ai confirmé", .es: "He confirmado", .it: "Ho confermato", .hi: "मैंने पुष्टि की"],
+        "E-Mail erneut senden": [.en: "Resend email", .fr: "Renvoyer l'e-mail", .es: "Reenviar correo", .it: "Invia di nuovo l'email", .hi: "ईमेल पुनः भेजें"],
+        "Noch nicht bestätigt. Bitte tippe zuerst auf den Link in deiner E-Mail.": [.en: "Not confirmed yet. Please tap the link in your email first.", .fr: "Pas encore confirmé. Veuillez d'abord cliquer sur le lien dans votre e-mail.", .es: "Aún no confirmado. Por favor, toca el enlace en tu correo primero.", .it: "Non ancora confermato. Prima tocca il link nella tua email.", .hi: "अभी पुष्टि नहीं हुई। कृपया पहले अपने ईमेल में लिंक पर टैप करें।"],
+        "Fehler beim erneuten Senden:": [.en: "Error resending:", .fr: "Erreur lors du renvoi :", .es: "Error al reenviar:", .it: "Errore nel rinvio:", .hi: "पुनः भेजने में त्रुटि:"],
+        "Wir haben dir eine Bestätigungs-E-Mail geschickt. Bitte klicke den Link darin.": [.en: "We sent you a confirmation email. Please click the link inside.", .fr: "Nous vous avons envoyé un e-mail de confirmation. Veuillez cliquer sur le lien.", .es: "Te enviamos un correo de confirmación. Por favor, haz clic en el enlace.", .it: "Ti abbiamo inviato un'email di conferma. Clicca il link al suo interno.", .hi: "हमने आपको एक पुष्टिकरण ईमेल भेजा। कृपया उसमें लिंक पर क्लिक करें।"],
+        "Mit der Registrierung stimmst du unseren\nNutzungsbedingungen und Datenschutzrichtlinien zu.": [.en: "By registering, you agree to our\nTerms of Service and Privacy Policy.", .fr: "En vous inscrivant, vous acceptez nos\nConditions d'utilisation et Politique de confidentialité.", .es: "Al registrarte, aceptas nuestros\nTérminos de servicio y Política de privacidad.", .it: "Registrandoti, accetti i nostri\nTermini di servizio e la nostra Informativa sulla privacy.", .hi: "पंजीकरण करके, आप हमारी\nसेवा की शर्तें और गोपनीयता नीति से सहमत हैं।"],
+
+        // ===== HOME DASHBOARD =====
+        "Gläser": [.en: "glasses", .fr: "verres", .es: "vasos", .it: "bicchieri", .hi: "गिलास"],
+
+        // ===== COOKING INSTRUCTIONS (phase labels) =====
+        "Vorbereitung": [.en: "Preparation", .fr: "Préparation", .es: "Preparación", .it: "Preparazione", .hi: "तैयारी"],
+        "Kochen": [.en: "Cooking", .fr: "Cuisson", .es: "Cocción", .it: "Cottura", .hi: "पकाना"],
+        "Garen": [.en: "Cooking", .fr: "Cuisson", .es: "Cocción", .it: "Cottura", .hi: "पकाना"],
+        "Anrichten": [.en: "Plating", .fr: "Dressage", .es: "Emplatar", .it: "Impiattamento", .hi: "परोसना"],
+
+        // ===== CUISINE / MEAL PLAN SETTINGS =====
+        "International / gemischt": [.en: "International / mixed", .fr: "International / mixte", .es: "Internacional / mixto", .it: "Internazionale / misto", .hi: "अंतर्राष्ट्रीय / मिश्रित"],
+        "Asiatisch": [.en: "Asian", .fr: "Asiatique", .es: "Asiático", .it: "Asiatico", .hi: "एशियाई"],
+        "Nordafrikanisch": [.en: "North African", .fr: "Nord-africain", .es: "Norteafricano", .it: "Nord-africano", .hi: "उत्तर अफ्रीकी"],
+        "Südafrikanisch": [.en: "South African", .fr: "Sud-africain", .es: "Sudafricano", .it: "Sud-africano", .hi: "दक्षिण अफ्रीकी"],
+        "Europäisch": [.en: "European", .fr: "Européen", .es: "Europeo", .it: "Europeo", .hi: "यूरोपीय"],
+        "Amerikanisch": [.en: "American", .fr: "Américain", .es: "Americano", .it: "Americano", .hi: "अमेरिकी"],
+        "Italienisch": [.en: "Italian", .fr: "Italien", .es: "Italiano", .it: "Italiano", .hi: "इतालवी"],
+        "Deutsch": [.en: "German", .fr: "Allemand", .es: "Alemán", .it: "Tedesco", .hi: "जर्मन"],
     ]
 }

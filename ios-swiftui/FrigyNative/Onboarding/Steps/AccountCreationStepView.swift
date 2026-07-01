@@ -127,14 +127,14 @@ struct AccountCreationStepView: View {
                 Button {
                     onNext()
                 } label: {
-                    Text("Überspringen")
+                    Text(lang.t("Überspringen"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(FrigyBrand.textMuted)
                         .underline()
                 }
 
                 // Legal notice
-                Text("Mit der Registrierung stimmst du unseren\nNutzungsbedingungen und Datenschutzrichtlinien zu.")
+                Text(lang.t("Mit der Registrierung stimmst du unseren\nNutzungsbedingungen und Datenschutzrichtlinien zu."))
                     .font(.system(size: 11))
                     .foregroundColor(FrigyBrand.textMuted.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -188,6 +188,7 @@ struct AccountCreationStepView: View {
 private struct EmailAuthSheet: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     let onSuccess: () -> Void
 
@@ -214,11 +215,11 @@ private struct EmailAuthSheet: View {
                     formView
                 }
             }
-            .navigationTitle(phase == .checkInbox ? "" : mode == .signIn ? "Anmelden" : "Konto erstellen")
+            .navigationTitle(phase == .checkInbox ? "" : mode == .signIn ? lang.t("Anmelden") : lang.t("Konto erstellen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(lang.t("Abbrechen")) { dismiss() }
                 }
             }
         }
@@ -229,8 +230,8 @@ private struct EmailAuthSheet: View {
     private var formView: some View {
         VStack(spacing: 24) {
             Picker("", selection: $mode) {
-                Text("Anmelden").tag(Mode.signIn)
-                Text("Registrieren").tag(Mode.signUp)
+                Text(lang.t("Anmelden")).tag(Mode.signIn)
+                Text(lang.t("Registrieren")).tag(Mode.signUp)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 24)
@@ -238,7 +239,7 @@ private struct EmailAuthSheet: View {
             .onChange(of: mode) { _, _ in errorMessage = nil }
 
             VStack(spacing: 12) {
-                TextField("E-Mail-Adresse", text: $email)
+                TextField(lang.t("E-Mail-Adresse"), text: $email)
                     .keyboardType(.emailAddress)
                     .textContentType(.emailAddress)
                     .autocapitalization(.none)
@@ -247,7 +248,7 @@ private struct EmailAuthSheet: View {
                     .background(Color(.systemGray6))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                SecureField("Passwort (min. 6 Zeichen)", text: $password)
+                SecureField(lang.t("Passwort (min. 6 Zeichen)"), text: $password)
                     .textContentType(mode == .signUp ? .newPassword : .password)
                     .padding()
                     .background(Color(.systemGray6))
@@ -270,7 +271,7 @@ private struct EmailAuthSheet: View {
                     if isLoading {
                         ProgressView().tint(.white)
                     } else {
-                        Text(mode == .signIn ? "Anmelden" : "Konto erstellen")
+                        Text(mode == .signIn ? lang.t("Anmelden") : lang.t("Konto erstellen"))
                             .font(.system(size: 16, weight: .semibold))
                     }
                 }
@@ -305,11 +306,11 @@ private struct EmailAuthSheet: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("E-Mail gesendet")
+                    Text(lang.t("E-Mail gesendet"))
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
 
-                    Text("Wir haben eine Bestätigungs-E-Mail an **\(email)** gesendet.\n\nTippe auf den Link darin — du wirst direkt zur App weitergeleitet.")
+                    Text(lang.t("Wir haben eine Bestätigungs-E-Mail an %@ gesendet.\n\nTippe auf den Link darin — du wirst direkt zur App weitergeleitet.").replacingOccurrences(of: "%@", with: email))
                         .font(.system(size: 15))
                         .foregroundColor(FrigyBrand.textMuted)
                         .multilineTextAlignment(.center)
@@ -334,7 +335,7 @@ private struct EmailAuthSheet: View {
                             if isLoading {
                                 ProgressView().tint(.white)
                             } else {
-                                Text("Ich habe bestätigt")
+                                Text(lang.t("Ich habe bestätigt"))
                                     .font(.system(size: 16, weight: .semibold))
                             }
                         }
@@ -350,7 +351,7 @@ private struct EmailAuthSheet: View {
                     Button {
                         resendEmail()
                     } label: {
-                        Text("E-Mail erneut senden")
+                        Text(lang.t("E-Mail erneut senden"))
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(FrigyBrand.primaryDeep)
                             .frame(maxWidth: .infinity)
@@ -398,7 +399,7 @@ private struct EmailAuthSheet: View {
                 dismiss()
                 onSuccess()
             } else {
-                errorMessage = "Noch nicht bestätigt. Bitte tippe zuerst auf den Link in deiner E-Mail."
+                errorMessage = lang.t("Noch nicht bestätigt. Bitte tippe zuerst auf den Link in deiner E-Mail.")
             }
             isLoading = false
         }
@@ -417,7 +418,7 @@ private struct EmailAuthSheet: View {
                 // Good — branded email was re-sent.
                 errorMessage = nil
             } catch {
-                errorMessage = "Fehler beim erneuten Senden: \(error.localizedDescription)"
+                errorMessage = "\(lang.t("Fehler beim erneuten Senden:")) \(lang.t(error.localizedDescription))"
             }
             isLoading = false
         }

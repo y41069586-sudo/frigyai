@@ -461,7 +461,7 @@ struct HomeDashboardView: View {
             VStack(spacing: 6) {
                 Text(slot.emoji)
                     .font(.system(size: 26))
-                Text(slot.shortLabel)
+                Text(lang.t(slot.shortLabel))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(logged ? FrigyBrand.primaryDeep : FrigyBrand.text)
                     .lineLimit(1)
@@ -753,7 +753,7 @@ struct HomeDashboardView: View {
                 // Adjustable daily goal
                 Menu {
                     ForEach([6, 8, 10, 12], id: \.self) { g in
-                        Button("\(liters(g)) L (\(g) Gläser)") {
+                        Button("\(liters(g)) L (\(g) \(lang.t("Gläser")))") {
                             waterGoal = g
                             if waterGlasses > g { setWater(g) }
                         }
