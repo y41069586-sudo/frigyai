@@ -901,10 +901,11 @@ struct AppleHealthView: View {
     @Environment(LanguageManager.self) private var lang
     @StateObject private var healthKit = HealthKitService.shared
 
-    // Connected == system authorized AND the user hasn't turned it off in-app.
-    private var isConnected: Bool {
-        healthKit.authStatus == .authorized && healthKit.isLocallyConnected
-    }
+    // The app-local flag is the reliable source of truth. iOS deliberately does
+    // NOT report read-authorization status (authorizationStatus returns
+    // .notDetermined even after the user granted read access), so basing the
+    // toggle on authStatus made it show "off" while Health was actually working.
+    private var isConnected: Bool { healthKit.isLocallyConnected }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -912,7 +913,7 @@ struct AppleHealthView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
-                    Text(lang.t("Frigy kann deine Schritte und aktiven Kalorien aus Apple Health lesen, um deine Aktivität im Dashboard anzuzeigen. Du kannst die Verbindung jederzeit hier trennen."))
+                    Text(lang.t("Frigy kann deine Schritte und aktiven Kalorien aus Apple Health lesen, um deine Aktivität im Dashboard anzuzeigen. Zum vollständigen Widerruf des Zugriffs verwalte Frigy in der Apple-Health-App."))
                         .font(.system(size: 14))
                         .foregroundColor(FrigyBrand.textMuted)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -920,12 +921,7 @@ struct AppleHealthView: View {
                         .padding(.top, 12)
 
                     healthToggleCard
-
-                    // When permission was denied at the system level, the toggle can't
-                    // re-grant it — only iOS Settings can. Offer a shortcut.
-                    if healthKit.authStatus == .denied {
-                        openSettingsButton
-                    }
+                    manageInHealthButton
 
                     Spacer().frame(height: 40)
                 }
@@ -936,20 +932,30 @@ struct AppleHealthView: View {
         .task { await healthKit.refresh() }
     }
 
+    /// Opens the Apple Health app (where the user can revoke Frigy's data access
+    /// under Profil → Apps). This is the only place iOS lets you turn read access
+    /// off — the app's own iOS-Settings page has no Health toggle.
+    private func openAppleHealth() {
+        if let url = URL(string: "x-apple-health://"), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        }
+    }
+
     private var connectionBinding: Binding<Bool> {
         Binding(
             get: { isConnected },
             set: { on in
                 if on {
+                    // Request (prompts only if not yet asked) and start reading.
                     Task {
-                        if healthKit.authStatus == .notDetermined {
-                            await healthKit.requestAuthorization()
-                        } else {
-                            await healthKit.reconnect()
-                        }
+                        await healthKit.requestAuthorization()
+                        await healthKit.reconnect()
                     }
                 } else {
+                    // Turn Frigy's use off immediately, then offer the Apple Health
+                    // app so the OS-level access can be revoked too.
                     healthKit.disconnect()
+                    openAppleHealth()
                 }
             }
         )
@@ -985,16 +991,14 @@ struct AppleHealthView: View {
         .padding(.horizontal, 20)
     }
 
-    private var openSettingsButton: some View {
+    private var manageInHealthButton: some View {
         Button {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(url)
-            }
+            openAppleHealth()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "gearshape.fill")
+                Image(systemName: "heart.text.square.fill")
                     .font(.system(size: 14, weight: .semibold))
-                Text(lang.t("In den iOS-Einstellungen aktivieren"))
+                Text(lang.t("In Apple Health verwalten"))
                     .font(.system(size: 14, weight: .semibold))
                 Spacer()
                 Image(systemName: "arrow.up.right")

@@ -882,18 +882,15 @@ struct HomeDashboardView: View {
                         .foregroundColor(FrigyBrand.text)
                 }
                 Spacer()
-                // notDetermined / reconnect → request or re-enable in-app.
-                // Otherwise the "Einstellungen" button opens Apple's system Settings,
-                // where the user can turn Frigy's Apple Health access off directly.
-                if healthKit.authStatus == .notDetermined ||
-                    (healthKit.authStatus == .authorized && !healthKit.isLocallyConnected) {
+                // isLocallyConnected is the reliable state (iOS doesn't report read
+                // auth). Disconnected → "Verbinden"; connected → "Einstellungen"
+                // opens Frigy's in-app Apple Health screen (where it can be toggled),
+                // not the iOS Settings page that has no Health control.
+                if !healthKit.isLocallyConnected {
                     Button {
                         Task {
-                            if healthKit.authStatus == .notDetermined {
-                                await healthKit.requestAuthorization()
-                            } else {
-                                await healthKit.reconnect()
-                            }
+                            await healthKit.requestAuthorization()
+                            await healthKit.reconnect()
                         }
                     } label: {
                         Text(lang.t("Verbinden"))
@@ -906,9 +903,7 @@ struct HomeDashboardView: View {
                     .buttonStyle(.plain)
                 } else {
                     Button {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
+                        tabCoordinator.pushHome(.appleHealth)
                     } label: {
                         Text(lang.t("Einstellungen"))
                             .font(.system(size: 12, weight: .bold))
