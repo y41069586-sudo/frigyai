@@ -33,41 +33,61 @@ struct GlassTabBar: View {
             let slotWidth = tabsWidth / 3
             let activeIndex = CGFloat(tabs.firstIndex(of: selection) ?? 0)
 
-            ZStack(alignment: .leading) {
-                // The animated glass pill — sits behind only the active tab.
-                activeGlassPill(width: slotWidth - 6)
-                    .offset(x: innerH + activeIndex * slotWidth + 3)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.78), value: selection)
-
-                HStack(spacing: 0) {
-                    ForEach(tabs, id: \.self) { tab in
-                        tabButton(tab).frame(width: slotWidth)
-                    }
-                    plusButton(mealCount: mealCount, size: plusSize)
-                        .frame(width: plusSize)
-                        .padding(.leading, 4)
-                }
-                .padding(.horizontal, innerH)
-            }
-            .frame(height: 58)
-            // Very subtle floating backing so buttons stay legible over scrolling
-            // content, WITHOUT the prominent grey capsule look.
-            .background(
-                Capsule()
-                    .fill(Color(UIColor.systemBackground).opacity(0.55))
-                    .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
-            )
+            bar(slotWidth: slotWidth, innerH: innerH, plusSize: plusSize, activeIndex: activeIndex)
         }
         .frame(height: 58)
     }
 
     @ViewBuilder
+    private func bar(slotWidth: CGFloat, innerH: CGFloat, plusSize: CGFloat, activeIndex: CGFloat) -> some View {
+        let stack = ZStack(alignment: .leading) {
+            // The animated glass pill — sits behind only the active tab.
+            activeGlassPill(width: slotWidth - 6)
+                .offset(x: innerH + activeIndex * slotWidth + 3)
+                .animation(.spring(response: 0.35, dampingFraction: 0.78), value: selection)
+
+            HStack(spacing: 0) {
+                ForEach(tabs, id: \.self) { tab in
+                    tabButton(tab).frame(width: slotWidth)
+                }
+                plusButton(mealCount: mealCount, size: plusSize)
+                    .frame(width: plusSize)
+                    .padding(.leading, 4)
+            }
+            .padding(.horizontal, innerH)
+        }
+        .frame(height: 58)
+
+        if #available(iOS 26, *) {
+            // Real Liquid Glass. A GlassEffectContainer lets the subtle bar glass
+            // and the brighter active pill blend & morph as the pill slides. The
+            // bar backing is CLEAR glass (not an opaque white capsule) so the pill
+            // actually refracts the content behind it instead of looking white.
+            GlassEffectContainer(spacing: 8) {
+                stack.background(
+                    Color.clear.glassEffect(.regular, in: .capsule)
+                )
+            }
+        } else {
+            // Very subtle floating backing so buttons stay legible over scrolling
+            // content, WITHOUT the prominent grey capsule look.
+            stack.background(
+                Capsule()
+                    .fill(Color(UIColor.systemBackground).opacity(0.55))
+                    .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
+            )
+        }
+    }
+
+    @ViewBuilder
     private func activeGlassPill(width: CGFloat) -> some View {
         if #available(iOS 26, *) {
-            Capsule()
-                .fill(Color.clear)
-                .glassEffect(.regular.interactive(), in: .capsule)
+            // Sized FIRST, then glass — applying glassEffect to a zero-size shape
+            // rendered nothing. A light mint tint makes the active pill read as
+            // the selected element against the clear bar glass.
+            Color.clear
                 .frame(width: width, height: 46)
+                .glassEffect(.regular.tint(FrigyBrand.primary.opacity(0.28)).interactive(), in: .capsule)
         } else {
             // Pre-iOS-26 frosted-glass approximation: a translucent pill with a
             // top-down sheen and a mint-tinted rim + glow so it reads as glass,
