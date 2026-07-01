@@ -48,6 +48,14 @@ settings:
     # Required for App Store archive: build all slices (arm64 + arm64e), not just
     # the active architecture of the build host.
     ONLY_ACTIVE_ARCH: NO
+    # Explicit Modules (SwiftExplicitDependencyGeneratePcm build steps) has
+    # repeatedly hung the CodeMagic archive build indefinitely — with zero log
+    # output — while precompiling plain Apple system frameworks (HealthKit,
+    # Metal, UIKit, ...), unrelated to any app code. Falling back to the older,
+    # more battle-tested implicit module system trades a little build speed for
+    # the archive actually completing instead of hanging forever.
+    SWIFT_ENABLE_EXPLICIT_MODULES: NO
+    CLANG_ENABLE_EXPLICIT_MODULES: NO
     # Explicit module dependencies to avoid module cache corruption
     CLANG_ENABLE_MODULES: YES
     CLANG_MODULES_AUTOLINK: YES
