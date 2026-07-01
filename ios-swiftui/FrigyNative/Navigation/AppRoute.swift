@@ -111,6 +111,7 @@ extension HomeRoute: CustomStringConvertible {
         case .foodEntry(let id): "foodEntry(\(id))"
         case .chatbot(let prompt): "chatbot(\(prompt ?? "nil"))"
         case .weightProgress: "weightProgress"
+        case .appleHealth: "appleHealth"
         }
     }
 }
