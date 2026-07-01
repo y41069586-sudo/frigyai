@@ -7,6 +7,7 @@ struct SplashStepView: View {
     @State private var opacity = 0.0
     @State private var mascotOffset = 18.0
     @State private var textOffset = 18.0
+    @State private var showLanguagePicker = false
 
     @Environment(LanguageManager.self) private var lang
 
@@ -15,12 +16,38 @@ struct SplashStepView: View {
             FrigyGlassBackground().ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // "Frigy" wordmark
-                Text("Frigy")
-                    .font(.system(size: 28, weight: .black))
-                    .foregroundColor(FrigyBrand.primaryDark)
-                    .tracking(-1.5)
-                    .padding(.top, 20)
+                // Top bar: wordmark + language picker
+                HStack(alignment: .center) {
+                    Text("Frigy")
+                        .font(.system(size: 28, weight: .black))
+                        .foregroundColor(FrigyBrand.primaryDark)
+                        .tracking(-1.5)
+
+                    Spacer()
+
+                    Button { showLanguagePicker = true } label: {
+                        HStack(spacing: 5) {
+                            Text(lang.language.flag)
+                                .font(.system(size: 15))
+                            Text(lang.language.rawValue.uppercased())
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(FrigyBrand.text)
+                        }
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule()
+                                .fill(Color(UIColor.secondarySystemBackground))
+                                .overlay(Capsule().stroke(FrigyBrand.cardBorder, lineWidth: 1))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .sheet(isPresented: $showLanguagePicker) {
+                        SplashLanguagePickerSheet()
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
 
                 // Mascot — floating
                 MascotFloatingView()
@@ -36,7 +63,6 @@ struct SplashStepView: View {
                             .tracking(-3.5)
                             .lineLimit(1)
 
-                        // Second line with mint highlight
                         Text(lang.t("Leb leichter."))
                             .font(.system(size: 43, weight: .heavy))
                             .foregroundColor(FrigyBrand.text)
@@ -44,8 +70,6 @@ struct SplashStepView: View {
                             .lineLimit(1)
                             .fixedSize()
                             .background(alignment: .bottom) {
-                                // Mint highlight bar — sized to the text width, not the
-                                // full column, so it no longer stretches edge-to-edge.
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(FrigyBrand.primary.opacity(0.45))
                                     .frame(height: 14)
@@ -113,7 +137,58 @@ struct SplashStepView: View {
     }
 }
 
-// Separate view so the infinite animation doesn't block the appear animation
+// MARK: - Language picker sheet
+
+private struct SplashLanguagePickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(AppLanguage.allCases) { language in
+                    Button {
+                        lang.choose(language)
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 14) {
+                            Text(language.flag)
+                                .font(.system(size: 26))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(language.displayName)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                Text(language.germanName)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if lang.language == language {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(FrigyBrand.primaryDark)
+                                    .font(.system(size: 20))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle(lang.t("Sprache wählen"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(lang.t("Schließen")) { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+// MARK: - Floating mascot
+
 private struct MascotFloatingView: View {
     @State private var floatOffset = 0.0
 

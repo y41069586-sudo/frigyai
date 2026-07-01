@@ -77,7 +77,7 @@ final class LanguageManager {
            let lang = AppLanguage(rawValue: raw) {
             self.language = lang
         } else {
-            self.language = .de
+            self.language = .en
         }
     }
 

@@ -71,9 +71,6 @@ struct OnboardingSkeletonView: View {
         case .transformation:
             TransformationStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
 
-        case .languageSelect:
-            LanguageSelectStepView(progress: progress, onBack: canGoBack ? back : nil, onNext: next)
-
         case .nameInput:
             NameInputStepView(
                 profile: coordinator.userProfile,
