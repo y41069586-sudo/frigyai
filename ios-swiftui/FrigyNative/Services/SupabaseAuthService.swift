@@ -182,7 +182,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
         // Only the completion-handler signIn overload exposes the `nonce:` argument
         // (the async-bridged variant does not), so we wrap it in a continuation.
         let rawNonce = randomNonceString()
-        let hashedNonce = sha256(rawNonce)
+        _ = sha256(rawNonce)
 
         let result: GIDSignInResult = try await withCheckedThrowingContinuation { continuation in
             GIDSignIn.sharedInstance.signIn(
