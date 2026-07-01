@@ -1,5 +1,12 @@
 #include "Secrets.xcconfig"
 
-SWIFT_COMPILATION_MODE = wholemodule
+// Whole-module optimization compiles + type-checks every file as one giant
+// unit, which dramatically amplifies SwiftUI's already-expensive ViewBuilder
+// type inference across ~100 files full of custom @ViewBuilder helpers —
+// this is what was hanging the archive build indefinitely with no error and
+// no further log output. Incremental mode compiles file-by-file instead,
+// which avoids the combinatorial blowup (at a small runtime-perf cost from
+// losing some cross-file inlining) and lets Release archives actually finish.
+SWIFT_COMPILATION_MODE = incremental
 DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
 VALIDATE_PRODUCT = YES
