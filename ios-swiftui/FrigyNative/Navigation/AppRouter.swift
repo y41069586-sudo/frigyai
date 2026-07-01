@@ -54,24 +54,27 @@ final class AppRouter {
         do {
             let session = try await authService.restoreSession()
 
-            // Link the store identity to this Supabase user as early as possible so a
-            // purchase made later in this session attaches to the right account.
+            // An active session means the user ALREADY created their account, which
+            // is one of the LAST onboarding steps (…→ macroPreview → accountCreation
+            // → paywall → done). So a signed-in user is by definition a returning
+            // user and must never be dropped back into onboarding — even if the local
+            // `onboardingComplete` flag is missing (older builds could clear it via
+            // resetForFreshOnboarding, which is exactly the "logged in but back on
+            // onboarding" bug). Heal the flag and route via the normal path (main
+            // app, or the paywall if not premium).
             if let session {
                 await subscriptionService.identify(userId: session.userId)
-            }
-
-            // Returning user with active session who already completed onboarding → main app
-            if session != nil, onboardingCoordinator.isComplete {
+                if !onboardingCoordinator.isComplete {
+                    onboardingCoordinator.markComplete()
+                }
                 try await routeAfterOnboarding()
                 return
             }
 
-            // Completed onboarding but the session couldn't be restored (access token
-            // expired, transient network, etc.): send them straight to sign-in and
-            // KEEP their onboarding + all data. Previously we wiped everything
-            // (persistence.clear) and forced a brand-new onboarding — which is why a
-            // restart looked like data and premium were lost. After they sign back in,
-            // routeAfterOnboarding restores premium via RevenueCat.
+            // No active session. If they finished onboarding before, send them to
+            // sign-in (keeps all data); after re-login routeAfterOnboarding restores
+            // premium via RevenueCat. Previously we wiped everything and forced a
+            // brand-new onboarding.
             if onboardingCoordinator.isComplete {
                 rootRoute = .auth
                 return
