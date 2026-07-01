@@ -49,15 +49,18 @@ struct HomeTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .home)) {
             HomeDashboardView()
-                .navigationDestination(for: HomeRoute.self) { route in
-                    if #available(iOS 18, *) {
-                        HomeRouteView(route: route).navigationTransition(.slide)
-                    } else {
-                        HomeRouteView(route: route)
-                    }
-                }
+                .navigationDestination(for: HomeRoute.self) { homeRouteView($0) }
         }
         .onAppear { tabCoordinator.markTabActivated(.home) }
+    }
+
+    @ViewBuilder
+    private func homeRouteView(_ route: HomeRoute) -> some View {
+        if #available(iOS 18, *) {
+            HomeRouteView(route: route).navigationTransition(.slide)
+        } else {
+            HomeRouteView(route: route)
+        }
     }
 }
 
@@ -67,15 +70,18 @@ struct PlansTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .plans)) {
             MealPlansView()
-                .navigationDestination(for: PlansRoute.self) { route in
-                    if #available(iOS 18, *) {
-                        PlansRouteView(route: route).navigationTransition(.slide)
-                    } else {
-                        PlansRouteView(route: route)
-                    }
-                }
+                .navigationDestination(for: PlansRoute.self) { plansRouteView($0) }
         }
         .onAppear { tabCoordinator.markTabActivated(.plans) }
+    }
+
+    @ViewBuilder
+    private func plansRouteView(_ route: PlansRoute) -> some View {
+        if #available(iOS 18, *) {
+            PlansRouteView(route: route).navigationTransition(.slide)
+        } else {
+            PlansRouteView(route: route)
+        }
     }
 }
 
@@ -85,15 +91,18 @@ struct ShoppingTabRoot: View {
     var body: some View {
         NavigationStack(path: tabCoordinator.bindingPath(for: .shopping)) {
             ShoppingListView()
-                .navigationDestination(for: ShoppingRoute.self) { route in
-                    if #available(iOS 18, *) {
-                        ShoppingRouteView(route: route).navigationTransition(.slide)
-                    } else {
-                        ShoppingRouteView(route: route)
-                    }
-                }
+                .navigationDestination(for: ShoppingRoute.self) { shoppingRouteView($0) }
         }
         .onAppear { tabCoordinator.markTabActivated(.shopping) }
+    }
+
+    @ViewBuilder
+    private func shoppingRouteView(_ route: ShoppingRoute) -> some View {
+        if #available(iOS 18, *) {
+            ShoppingRouteView(route: route).navigationTransition(.slide)
+        } else {
+            ShoppingRouteView(route: route)
+        }
     }
 }
 

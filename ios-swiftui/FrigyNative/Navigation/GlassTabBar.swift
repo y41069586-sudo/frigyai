@@ -35,14 +35,17 @@ struct GlassTabBar: View {
     }
 
     private func activeTabIndicator() -> some View {
-        let tabWidth = (UIScreen.main.bounds.width - 32) / 3 - 2
-        let offset = CGFloat(selection == .home ? 0 : selection == .plans ? tabWidth + 2 : (tabWidth + 2) * 2)
+        let containerWidth = UIScreen.main.bounds.width - 64 - 20
+        let tabCount: CGFloat = 3
+        let tabWidth = (containerWidth - 4) / tabCount
+        let baseIndex = selection == .home ? 0 : selection == .plans ? 1 : 2
+        let offset = (tabWidth + 2) * baseIndex
 
         return Capsule()
             .fill(.ultraThinMaterial)
             .overlay(Capsule().stroke(Color.white.opacity(0.3), lineWidth: 1))
             .frame(width: tabWidth, height: 42)
-            .offset(x: offset + 8, y: 4)
+            .offset(x: offset + 10, y: 4)
             .animation(.easeOut(duration: 0.2), value: selection)
     }
 
