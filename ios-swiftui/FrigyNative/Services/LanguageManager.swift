@@ -311,6 +311,7 @@ enum Translations {
         // ===== BARCODE SCANNER =====
         "🔍 Barcode erkannt": [.en: "🔍 Barcode scanned", .fr: "🔍 Code-barres scannné", .es: "🔍 Código de barras escaneado", .it: "🔍 Codice a barre scansionato", .hi: "🔍 बारकोड स्कैन किया गया"],
         "🤖 KI analysiert Produkt…": [.en: "🤖 AI analyzing product...", .fr: "🤖 L'IA analyse le produit...", .es: "🤖 La IA analiza el producto...", .it: "🤖 L'IA sta analizzando il prodotto...", .hi: "🤖 AI उत्पाद का विश्लेषण कर रहा है..."],
+        "🔎 Produkt wird gesucht…": [.en: "🔎 Looking up product...", .fr: "🔎 Recherche du produit...", .es: "🔎 Buscando producto...", .it: "🔎 Ricerca del prodotto...", .hi: "🔎 उत्पाद खोजा जा रहा है..."],
         "📊 Nährwerte werden geladen…": [.en: "📊 Loading nutrition facts...", .fr: "📊 Chargement des valeurs nutritionnelles...", .es: "📊 Cargando información nutricional...", .it: "📊 Caricamento dei valori nutrizionali...", .hi: "📊 पोषण तथ्य लोड किए जा रहे हैं..."],
 
         // ===== ONBOARDING: ACTIVITY / ALLERGIES / ANALYZING / APP MODE / BIRTHDATE =====

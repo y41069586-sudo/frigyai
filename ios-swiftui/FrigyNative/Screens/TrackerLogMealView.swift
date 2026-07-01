@@ -162,9 +162,15 @@ struct TrackerLogMealView: View {
         }
         .sheet(isPresented: $showBarcodeScanner) {
             BarcodeScannerView { scanned in
+                // The scanner dismisses itself; presenting the manual-entry sheet in
+                // the same runloop as that dismissal silently fails (SwiftUI can't
+                // present while another sheet is dismissing), which left the scanner
+                // frozen with no editable form. Present after it has fully closed.
                 showBarcodeScanner = false
                 prefillFood = scanned
-                showManualEntry = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    showManualEntry = true
+                }
             }
         }
         .sheet(isPresented: $showCamera) {

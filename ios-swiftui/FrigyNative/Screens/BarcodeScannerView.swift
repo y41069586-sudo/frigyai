@@ -32,7 +32,7 @@ struct BarcodeScannerView: View {
     private var lookupPhases: [String] {
         [
             lang.t("🔍 Barcode erkannt"),
-            lang.t("🤖 KI analysiert Produkt…"),
+            lang.t("🔎 Produkt wird gesucht…"),
             lang.t("📊 Nährwerte werden geladen…"),
         ]
     }
@@ -103,6 +103,10 @@ struct BarcodeScannerView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 1))
                         .offset(y: scanLineOffset)
                         .onAppear {
+                            // Reset to the top first (no animation) so re-appearing
+                            // after a lookup always restarts the sweep instead of
+                            // sitting frozen at the bottom position.
+                            scanLineOffset = -50
                             withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
                                 scanLineOffset = 50
                             }
@@ -233,7 +237,8 @@ struct BarcodeScannerView: View {
     }
 
     private func lookupBarcode(_ barcode: String) async -> ScannedFood? {
-        guard let food = await TrackerDataService.shared.analyzeFood(query: barcode) else { return nil }
+        // Barcodes resolve directly against OpenFoodFacts — no OpenAI / server AI.
+        guard let food = await TrackerDataService.shared.lookupBarcodeOpenFoodFacts(barcode) else { return nil }
         return ScannedFood(
             barcode: barcode,
             name: food.name,

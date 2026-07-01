@@ -605,6 +605,80 @@ final class TrackerDataService {
         #endif
     }
 
+    // MARK: - Barcode lookup (OpenFoodFacts — no API key required)
+
+    /// Looks a product barcode up directly against the free public OpenFoodFacts
+    /// API. This deliberately does NOT go through the OpenAI-backed analyze-food
+    /// edge function: barcodes resolve to a real database entry, so no AI (and no
+    /// OPENAI_API_KEY) is needed. Values are per 100 g, which the manual-entry
+    /// sheet then lets the user scale to their actual serving.
+    func lookupBarcodeOpenFoodFacts(_ barcode: String) async -> RecentFood? {
+        let trimmed = barcode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let url = URL(string: "https://world.openfoodfacts.org/api/v2/product/\(trimmed).json?fields=product_name,product_name_de,generic_name,brands,nutriments") else {
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        // OpenFoodFacts asks every client to send an identifying User-Agent.
+        request.setValue("Frigy/1.0 (support@frigy.app)", forHTTPHeaderField: "User-Agent")
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (json["status"] as? Int) == 1,
+              let product = json["product"] as? [String: Any] else {
+            return nil
+        }
+
+        // Prefer a localized name, fall back through the generic name / brand.
+        let name = firstNonEmpty([
+            product["product_name_de"] as? String,
+            product["product_name"] as? String,
+            product["generic_name"] as? String,
+            product["brands"] as? String,
+        ]) ?? trimmed
+
+        let nutriments = product["nutriments"] as? [String: Any] ?? [:]
+
+        // kcal may be reported directly, or only as kJ ("energy_100g") — convert.
+        let kcal: Double = {
+            if let v = doubleValue(nutriments["energy-kcal_100g"]) { return v }
+            if let kj = doubleValue(nutriments["energy_100g"]) { return kj / 4.184 }
+            return 0
+        }()
+
+        let food = RecentFood(
+            id: UUID().uuidString,
+            name: name,
+            calories: Int(kcal.rounded()),
+            protein: Int((doubleValue(nutriments["proteins_100g"]) ?? 0).rounded()),
+            carbs: Int((doubleValue(nutriments["carbohydrates_100g"]) ?? 0).rounded()),
+            fat: Int((doubleValue(nutriments["fat_100g"]) ?? 0).rounded())
+        )
+
+        // A hit with a usable name is valid even if some macros are missing.
+        return food.name.isEmpty ? nil : food
+    }
+
+    private func firstNonEmpty(_ candidates: [String?]) -> String? {
+        for case let value? in candidates {
+            let t = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !t.isEmpty { return t }
+        }
+        return nil
+    }
+
+    /// OpenFoodFacts returns numeric nutriment values sometimes as numbers and
+    /// sometimes as strings — accept both.
+    private func doubleValue(_ any: Any?) -> Double? {
+        if let d = any as? Double { return d }
+        if let i = any as? Int { return Double(i) }
+        if let s = any as? String { return Double(s.replacingOccurrences(of: ",", with: ".")) }
+        return nil
+    }
+
     // MARK: - Ingredient analysis (analyze-ingredients edge function)
 
     /// Outcome of a single fridge-photo scan. `errorMessage` is non-nil only when
