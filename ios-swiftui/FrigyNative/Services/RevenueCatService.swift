@@ -20,6 +20,20 @@ enum RevenueCatConfig {
     static var isConfigured: Bool { apiKey != nil }
 }
 
+enum SubscriptionServiceError: LocalizedError {
+    case packageNotFound
+    case entitlementNotActive
+
+    var errorDescription: String? {
+        switch self {
+        case .packageNotFound:
+            return "Dieses Abo konnte nicht gefunden werden. Bitte versuche es erneut."
+        case .entitlementNotActive:
+            return "Der Kauf konnte nicht bestätigt werden. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“ oder versuche es in ein paar Minuten erneut."
+        }
+    }
+}
+
 /// Launch-time configuration hook that is safe to call whether or not the
 /// RevenueCat SDK is linked into this build.
 enum RevenueCatBootstrap {
@@ -85,9 +99,23 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
     }
 
     func purchase(_ package: SubscriptionPackage) async throws -> Bool {
-        guard let pkg = cachedPackages.first(where: { $0.identifier == package.id }) else { return false }
+        guard let pkg = cachedPackages.first(where: { $0.identifier == package.id }) else {
+            throw SubscriptionServiceError.packageNotFound
+        }
         let result = try await Purchases.shared.purchase(package: pkg)
-        return result.customerInfo.entitlements[RevenueCatConfig.entitlementId]?.isActive == true
+        if result.userCancelled { return false }
+        if result.customerInfo.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
+            return true
+        }
+        // StoreKit charged the user, but entitlement activation can lag receipt
+        // validation by a moment — without this retry, a legitimate purchase can
+        // read as "not active" and the paywall silently does nothing after payment.
+        try? await Task.sleep(nanoseconds: 1_500_000_000)
+        if let refreshed = try? await Purchases.shared.customerInfo(),
+           refreshed.entitlements[RevenueCatConfig.entitlementId]?.isActive == true {
+            return true
+        }
+        throw SubscriptionServiceError.entitlementNotActive
     }
 
     func refreshPremiumState() async throws -> Bool {

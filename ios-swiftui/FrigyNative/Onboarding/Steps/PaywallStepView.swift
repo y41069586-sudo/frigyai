@@ -22,6 +22,7 @@ struct PaywallStepView: View {
     @State private var showTerms = false
     @State private var showPrivacy = false
     @State private var restoreAlertMessage: String?
+    @State private var purchaseErrorMessage: String?
     @State private var showCelebration = false
 
     // MARK: - Derived state
@@ -132,6 +133,14 @@ struct PaywallStepView: View {
             Button(lang.t("OK"), role: .cancel) { restoreAlertMessage = nil }
         } message: {
             Text(restoreAlertMessage ?? "")
+        }
+        .alert(lang.t("Kauf fehlgeschlagen"), isPresented: Binding(
+            get: { purchaseErrorMessage != nil },
+            set: { if !$0 { purchaseErrorMessage = nil } }
+        )) {
+            Button(lang.t("OK"), role: .cancel) { purchaseErrorMessage = nil }
+        } message: {
+            Text(purchaseErrorMessage ?? "")
         }
         .task {
             // Link the store identity to this Supabase user BEFORE any purchase, so the
@@ -367,18 +376,25 @@ struct PaywallStepView: View {
                     guard let pkg = selectedPkg else { return }
                     isPurchasing = true
                     Task {
-                        let ok = (try? await router.subscriptionService.purchase(pkg)) ?? false
-                        if ok {
-                            router.isPremium = true
-                            // Schedule a local reminder on day 2 of a monthly trial so the
-                            // user is notified before they are charged on day 3.
-                            if !pkg.isYearly {
-                                scheduleTrialReminderNotification()
+                        do {
+                            let ok = try await router.subscriptionService.purchase(pkg)
+                            isPurchasing = false
+                            if ok {
+                                router.isPremium = true
+                                // Schedule a local reminder on day 2 of a monthly trial so the
+                                // user is notified before they are charged on day 3.
+                                if !pkg.isYearly {
+                                    scheduleTrialReminderNotification()
+                                }
+                                // Show the celebration screen first; "Los geht's" then advances.
+                                withAnimation(.easeOut(duration: 0.25)) { showCelebration = true }
                             }
+                            // !ok means the user cancelled the payment sheet — stay on the
+                            // paywall silently, no error (that's expected behavior).
+                        } catch {
+                            isPurchasing = false
+                            purchaseErrorMessage = lang.t(error.localizedDescription)
                         }
-                        isPurchasing = false
-                        // Show the celebration screen first; "Los geht's" then advances.
-                        if ok { withAnimation(.easeOut(duration: 0.25)) { showCelebration = true } }
                     }
                 } label: {
                     HStack(spacing: 8) {

@@ -124,6 +124,21 @@ enum Translations {
         "Abmelden": [.en: "Sign out", .fr: "Se déconnecter", .es: "Cerrar sesión", .it: "Esci", .hi: "साइन आउट"],
         "Konto löschen": [.en: "Delete account", .fr: "Supprimer le compte", .es: "Eliminar cuenta", .it: "Elimina account", .hi: "खाता हटाएं"],
 
+        // ===== PAYWALL PURCHASE ERRORS =====
+        "Kauf fehlgeschlagen": [.en: "Purchase failed", .fr: "Achat échoué", .es: "Compra fallida", .it: "Acquisto non riuscito", .hi: "खरीद विफल"],
+        "Dieses Abo konnte nicht gefunden werden. Bitte versuche es erneut.":
+            [.en: "This subscription could not be found. Please try again.",
+             .fr: "Cet abonnement est introuvable. Veuillez réessayer.",
+             .es: "No se pudo encontrar esta suscripción. Inténtalo de nuevo.",
+             .it: "Impossibile trovare questo abbonamento. Riprova.",
+             .hi: "यह सदस्यता नहीं मिली। कृपया पुनः प्रयास करें।"],
+        "Der Kauf konnte nicht bestätigt werden. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“ oder versuche es in ein paar Minuten erneut.":
+            [.en: "The purchase could not be confirmed. If you were charged, tap \"Restore purchases\" or try again in a few minutes.",
+             .fr: "L'achat n'a pas pu être confirmé. Si vous avez été débité, appuyez sur « Restaurer les achats » ou réessayez dans quelques minutes.",
+             .es: "No se pudo confirmar la compra. Si se te cobró, toca «Restaurar compras» o inténtalo de nuevo en unos minutos.",
+             .it: "Impossibile confermare l'acquisto. Se ti è stato addebitato un importo, tocca \"Ripristina acquisti\" o riprova tra qualche minuto.",
+             .hi: "खरीद की पुष्टि नहीं हो सकी। यदि आपसे शुल्क लिया गया है, तो \"खरीदारी पुनर्स्थापित करें\" पर टैप करें या कुछ मिनटों में पुनः प्रयास करें।"],
+
         // ===== LANGUAGE SCREEN =====
         "Wähle deine bevorzugte Sprache. Die Änderung wird sofort übernommen.":
             [.en: "Choose your preferred language. The change applies immediately.",
