@@ -128,7 +128,7 @@ struct ShoppingListView: View {
                         Text(lang.t("Einkaufsliste"))
                             .font(.system(size: 28, weight: .black, design: .rounded))
                             .foregroundColor(FrigyBrand.text)
-                        Text("\(unchecked.count) von \(items.count) Artikeln übrig")
+                        Text("\(unchecked.count) \(lang.t("von")) \(items.count) \(lang.t("Artikeln übrig"))")
                             .font(.system(size: 13))
                             .foregroundColor(FrigyBrand.textMuted)
                     }
@@ -296,6 +296,7 @@ struct ShoppingListView: View {
 // MARK: - Category section
 
 struct ShoppingCategorySection: View {
+    @Environment(LanguageManager.self) private var lang
     let category: ShoppingCategory
     let items: [ShoppingItem]
     let onToggle: (ShoppingItem) -> Void
@@ -306,7 +307,7 @@ struct ShoppingCategorySection: View {
                 Image(systemName: category.icon)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(category.color)
-                Text(category.rawValue)
+                Text(lang.t(category.rawValue))
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Text("(\(items.count))")
@@ -383,6 +384,7 @@ struct CheckedItemRow: View {
 
 struct AddShoppingItemSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
     let onAdd: (String, ShoppingCategory) -> Void
 
     @State private var name = ""
@@ -394,16 +396,16 @@ struct AddShoppingItemSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Button("Abbrechen") { dismiss() }
+                Button(lang.t("Abbrechen")) { dismiss() }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDark)
                     .frame(width: 100, alignment: .leading)
                 Spacer()
-                Text("Artikel hinzufügen")
+                Text(lang.t("Artikel hinzufügen"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
-                Button("Hinzufügen") {
+                Button(lang.t("Hinzufügen")) {
                     if canAdd {
                         onAdd(name.trimmingCharacters(in: .whitespaces), selectedCategory)
                         dismiss()
@@ -421,12 +423,12 @@ struct AddShoppingItemSheet: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("ARTIKEL")
+                        Text(lang.t("ARTIKEL"))
                             .font(.system(size: 10, weight: .bold))
                             .tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted)
                             .padding(.bottom, 10)
-                        TextField("Name eingeben", text: $name)
+                        TextField(lang.t("Name eingeben"), text: $name)
                             .font(.system(size: 16))
                             .foregroundColor(FrigyBrand.text)
                             .focused($focused)
@@ -435,7 +437,7 @@ struct AddShoppingItemSheet: View {
                     .frigyCard(cornerRadius: 16)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("KATEGORIE")
+                        Text(lang.t("KATEGORIE"))
                             .font(.system(size: 10, weight: .bold))
                             .tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted)
@@ -456,7 +458,7 @@ struct AddShoppingItemSheet: View {
                                                 .font(.system(size: 14, weight: .semibold))
                                                 .foregroundColor(FrigyBrand.primaryDark)
                                         }
-                                        Text(cat.rawValue)
+                                        Text(lang.t(cat.rawValue))
                                             .font(.system(size: 15))
                                             .foregroundColor(FrigyBrand.text)
                                         Spacer()
@@ -502,7 +504,7 @@ struct AddShoppingItemSheet: View {
                 dismiss()
             }
         } label: {
-            Text("Hinzufügen")
+            Text(lang.t("Hinzufügen"))
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)

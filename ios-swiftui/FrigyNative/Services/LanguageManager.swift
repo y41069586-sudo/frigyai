@@ -1148,5 +1148,8 @@ enum Translations {
         "25 Min": [.en: "25 min", .fr: "25 min", .es: "25 min", .it: "25 min", .hi: "25 मिनट"],
         "30 Min": [.en: "30 min", .fr: "30 min", .es: "30 min", .it: "30 min", .hi: "30 मिनट"],
         "35 Min": [.en: "35 min", .fr: "35 min", .es: "35 min", .it: "35 min", .hi: "35 मिनट"],
+
+        // ===== SHOPPING LIST SCREEN =====
+        "Artikeln übrig": [.en: "items remaining", .fr: "articles restants", .es: "artículos restantes", .it: "articoli rimasti", .hi: "आइटम शेष"],
     ]
 }
