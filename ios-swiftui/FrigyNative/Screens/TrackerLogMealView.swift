@@ -88,13 +88,13 @@ struct TrackerLogMealView: View {
                 VStack(spacing: 20) {
                     // Scan options: photo (OpenAI) + barcode
                     HStack(spacing: 12) {
-                        scanCard(icon: "camera.fill", title: "Essen scannen",
-                                 subtitle: "Foto mit KI",
+                        scanCard(icon: "camera.fill", title: lang.t("Essen scannen"),
+                                 subtitle: lang.t("Foto mit KI"),
                                  tint: "#39D47F", busy: false) {
                             showCamera = true
                         }
-                        scanCard(icon: "barcode.viewfinder", title: "Barcode",
-                                 subtitle: "Scannen",
+                        scanCard(icon: "barcode.viewfinder", title: lang.t("Barcode"),
+                                 subtitle: lang.t("Scannen"),
                                  tint: "#A5B4FC", busy: false) {
                             showBarcodeScanner = true
                         }
@@ -215,7 +215,7 @@ struct TrackerLogMealView: View {
                             selectedCategory = cat
                         }
                     } label: {
-                        Label(cat.rawValue, systemImage: cat.icon)
+                        Label(lang.t(cat.rawValue), systemImage: cat.icon)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(selectedCategory == cat ? .white : FrigyBrand.primaryDark)
                             .padding(.horizontal, 14)
@@ -249,7 +249,7 @@ struct TrackerLogMealView: View {
     @ViewBuilder private var liveSearchSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Suchergebnisse")
+                Text(lang.t("Suchergebnisse"))
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(FrigyBrand.textMuted)
                 Spacer()
@@ -258,7 +258,7 @@ struct TrackerLogMealView: View {
                 }
             }
             if searchResults.isEmpty && !isSearching {
-                Text("Keine Ergebnisse für „\(searchText)“")
+                Text("\(lang.t("Keine Ergebnisse für")) „\(searchText)“")
                     .font(.system(size: 14))
                     .foregroundColor(FrigyBrand.textMuted)
                     .padding(.top, 4)
@@ -281,10 +281,10 @@ struct TrackerLogMealView: View {
                 Image(systemName: "fork.knife")
                     .font(.system(size: 40))
                     .foregroundColor(FrigyBrand.cardBorder)
-                Text("Noch nichts geloggt")
+                Text(lang.t("Noch nichts geloggt"))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(FrigyBrand.textMuted)
-                Text("Scanne einen Barcode oder suche nach einem Lebensmittel.")
+                Text(lang.t("Scanne einen Barcode oder suche nach einem Lebensmittel."))
                     .font(.system(size: 13))
                     .foregroundColor(FrigyBrand.textMuted)
                     .multilineTextAlignment(.center)
@@ -294,7 +294,7 @@ struct TrackerLogMealView: View {
             .padding(.top, 40)
         } else {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Zuletzt gegessen")
+                Text(lang.t("Zuletzt gegessen"))
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                     .padding(.horizontal, 16)
@@ -306,7 +306,7 @@ struct TrackerLogMealView: View {
                                 Button(role: .destructive) {
                                     Task { await deleteRecentFood(food) }
                                 } label: {
-                                    Label("Löschen", systemImage: "trash")
+                                    Label(lang.t("Löschen"), systemImage: "trash")
                                 }
                             }
                     }
@@ -386,7 +386,7 @@ struct TrackerLogMealView: View {
 
     @ViewBuilder private var templatesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Mahlzeit-Vorlagen")
+            Text(lang.t("Mahlzeit-Vorlagen"))
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(FrigyBrand.text)
                 .padding(.horizontal, 16)
@@ -400,7 +400,7 @@ struct TrackerLogMealView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(tpl.emoji)
                                 .font(.system(size: 26))
-                            Text(tpl.name)
+                            Text(lang.t(tpl.name))
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(FrigyBrand.text)
                                 .lineLimit(2)
@@ -620,6 +620,7 @@ struct FoodTemplate: Identifiable {
 
 struct FoodTemplateDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
     let template: FoodTemplate
     let category: MealCategory
     let onSaved: () -> Void
@@ -629,11 +630,11 @@ struct FoodTemplateDetailSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Schließen") { dismiss() }
+                Button(lang.t("Schließen")) { dismiss() }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDark)
                 Spacer()
-                Text("Vorlage")
+                Text(lang.t("Vorlage"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
@@ -647,7 +648,7 @@ struct FoodTemplateDetailSheet: View {
                     VStack(spacing: 10) {
                         Text(template.emoji)
                             .font(.system(size: 56))
-                        Text(template.name)
+                        Text(lang.t(template.name))
                             .font(.system(size: 22, weight: .black))
                             .foregroundColor(FrigyBrand.text)
                             .multilineTextAlignment(.center)
@@ -655,7 +656,7 @@ struct FoodTemplateDetailSheet: View {
                             Image(systemName: "clock")
                                 .font(.system(size: 11))
                                 .foregroundColor(FrigyBrand.textMuted)
-                            Text(template.prepTime)
+                            Text(lang.t(template.prepTime))
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(FrigyBrand.textMuted)
                         }
@@ -665,19 +666,19 @@ struct FoodTemplateDetailSheet: View {
 
                     // Macros
                     HStack(spacing: 10) {
-                        macroChip("Kalorien", value: "\(template.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
-                        macroChip("Protein", value: "\(template.protein)", unit: "g", color: Color(hex: "#60A5FA"))
-                        macroChip("Carbs", value: "\(template.carbs)", unit: "g", color: Color(hex: "#FBBF24"))
-                        macroChip("Fett", value: "\(template.fat)", unit: "g", color: Color(hex: "#F87171"))
+                        macroChip(lang.t("Kalorien"), value: "\(template.calories)", unit: "kcal", color: FrigyBrand.primaryDark)
+                        macroChip(lang.t("Protein"), value: "\(template.protein)", unit: "g", color: Color(hex: "#60A5FA"))
+                        macroChip(lang.t("Carbs"), value: "\(template.carbs)", unit: "g", color: Color(hex: "#FBBF24"))
+                        macroChip(lang.t("Fett"), value: "\(template.fat)", unit: "g", color: Color(hex: "#F87171"))
                     }
                     .padding(.horizontal, 20)
 
                     // Recipe
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("Zubereitung", systemImage: "list.bullet")
+                        Label(lang.t("Zubereitung"), systemImage: "list.bullet")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
-                        Text(template.recipe)
+                        Text(lang.t(template.recipe))
                             .font(.system(size: 14))
                             .foregroundColor(FrigyBrand.textMuted)
                             .fixedSize(horizontal: false, vertical: true)
@@ -706,7 +707,7 @@ struct FoodTemplateDetailSheet: View {
                     } label: {
                         HStack(spacing: 8) {
                             if isSaving { ProgressView().tint(.white) }
-                            Text(isSaving ? "Wird gespeichert…" : "Zu Tagebuch hinzufügen")
+                            Text(isSaving ? lang.t("Wird gespeichert…") : lang.t("Zu Tagebuch hinzufügen"))
                                 .font(.system(size: 16, weight: .bold))
                         }
                         .foregroundColor(.white)
@@ -748,6 +749,7 @@ struct FoodTemplateDetailSheet: View {
 
 struct ManualFoodEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(LanguageManager.self) private var lang
 
     let prefill: ScannedFood?
     let selectedCategory: MealCategory
@@ -811,12 +813,12 @@ struct ManualFoodEntrySheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                Button("Abbrechen") { dismiss() }
+                Button(lang.t("Abbrechen")) { dismiss() }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(FrigyBrand.primaryDark)
                     .frame(width: 100, alignment: .leading)
                 Spacer()
-                Text("Produkt hinzufügen")
+                Text(lang.t("Produkt hinzufügen"))
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(FrigyBrand.text)
                 Spacer()
@@ -826,7 +828,7 @@ struct ManualFoodEntrySheet: View {
                     if isSaving {
                         ProgressView().tint(FrigyBrand.primaryDark)
                     } else {
-                        Text("Hinzufügen")
+                        Text(lang.t("Hinzufügen"))
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(canSave ? FrigyBrand.primaryDark : FrigyBrand.textMuted)
                     }
@@ -841,33 +843,33 @@ struct ManualFoodEntrySheet: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("LEBENSMITTEL")
+                        Text(lang.t("LEBENSMITTEL"))
                             .font(.system(size: 10, weight: .bold)).tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 10)
-                        TextField("Name eingeben", text: $name)
+                        TextField(lang.t("Name eingeben"), text: $name)
                             .font(.system(size: 16)).foregroundColor(FrigyBrand.text)
                     }
                     .padding(16).frigyCard(cornerRadius: 16)
 
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("NÄHRWERTE (PRO 100g)")
+                        Text(lang.t("NÄHRWERTE (PRO 100g)"))
                             .font(.system(size: 10, weight: .bold)).tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 4)
                         VStack(spacing: 0) {
-                            macroRow("Kalorien", unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
+                            macroRow(lang.t("Kalorien"), unit: "kcal", text: $caloriesText, color: FrigyBrand.primaryDark)
                             Divider().padding(.leading, 8)
-                            macroRow("Protein",  unit: "g", text: $proteinText,  color: Color(hex: "#60A5FA"))
+                            macroRow(lang.t("Protein"),  unit: "g", text: $proteinText,  color: Color(hex: "#60A5FA"))
                             Divider().padding(.leading, 8)
-                            macroRow("Kohlenhydrate", unit: "g", text: $carbsText, color: Color(hex: "#FBBF24"))
+                            macroRow(lang.t("Kohlenhydrate"), unit: "g", text: $carbsText, color: Color(hex: "#FBBF24"))
                             Divider().padding(.leading, 8)
-                            macroRow("Fett", unit: "g", text: $fatText, color: Color(hex: "#F87171"))
+                            macroRow(lang.t("Fett"), unit: "g", text: $fatText, color: Color(hex: "#F87171"))
                         }
                     }
                     .padding(16).frigyCard(cornerRadius: 16)
 
                     if prefill != nil {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(isDrink ? "MENGE (ml)" : "MENGE (g)")
+                            Text(isDrink ? lang.t("MENGE (ml)") : lang.t("MENGE (g)"))
                                 .font(.system(size: 10, weight: .bold)).tracking(1.5)
                                 .foregroundColor(FrigyBrand.textMuted).padding(.bottom, 10)
                             HStack {
@@ -881,7 +883,7 @@ struct ManualFoodEntrySheet: View {
                             }
                             if amount != 100 {
                                 Divider().padding(.vertical, 10)
-                                Text("≈ \(scaledCalories) kcal · \(scaledProtein)g P · \(scaledCarbs)g K · \(scaledFat)g F bei \(amountText)\(isDrink ? "ml" : "g")")
+                                Text("≈ \(scaledCalories) kcal · \(scaledProtein)g P · \(scaledCarbs)g K · \(scaledFat)g F \(lang.t("bei")) \(amountText)\(isDrink ? "ml" : "g")")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(FrigyBrand.primaryDark)
                             }
@@ -890,7 +892,7 @@ struct ManualFoodEntrySheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("MAHLZEIT")
+                        Text(lang.t("MAHLZEIT"))
                             .font(.system(size: 10, weight: .bold)).tracking(1.5)
                             .foregroundColor(FrigyBrand.textMuted)
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -899,7 +901,7 @@ struct ManualFoodEntrySheet: View {
                                     Button {
                                         withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { category = cat }
                                     } label: {
-                                        Label(cat.rawValue, systemImage: cat.icon)
+                                        Label(lang.t(cat.rawValue), systemImage: cat.icon)
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(category == cat ? .white : FrigyBrand.primaryDark)
                                             .padding(.horizontal, 14).padding(.vertical, 9)
@@ -929,7 +931,7 @@ struct ManualFoodEntrySheet: View {
     }
 
     private var addMealButton: some View {
-        let label: String = isSaving ? "Wird gespeichert..." : "Hinzufügen"
+        let label: String = isSaving ? lang.t("Wird gespeichert...") : lang.t("Hinzufügen")
         let fill: AnyShapeStyle = canSave
             ? AnyShapeStyle(LinearGradient(colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
                                            startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -1021,6 +1023,7 @@ struct FoodCameraView: UIViewControllerRepresentable {
 // MARK: - Food photo preview sheet
 
 struct FoodPhotoPreviewSheet: View {
+    @Environment(LanguageManager.self) private var lang
     let image: UIImage
     let onResult: (ScannedFood) -> Void
     let onCancel: () -> Void
@@ -1039,7 +1042,7 @@ struct FoodPhotoPreviewSheet: View {
                         HStack(spacing: 4) {
                             Image(systemName: "xmark")
                                 .font(.system(size: 13, weight: .semibold))
-                            Text("Abbrechen")
+                            Text(lang.t("Abbrechen"))
                                 .font(.system(size: 14, weight: .medium))
                         }
                         .foregroundColor(.white)
@@ -1078,7 +1081,7 @@ struct FoodPhotoPreviewSheet: View {
                         HStack(spacing: 8) {
                             Image(systemName: "sparkles")
                                 .font(.system(size: 16, weight: .semibold))
-                            Text("KI Analyse starten")
+                            Text(lang.t("KI Analyse starten"))
                                 .font(.system(size: 16, weight: .bold))
                         }
                         .foregroundColor(Color(hex: "#082013"))
@@ -1140,10 +1143,10 @@ struct FoodPhotoPreviewSheet: View {
                 }
 
                 VStack(spacing: 6) {
-                    Text("KI analysiert dein Essen…")
+                    Text(lang.t("KI analysiert dein Essen…"))
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(.white)
-                    Text("Kalorien und Makros werden erkannt")
+                    Text(lang.t("Kalorien und Makros werden erkannt"))
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -1170,7 +1173,7 @@ struct FoodPhotoPreviewSheet: View {
                                  protein: food.protein, carbs: food.carbs, fat: food.fat))
         } else {
             isAnalyzing = false
-            errorMessage = "Erkennung fehlgeschlagen – bitte erneut versuchen."
+            errorMessage = lang.t("Erkennung fehlgeschlagen – bitte erneut versuchen.")
         }
     }
 }
