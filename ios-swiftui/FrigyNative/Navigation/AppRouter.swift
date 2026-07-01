@@ -66,11 +66,15 @@ final class AppRouter {
                 return
             }
 
-            // All other cases: show onboarding.
-            // If previously marked complete but no active session (expired, signed out,
-            // or reinstalled), reset so the user can sign back in at AccountCreation.
+            // Completed onboarding but the session couldn't be restored (access token
+            // expired, transient network, etc.): send them straight to sign-in and
+            // KEEP their onboarding + all data. Previously we wiped everything
+            // (persistence.clear) and forced a brand-new onboarding — which is why a
+            // restart looked like data and premium were lost. After they sign back in,
+            // routeAfterOnboarding restores premium via RevenueCat.
             if onboardingCoordinator.isComplete {
-                onboardingCoordinator.resetForFreshOnboarding()
+                rootRoute = .auth
+                return
             }
 
             onboardingCoordinator.resumeFromLastStep()
@@ -79,6 +83,12 @@ final class AppRouter {
             rootRoute = .onboarding(step: onboardingCoordinator.currentStep)
             flushPendingDeepLinkWhileOnboarding()
         } catch {
+            // A user who already finished onboarding should re-authenticate, not be
+            // dropped back into onboarding.
+            if onboardingCoordinator.isComplete {
+                rootRoute = .auth
+                return
+            }
             // Supabase unavailable — show onboarding (splash with mascot) instead of auth screen
             onboardingCoordinator.resumeFromLastStep()
             rootRoute = .onboarding(step: onboardingCoordinator.currentStep)

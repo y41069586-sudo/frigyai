@@ -13,6 +13,23 @@ struct ProfileView: View {
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
     @State private var accountDeleteFailed = false
+    @State private var profileImage: UIImage?
+    @State private var showPhotoPicker = false
+
+    private static let profilePhotoKey = "frigy.profile.photo.v1"
+
+    private static func loadProfilePhoto() -> UIImage? {
+        guard let data = UserDefaults.standard.data(forKey: profilePhotoKey) else { return nil }
+        return UIImage(data: data)
+    }
+
+    private func saveProfilePhoto(_ image: UIImage?) {
+        if let image, let data = image.jpegData(compressionQuality: 0.8) {
+            UserDefaults.standard.set(data, forKey: Self.profilePhotoKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.profilePhotoKey)
+        }
+    }
 
     /// Reads the user's name from the persisted onboarding profile (the same
     /// store EditProfileView reads/writes) so a name edited there shows here.
@@ -36,14 +53,42 @@ struct ProfileView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     VStack(spacing: 10) {
-                        ZStack {
-                            Circle()
-                                .fill(FrigyBrand.selectedBg)
-                                .frame(width: 88, height: 88)
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(FrigyBrand.primaryDark)
+                        Button { showPhotoPicker = true } label: {
+                            ZStack(alignment: .bottomTrailing) {
+                                Group {
+                                    if let img = profileImage {
+                                        Image(uiImage: img)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 88, height: 88)
+                                            .clipShape(Circle())
+                                    } else {
+                                        ZStack {
+                                            Circle()
+                                                .fill(FrigyBrand.selectedBg)
+                                                .frame(width: 88, height: 88)
+                                            Image(systemName: "person.fill")
+                                                .font(.system(size: 40))
+                                                .foregroundColor(FrigyBrand.primaryDark)
+                                        }
+                                    }
+                                }
+                                .overlay(Circle().stroke(FrigyBrand.borderMint, lineWidth: 1))
+
+                                // Camera edit badge
+                                ZStack {
+                                    Circle()
+                                        .fill(FrigyBrand.primaryDark)
+                                        .frame(width: 28, height: 28)
+                                        .overlay(Circle().stroke(Color(UIColor.systemBackground), lineWidth: 2))
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                                .offset(x: 3, y: 3)
+                            }
                         }
+                        .buttonStyle(.plain)
                         Text(userName.isEmpty ? (userEmail.isEmpty ? lang.t("Mein Profil") : userEmail) : userName)
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(FrigyBrand.text)
@@ -207,7 +252,17 @@ struct ProfileView: View {
         }
         // Re-read on every appear so a name just edited in EditProfileView (and
         // saved back to the persisted profile) is reflected when we return here.
-        .onAppear { userName = Self.loadProfileName() }
+        .onAppear {
+            userName = Self.loadProfileName()
+            profileImage = Self.loadProfilePhoto()
+        }
+        .sheet(isPresented: $showPhotoPicker) {
+            ImagePickerView(image: $profileImage, sourceType: .photoLibrary)
+                .ignoresSafeArea()
+        }
+        .onChange(of: profileImage) { _, newImage in
+            saveProfilePhoto(newImage)
+        }
         .confirmationDialog(
             lang.t("Konto wirklich löschen?"),
             isPresented: $showDeleteConfirm,
