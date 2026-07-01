@@ -418,18 +418,30 @@ extension View {
     /// full-bleed background filling the sides. Applied once at the routing layer
     /// so every pushed detail view is fixed in one place. No-op look on iPhone.
     func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
-        // Detail screens (VStack { FrigyNavBar; ScrollView }) rendered with the
-        // content floating in the vertical CENTRE — big gap above the nav bar,
-        // rows clipped. Cause: pushed NavigationStack destinations don't give the
-        // screen a definite height, so the ScrollView sizes to its content and the
-        // block gets centred. containerRelativeFrame([.vertical]) sizes the screen
-        // to the navigation container's real height, so the ScrollView fills and
-        // the nav bar pins to the top. This is Apple's purpose-built API for
-        // "fill the container" and is applied once here for every detail screen.
-        self
-            .frame(maxWidth: .infinity, alignment: .top)
-            .containerRelativeFrame(.vertical, alignment: .top)
-            .background(FrigyGlassBackground().ignoresSafeArea())
+        // Deterministic top-anchoring for detail screens (pushed AND sheets).
+        //
+        // On iOS 26 these screens rendered with a huge blank gap above the nav bar
+        // and content overflowing the bottom — on iPhone and iPad alike. That
+        // pattern (shifted down + clipped at the bottom, not centred) is a bogus,
+        // oversized TOP SAFE-AREA INSET injected by the system (the hidden
+        // navigation bar still reserving space). Every proposal-based fix
+        // (maxHeight frames, GeometryReader, containerRelativeFrame) laid out
+        // *inside* that inset, so the gap survived them all.
+        //
+        // So we opt out of the system inset entirely and apply our own, CLAMPED:
+        // `.ignoresSafeArea(.container)` expands to the true screen edges, then we
+        // pad by at most 62pt top (status bar) / 34pt bottom (home indicator) —
+        // whatever the system claims. Real insets pass through unchanged; a bogus
+        // 300pt inset gets clamped away. Pixel math the system can't shift.
+        // (.container keeps keyboard avoidance intact for screens with fields.)
+        GeometryReader { geo in
+            self
+                .padding(.top, min(geo.safeAreaInsets.top, 62))
+                .padding(.bottom, min(geo.safeAreaInsets.bottom, 34))
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+        .ignoresSafeArea(.container)
+        .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.

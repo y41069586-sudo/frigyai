@@ -139,12 +139,15 @@ struct GlassTabBar: View {
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: tab.systemImage)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 20, weight: active ? .bold : .semibold))
                 Text(lang.t(tab.shortTitle))
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: 10, weight: active ? .heavy : .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
+            // The glass pill sits BEHIND the label, so the icon/text are always
+            // drawn crisp on top (never blurred by the glass). Selected label is
+            // the dark brand green at full opacity so it stays clearly readable.
             .foregroundColor(active ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
             .frame(maxWidth: .infinity)
             .frame(height: 50)
