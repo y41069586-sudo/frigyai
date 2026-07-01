@@ -57,10 +57,6 @@
 	<string>Wähle Fotos deiner Mahlzeiten aus der Bibliothek aus, damit Frigy die Nährwerte per KI berechnen kann.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Frigy sendet dir Erinnerungen für deine Mahlzeiten und Fortschritts-Updates.</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSAppTransportSecurity</key>

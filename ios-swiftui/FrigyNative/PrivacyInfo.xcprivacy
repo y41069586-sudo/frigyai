@@ -107,7 +107,7 @@
     <!-- Required Reason APIs used by the app and its SDKs -->
     <key>NSPrivacyAccessedAPITypes</key>
     <array>
-        <!-- UserDefaults: used by Capacitor and the app for local preference storage -->
+        <!-- UserDefaults: local preference/state storage (app + SDKs) -->
         <dict>
             <key>NSPrivacyAccessedAPIType</key>
             <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
@@ -117,7 +117,7 @@
                 <string>CA92.1</string>
             </array>
         </dict>
-        <!-- File timestamps: WKWebView / Capacitor accesses timestamps on cached files -->
+        <!-- File timestamps: accessed on files the app writes to its own container -->
         <dict>
             <key>NSPrivacyAccessedAPIType</key>
             <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
@@ -137,7 +137,7 @@
                 <string>35F9.1</string>
             </array>
         </dict>
-        <!-- Disk space: WKWebView cache size management -->
+        <!-- Disk space: checked before writing local cache/image data -->
         <dict>
             <key>NSPrivacyAccessedAPIType</key>
             <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
