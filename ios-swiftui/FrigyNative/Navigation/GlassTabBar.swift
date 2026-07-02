@@ -40,73 +40,39 @@ struct GlassTabBar: View {
 
     @ViewBuilder
     private func bar(slotWidth: CGFloat, innerH: CGFloat, plusSize: CGFloat, activeIndex: CGFloat) -> some View {
-        let stack = ZStack(alignment: .leading) {
-            // The animated glass pill — sits behind only the active tab.
-            activeGlassPill(width: slotWidth - 6)
-                .offset(x: innerH + activeIndex * slotWidth + 3)
-                .animation(.spring(response: 0.35, dampingFraction: 0.78), value: selection)
-
-            HStack(spacing: 0) {
-                ForEach(tabs, id: \.self) { tab in
-                    tabButton(tab).frame(width: slotWidth)
-                }
-                plusButton(mealCount: mealCount, size: plusSize)
-                    .frame(width: plusSize)
-                    .padding(.leading, 4)
+        HStack(spacing: 0) {
+            ForEach(tabs, id: \.self) { tab in
+                tabButton(tab).frame(width: slotWidth)
             }
-            .padding(.horizontal, innerH)
+            plusButton(mealCount: mealCount, size: plusSize)
+                .frame(width: plusSize)
+                .padding(.leading, 4)
         }
+        .padding(.horizontal, innerH)
         .frame(height: 58)
-
-        if #available(iOS 26, *) {
-            // ONLY the active pill is Liquid Glass — the bar itself stays fully
-            // transparent (no glass over the whole width, no colour). The
-            // GlassEffectContainer just lets the single pill render/morph correctly.
-            GlassEffectContainer(spacing: 8) {
-                stack
-            }
-        } else {
-            // Very subtle floating backing so buttons stay legible over scrolling
-            // content, WITHOUT the prominent grey capsule look.
-            stack.background(
-                Capsule()
-                    .fill(Color(UIColor.systemBackground).opacity(0.55))
-                    .shadow(color: .black.opacity(0.10), radius: 16, y: 6)
-            )
-        }
     }
 
+    /// Real Liquid Glass capsule used as the ACTIVE tab's background. Because it is a
+    /// `.background` it always sits strictly behind the icon/label, so the label can
+    /// never be blurred by the glass (the old separate pill inside a
+    /// GlassEffectContainer was compositing over the label — the washed-out icon).
     @ViewBuilder
-    private func activeGlassPill(width: CGFloat) -> some View {
+    private func activeGlassBackground() -> some View {
         if #available(iOS 26, *) {
-            // Sized FIRST, then glass. CLEAR Liquid Glass — no colour/tint, just the
-            // pure refracting glass pill around the active tab. Over the app's
-            // near-white background clear glass has almost nothing to refract, so we
-            // add a neutral specular RIM (white → clear) — the same bright edge real
-            // Liquid Glass shows — so the pill visibly reads as glass without adding
-            // any colour tint.
-            Color.clear
-                .frame(width: width, height: 46)
+            Capsule()
+                .fill(.clear)
                 .glassEffect(.regular.interactive(), in: .capsule)
                 .overlay(
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.85),
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.35)
-                                ],
-                                startPoint: .top, endPoint: .bottom
-                            ),
-                            lineWidth: 0.8
-                        )
+                    Capsule().strokeBorder(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.85), Color.white.opacity(0.15), Color.white.opacity(0.35)],
+                            startPoint: .top, endPoint: .bottom
+                        ),
+                        lineWidth: 0.8
+                    )
                 )
                 .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
         } else {
-            // Pre-iOS-26 frosted-glass approximation: a translucent pill with a
-            // top-down sheen and a mint-tinted rim + glow so it reads as glass,
-            // not a flat white blob.
             Capsule()
                 .fill(.ultraThinMaterial)
                 .overlay(
@@ -128,7 +94,6 @@ struct GlassTabBar: View {
                 )
                 .shadow(color: FrigyBrand.primary.opacity(0.28), radius: 10, y: 4)
                 .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
-                .frame(width: width, height: 46)
         }
     }
 
@@ -145,13 +110,14 @@ struct GlassTabBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            // The glass pill sits BEHIND the label, so the icon/text are always
-            // drawn crisp on top (never blurred by the glass). Selected label is
-            // the dark brand green at full opacity so it stays clearly readable.
             .foregroundColor(active ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
             .frame(maxWidth: .infinity)
+            .frame(height: 46)
+            // Glass lives in the BACKGROUND → strictly behind the label → crisp label.
+            .background { if active { activeGlassBackground().padding(.horizontal, 3) } }
             .frame(height: 50)
             .contentShape(Rectangle())
+            .animation(.spring(response: 0.35, dampingFraction: 0.78), value: active)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tab.shortTitle)
