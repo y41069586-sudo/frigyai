@@ -90,7 +90,10 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         guard RevenueCatConfig.isConfigured else { return [] }
         do {
             let offerings = try await Purchases.shared.offerings()
-            guard let current = offerings.current else { return [] }
+            // Prefer the "current" offering, but fall back to ANY offering if none is
+            // marked current in the RevenueCat dashboard — otherwise prices silently
+            // fail to load even though products exist.
+            guard let current = offerings.current ?? offerings.all.values.first else { return [] }
             cachedPackages = current.availablePackages
             return current.availablePackages.map { pkg in
                 let isYearly = pkg.packageType == .annual
