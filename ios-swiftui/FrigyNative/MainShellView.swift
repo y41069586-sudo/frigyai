@@ -24,7 +24,11 @@ struct MainShellView: View {
             tabRoot(ShoppingTabRoot(), tab: .shopping, selected: coordinator.selectedTab)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        // OVERLAY (not safeAreaInset): the bar FLOATS over the content so the
+        // dashboard scrolls BEHIND it — that's what makes the Liquid Glass refract
+        // real content and read as glass instead of flat white. The tab roots add a
+        // matching bottom scroll margin so the last row still clears the bar.
+        .overlay(alignment: .bottom) {
             // The bar lives only on the three tab roots. As soon as a detail
             // screen is pushed (the active tab's nav path is non-empty), it is
             // hidden so it never floats over meal details, settings, scanner, etc.
