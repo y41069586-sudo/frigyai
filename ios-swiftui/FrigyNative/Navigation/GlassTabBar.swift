@@ -27,8 +27,10 @@ struct GlassTabBar: View {
 
     private let tabs: [AppTab] = [.home, .plans, .shopping]
 
-    /// Namespace the bubble morphs within. Migrates 1:1 to iOS 26 `glassEffectID`.
+    /// Namespace the idle bubble's plain background morphs within.
     @Namespace private var bubbleNS
+    /// Namespace the real Liquid Glass lens's identity lives in (`glassEffectID`).
+    @Namespace private var glassNS
 
     private enum MotionPhase {
         case idle
@@ -98,39 +100,64 @@ struct GlassTabBar: View {
         .frame(height: 58)
     }
 
+    private var activeIndex: Int {
+        tabs.firstIndex(of: selection) ?? 0
+    }
+
+    /// Wraps the tab row in a `GlassEffectContainer` on iOS 26 so the render
+    /// server treats the lens as a real member of the Liquid Glass system
+    /// (required for genuine live backdrop sampling); a no-op passthrough on
+    /// iOS 18, where `motionLens` itself falls back to `.ultraThinMaterial`.
     private func tabGroup(slotWidth: CGFloat) -> some View {
-        HStack(spacing: 0) {
-            ForEach(tabs, id: \.self) { tab in
-                let active = selection == tab
-                tabLabel(tab, active: active)
-                    .frame(width: slotWidth, height: 46)
-                    // The bubble lives in the ACTIVE tab's background. When selection
-                    // changes inside `withAnimation`, matchedGeometryEffect
-                    // interpolates the bubble's frame from the old tab to the new one
-                    // — the fluid flow — with SwiftUI owning the geometry.
-                    .background {
-                        if active {
-                            liquidBubble
-                                .matchedGeometryEffect(id: "liquidBubble", in: bubbleNS)
-                        }
-                    }
-                    // The transient glass sits ABOVE the icon/label, not behind it.
-                    // Real backdrop glass (iOS 26 `glassEffect`) optically bends
-                    // whatever is beneath it — placing it in front is what lets it
-                    // genuinely refract the glyph as the pill slides across it,
-                    // instead of just tinting a static background.
-                    .overlay {
-                        if active {
-                            motionLens
-                                .matchedGeometryEffect(id: "motionLens", in: bubbleNS)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { switchTo(tab) }
-                    .accessibilityElement()
-                    .accessibilityLabel(lang.t(tab.shortTitle))
-                    .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
+        Group {
+            if #available(iOS 26, *) {
+                GlassEffectContainer(spacing: 0) {
+                    tabGroupContent(slotWidth: slotWidth)
+                }
+            } else {
+                tabGroupContent(slotWidth: slotWidth)
             }
+        }
+    }
+
+    private func tabGroupContent(slotWidth: CGFloat) -> some View {
+        ZStack(alignment: .leading) {
+            HStack(spacing: 0) {
+                ForEach(tabs, id: \.self) { tab in
+                    let active = selection == tab
+                    tabLabel(tab, active: active)
+                        .frame(width: slotWidth, height: 46)
+                        // The idle bubble lives in the ACTIVE tab's background. When
+                        // selection changes inside `withAnimation`, matchedGeometryEffect
+                        // interpolates its frame from the old tab to the new one — fine
+                        // for a plain filled shape with no live content to sample.
+                        .background {
+                            if active {
+                                liquidBubble
+                                    .matchedGeometryEffect(id: "liquidBubble", in: bubbleNS)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { switchTo(tab) }
+                        .accessibilityElement()
+                        .accessibilityLabel(lang.t(tab.shortTitle))
+                        .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+
+            // A single, PERSISTENT glass lens that SLIDES via offset instead of
+            // being attached/detached per active tab. Real backdrop-sampling glass
+            // (iOS 26 `glassEffect`) needs to stay the exact same render layer for
+            // the whole move for its refraction to be continuous — conditionally
+            // inserting/removing it per tab (the previous approach) meant the
+            // system built a brand new glass layer at each endpoint instead of
+            // sliding one, which is why it never looked like a moving lens, just a
+            // flat pill fading in and out.
+            motionLens
+                .frame(width: slotWidth, height: 46)
+                .offset(x: CGFloat(activeIndex) * slotWidth)
+                .allowsHitTesting(false)
+                .geometryGroup()
         }
     }
 
@@ -232,6 +259,13 @@ struct GlassTabBar: View {
     /// Opacity is `liquidIntensity`, so it only carries visual weight while
     /// MOVING/SETTLING and is invisible at idle.
     ///
+    /// This is a SINGLE persistent instance positioned by its caller (see
+    /// `tabGroupContent`) — never conditionally inserted/removed per tab.
+    /// `.glassEffectID` gives it a stable Liquid Glass identity inside the
+    /// enclosing `GlassEffectContainer`, so as its offset animates, the render
+    /// server keeps sampling the SAME live backdrop the whole time instead of
+    /// tearing down and rebuilding a new glass layer at each endpoint.
+    ///
     /// On iOS 26 this is intentionally almost bare: real `glassEffect` is a live
     /// Core Animation backdrop sampler — it renders its OWN specular highlight and
     /// refraction from whatever is actually behind it. Any extra `.overlay`/
@@ -243,18 +277,12 @@ struct GlassTabBar: View {
     @ViewBuilder
     private var motionLens: some View {
         if #available(iOS 26, *) {
-            // Apple's own guidance: even a single glass element should live inside
-            // a GlassEffectContainer so the system compositor treats it as a real
-            // Liquid Glass layer (with its own live specular/refraction) rather
-            // than an ad-hoc material.
-            GlassEffectContainer(spacing: 0) {
-                Capsule()
-                    .fill(.clear)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-            }
-            .opacity(liquidIntensity)
-            .allowsHitTesting(false)
-            .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+            Capsule()
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .glassEffectID("lens", in: glassNS)
+                .opacity(liquidIntensity)
+                .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
         } else {
             Capsule()
                 .fill(motionFillColor)
@@ -265,7 +293,6 @@ struct GlassTabBar: View {
                 .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
                 .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
                 .opacity(liquidIntensity)
-                .allowsHitTesting(false)
                 .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
         }
     }
