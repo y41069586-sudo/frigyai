@@ -956,7 +956,7 @@ struct FridgeScanSheet: View {
                     .padding(.horizontal, 24)
             }
             if let error = analysisError {
-                Text(error)
+                Text(lang.t(error))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(Color(hex: "#B91C1C"))
                     .multilineTextAlignment(.center)

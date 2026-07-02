@@ -1246,5 +1246,19 @@ enum Translations {
         "Amerikanisch": [.en: "American", .fr: "Américain", .es: "Americano", .it: "Americano", .hi: "अमेरिकी"],
         "Italienisch": [.en: "Italian", .fr: "Italien", .es: "Italiano", .it: "Italiano", .hi: "इतालवी"],
         "Deutsch": [.en: "German", .fr: "Allemand", .es: "Alemán", .it: "Tedesco", .hi: "जर्मन"],
+
+        // ===== TRACKER FAB (accessibility) =====
+        "Mahlzeit tracken – %@ heute": [.en: "Track a meal – %@ today", .fr: "Suivre un repas – %@ aujourd'hui", .es: "Registrar una comida – %@ hoy", .it: "Traccia un pasto – %@ oggi", .hi: "भोजन ट्रैक करें – आज %@"],
+
+        // ===== INGREDIENT SCAN ERRORS =====
+        "Keine Verbindung zum Server.": [.en: "No connection to the server.", .fr: "Aucune connexion au serveur.", .es: "Sin conexión con el servidor.", .it: "Nessuna connessione al server.", .hi: "सर्वर से कोई कनेक्शन नहीं।"],
+        "Bild konnte nicht gesendet werden.": [.en: "The photo couldn't be sent.", .fr: "La photo n'a pas pu être envoyée.", .es: "No se pudo enviar la foto.", .it: "Impossibile inviare la foto.", .hi: "फ़ोटो नहीं भेजी जा सकी।"],
+        "Keine Verbindung – bitte Internet prüfen.": [.en: "No connection – please check your internet.", .fr: "Aucune connexion – vérifiez votre connexion internet.", .es: "Sin conexión – comprueba tu internet.", .it: "Nessuna connessione – controlla la tua connessione internet.", .hi: "कोई कनेक्शन नहीं – कृपया अपना इंटरनेट जांचें।"],
+        "Bitte melde dich an, um Zutaten zu erkennen.": [.en: "Please sign in to recognize ingredients.", .fr: "Veuillez vous connecter pour reconnaître les ingrédients.", .es: "Inicia sesión para reconocer ingredientes.", .it: "Accedi per riconoscere gli ingredienti.", .hi: "सामग्री पहचानने के लिए कृपया साइन इन करें।"],
+        "Zutaten-Erkennung ist eine Premium-Funktion.": [.en: "Ingredient recognition is a Premium feature.", .fr: "La reconnaissance des ingrédients est une fonctionnalité Premium.", .es: "El reconocimiento de ingredientes es una función Premium.", .it: "Il riconoscimento degli ingredienti è una funzione Premium.", .hi: "सामग्री पहचान एक प्रीमियम सुविधा है।"],
+        "Zu viele Anfragen – bitte kurz warten und erneut versuchen.": [.en: "Too many requests – please wait a moment and try again.", .fr: "Trop de requêtes – veuillez patienter un instant et réessayer.", .es: "Demasiadas solicitudes – espera un momento e inténtalo de nuevo.", .it: "Troppe richieste – attendi un momento e riprova.", .hi: "बहुत अधिक अनुरोध – कृपया थोड़ा इंतज़ार करें और फिर से कोशिश करें।"],
+        "Erkennung fehlgeschlagen. Bitte versuche es erneut.": [.en: "Recognition failed. Please try again.", .fr: "Échec de la reconnaissance. Veuillez réessayer.", .es: "Fallo en el reconocimiento. Inténtalo de nuevo.", .it: "Riconoscimento non riuscito. Riprova.", .hi: "पहचान विफल रही। कृपया फिर से प्रयास करें।"],
+        "Antwort konnte nicht gelesen werden.": [.en: "The response couldn't be read.", .fr: "La réponse n'a pas pu être lue.", .es: "No se pudo leer la respuesta.", .it: "Impossibile leggere la risposta.", .hi: "प्रतिक्रिया नहीं पढ़ी जा सकी।"],
+        "Nicht verfügbar.": [.en: "Not available.", .fr: "Non disponible.", .es: "No disponible.", .it: "Non disponibile.", .hi: "उपलब्ध नहीं है।"],
     ]
 }

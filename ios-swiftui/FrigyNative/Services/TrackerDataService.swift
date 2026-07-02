@@ -798,7 +798,7 @@ final class TrackerDataService {
             case 401:      return .failure("Bitte melde dich an, um Zutaten zu erkennen.")
             case 403:      return .failure("Zutaten-Erkennung ist eine Premium-Funktion.")
             case 429:      return .failure("Zu viele Anfragen – bitte kurz warten und erneut versuchen.")
-            default:       return .failure("Erkennung fehlgeschlagen (Fehler \(status)).")
+            default:       return .failure("Erkennung fehlgeschlagen. Bitte versuche es erneut.")
             }
         }
 

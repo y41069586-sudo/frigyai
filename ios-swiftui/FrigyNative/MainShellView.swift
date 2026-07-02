@@ -74,6 +74,8 @@ private struct TrackerPlusButton: View {
     let mealCount: Int
     let action: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
@@ -102,7 +104,7 @@ private struct TrackerPlusButton: View {
         }
         .buttonStyle(.plain)
         .frame(width: 50, height: 50)
-        .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
+        .accessibilityLabel(lang.t("Mahlzeit tracken – %@ heute").replacingOccurrences(of: "%@", with: "\(mealCount)"))
     }
 }
 
