@@ -226,7 +226,7 @@ struct MealPlansView: View {
                             Text("\(tpl.calories) kcal")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(FrigyBrand.primary.opacity(0.9))
-                            Text("P \(tpl.protein)g · K \(tpl.carbs)g · F \(tpl.fat)g")
+                            Text("\(lang.t("Protein").prefix(1)) \(tpl.protein)g · \(lang.t("Kohlenhydrate").prefix(1)) \(tpl.carbs)g · \(lang.t("Fett").prefix(1)) \(tpl.fat)g")
                                 .font(.system(size: 9))
                                 .foregroundColor(FrigyBrand.textMuted)
                         }

@@ -441,7 +441,7 @@ struct TrackerLogMealView: View {
                             Text("\(tpl.calories) kcal")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundColor(FrigyBrand.primaryDark)
-                            Text("P \(tpl.protein)g · K \(tpl.carbs)g · F \(tpl.fat)g")
+                            Text("\(lang.t("Protein").prefix(1)) \(tpl.protein)g · \(lang.t("Kohlenhydrate").prefix(1)) \(tpl.carbs)g · \(lang.t("Fett").prefix(1)) \(tpl.fat)g")
                                 .font(.system(size: 10))
                                 .foregroundColor(FrigyBrand.textMuted)
                         }
