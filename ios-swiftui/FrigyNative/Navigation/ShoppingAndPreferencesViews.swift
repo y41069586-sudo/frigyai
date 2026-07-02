@@ -360,17 +360,16 @@ struct MealPlanPreferencesView: View {
     }
 
     private var baseContent: some View {
-        // Bare ScrollView root (top-anchors + fills like the dashboard) with the nav
-        // bar pinned at the top and the action buttons pinned at the bottom via
-        // safeAreaInset — instead of a VStack whose ScrollView collapsed and centred.
+        // Dashboard pattern: nav bar as the first item INSIDE the ScrollView (a top
+        // safeAreaInset centred the content — that was the real bug). Action buttons
+        // stay pinned at the bottom via a bottom safeAreaInset (standard footer).
         ScrollView(showsIndicators: false) {
-            preferencesContent
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FrigyNavBar(title: lang.t("Plan-Einstellungen"))
-                .background(FrigyGlassBackground())
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Plan-Einstellungen"))
+                preferencesContent
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             actionButtons

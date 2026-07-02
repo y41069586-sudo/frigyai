@@ -755,6 +755,7 @@ struct NutritionGoalsView: View {
         // VStack{NavBar;ScrollView} whose ScrollView collapses and centres.
         ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
+                    FrigyNavBar(title: lang.t("Ernährungsziele"))
                     Text(lang.t("Passe deine täglichen Makroziele an."))
                         .font(.system(size: 13))
                         .foregroundColor(FrigyBrand.textMuted)
@@ -812,11 +813,6 @@ struct NutritionGoalsView: View {
                 }
                 .detailContentColumn()
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FrigyNavBar(title: lang.t("Ernährungsziele"))
-                .background(FrigyGlassBackground())
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await load() }

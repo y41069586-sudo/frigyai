@@ -423,20 +423,6 @@ private struct FrigyDetailContainerModifier: ViewModifier {
             .frame(maxWidth: .infinity, alignment: .top)
             .frame(height: availableHeight > 0 ? availableHeight : nil, alignment: .top)
             .background(FrigyGlassBackground().ignoresSafeArea())
-            // TEMP DIAGNOSTIC — remove once confirmed. `env` = height injected from the
-            // tab-root GeometryReader; `got` = height this screen is actually given. If
-            // env=0 the injection isn't arriving; if got≪env the screen is still being
-            // handed a collapsed height.
-            .overlay(alignment: .topTrailing) {
-                GeometryReader { g in
-                    Text("env=\(Int(availableHeight)) got=\(Int(g.size.height))")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(4)
-                        .background(Color.red)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                }
-            }
     }
 }
 
