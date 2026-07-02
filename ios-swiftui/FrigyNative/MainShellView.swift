@@ -7,10 +7,13 @@ import SwiftUI
 /// reproduced pixel-for-pixel with a custom `.glassEffect()` capsule, however
 /// carefully it's tuned. Real `TabView` gets this for free on iOS 26.
 ///
-/// Trade-off, accepted deliberately: on iPad, `TabView` shows its bar at the TOP
-/// by default (Apple's own iPadOS 18+ convention for larger displays) — there is
-/// no supported way to force it to the bottom to match iPhone. That's intentional
-/// platform behavior here, not a bug to work around.
+/// On iPad, `TabView` shows its bar at the TOP by default (Apple's own
+/// iPadOS 18+ convention for larger displays). `.tabViewStyle(.tabBarOnly)`
+/// below opts out of that adaptation so the bar stays bottom-pinned on every
+/// device — iPad included — while keeping the real system Liquid Glass
+/// rendering. iPad otherwise runs its own full-screen adapted layout, not a
+/// shrunk iPhone view (Apple's classic Compatibility Mode was tried and
+/// abandoned — see project.yml's TARGETED_DEVICE_FAMILY comment).
 ///
 /// The floating tracker (+) button is NOT a tab (it presents a sheet, it doesn't
 /// navigate to a destination), so it lives outside the TabView as a custom
@@ -43,6 +46,15 @@ struct MainShellView: View {
                 .tag(AppTab.shopping)
         }
         .tint(FrigyBrand.primaryDeep)
+        // Forces the bar to stay bottom-pinned on iPad too, opting out of
+        // iPadOS 18+'s automatic top-floating adaptation, while keeping the
+        // real system TabView (and its native iOS 26 Liquid Glass rendering)
+        // intact. Isolated test: last time this was tried, it was removed
+        // together with an unrelated Tab-struct API change in the same
+        // commit, so it's unclear which one actually caused that compile
+        // failure — this is the ONLY change this time, so if the build
+        // fails again, it's conclusively this line/API.
+        .tabViewStyle(.tabBarOnly)
         .overlay(alignment: .bottomTrailing) {
             // Only alongside a tab's ROOT screen — hidden once a detail screen is
             // pushed, matching `frigyDetailContainer()` hiding the tab bar itself.

@@ -49,14 +49,6 @@ struct FrigyNativeApp: App {
                     // (Respects the paywall bypass for tester/review accounts.)
                     Task { await router.refreshPremiumOnForeground() }
                 }
-                // Disabled again: a real Cal AI screen recording confirmed native
-                // Compatibility Mode is genuine and achievable, so retrying it
-                // (device family "1", full iPad orientations kept to satisfy
-                // App Store Connect's validator). Re-add this line if the
-                // device still shows full-bleed iPad UI instead of the compact
-                // window — possibly caused by Stage Manager being enabled on
-                // the test device rather than a config problem.
-                // .phoneCanvasOnPad()
         }
     }
 }

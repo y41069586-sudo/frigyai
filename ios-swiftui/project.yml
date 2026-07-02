@@ -39,17 +39,14 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    # iPhone-only, attempt 3: a real screen recording of Cal AI confirms genuine
-    # Apple Compatibility Mode is real and achievable (draggable window, sharp
-    # corners, plain black backdrop, the actual 1x/2x-style resize toggle).
-    # App Store Connect's own validator (error 90474) demands all 4 iPad
-    # orientations be declared regardless of device family — that's kept as-is
-    # this time (see Info.plist), since removing it only broke the upload
-    # without ever getting to test the visual result. Device family alone is
-    # the real lever; the previous "full-bleed" result on a real device may
-    # have been caused by the test iPad having Stage Manager enabled, which
-    # changes how iPhone-only apps present.
-    TARGETED_DEVICE_FAMILY: "1"
+    # Universal. Decision: iPad shows the app's own full-screen, adapted
+    # layout (not a shrunk iPhone view) — real Apple Compatibility Mode
+    # turned out to require a clean "always was iPhone-only" App Store
+    # Connect history that this app, previously shipped as Universal,
+    # doesn't have (see project notes on the orientation-validation
+    # catch-22). The tab bar's bottom-vs-top position on iPad is instead
+    # controlled directly via .tabViewStyle(.tabBarOnly) in MainShellView.
+    TARGETED_DEVICE_FAMILY: "1,2"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     # Required for App Store archive: build all slices (arm64 + arm64e), not just
