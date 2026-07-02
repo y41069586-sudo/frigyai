@@ -979,6 +979,20 @@ struct AppleHealthView: View {
             VStack(spacing: 0) {
                 FrigyNavBar(title: lang.t("Apple Health"))
                 VStack(spacing: 20) {
+                    // TEMP DIAGNOSTIC — tells us exactly why Health isn't working.
+                    // avail=false → HealthKit not available on this device (e.g. iPad).
+                    // auth=denied → you denied read access in the OS sheet.
+                    // conn=false → turned off in-app. steps=0 with avail/conn true →
+                    // access granted but no step data (or read denied silently).
+                    Text("avail=\(healthKit.isAvailable ? 1 : 0) auth=\(String(describing: healthKit.authStatus)) conn=\(healthKit.isLocallyConnected ? 1 : 0) prompted=\(healthKit.hasPrompted ? 1 : 0) steps=\(healthKit.stepsToday) kcal=\(healthKit.activeCaloriesToday)")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.red)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+
                     if !healthKit.isAvailable {
                         // HealthKit doesn't exist on iPad — a Connect button here would
                         // do nothing (requestAuthorization bails on isHealthDataAvailable).
