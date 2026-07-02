@@ -49,7 +49,10 @@ struct FrigyNativeApp: App {
                     // (Respects the paywall bypass for tester/review accounts.)
                     Task { await router.refreshPremiumOnForeground() }
                 }
-                .phoneCanvasOnPad()
+                // Temporarily disabled: testing whether real iPadOS Compatibility
+                // Mode now works with the ~ipad orientation key removed (see
+                // project.yml). Re-add this line if it still doesn't trigger.
+                // .phoneCanvasOnPad()
         }
     }
 }

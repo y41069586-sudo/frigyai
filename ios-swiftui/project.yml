@@ -39,13 +39,14 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    # Reverted to Universal: iPhone-only (TARGETED_DEVICE_FAMILY "1") did NOT
-    # trigger the classic small-window Compatibility Mode on a real iPadOS 26
-    # build — confirmed by an actual green build still rendering full-bleed
-    # iPad layout. Whatever iPadOS 26 does with iPhone-only apps now, it isn't
-    # the legacy letterboxed window, so the phone-shaped look is handled
-    # entirely in SwiftUI instead (see PhoneCanvas.swift).
-    TARGETED_DEVICE_FAMILY: "1,2"
+    # iPhone-only, attempt 2: the first try at this (device family "1" alone)
+    # still rendered full-bleed on a real iPadOS 26 build. Likely cause: the
+    # Info.plist ALSO declared full iPad-specific orientations
+    # (UISupportedInterfaceOrientations~ipad), which contradicts an iPhone-
+    # only app and may have stopped iPadOS from treating it as one. That key
+    # is now removed too (see Info.plist) — testing whether Compatibility
+    # Mode actually triggers now.
+    TARGETED_DEVICE_FAMILY: "1"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     # Required for App Store archive: build all slices (arm64 + arm64e), not just
@@ -108,14 +109,12 @@ targets:
             CFBundleURLSchemes:
               - com.googleusercontent.apps.153158265512-8ookf1g41bc74527pqh66ufga6uatrlm
         UILaunchScreen: {}
-        # iPhone: portrait only (food-tracking UX is vertical)
+        # Portrait only, no ~ipad override: an iPhone-only app declaring iPad-
+        # specific orientations contradicts TARGETED_DEVICE_FAMILY "1" and was
+        # likely why iPadOS wasn't treating it as a real Compatibility Mode
+        # (iPhone-only) app.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         # Supabase + OAuth — values injected by Secrets.xcconfig on Codemagic
         SUPABASE_URL: "$(SUPABASE_URL)"
         SUPABASE_ANON_KEY: "$(SUPABASE_ANON_KEY)"
