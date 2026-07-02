@@ -182,7 +182,7 @@ final class RevenueCatSubscriptionService: NSObject, SubscriptionServiceProtocol
                 group.cancelAll()
                 return first
             }
-        } catch let error as ErrorCode where error == .purchaseCancelledError {
+        } catch let error as RevenueCat.ErrorCode where error == .purchaseCancelledError {
             // Belt-and-suspenders: `purchase(package:)` is documented to report a
             // decline via `result.userCancelled` rather than throwing, but if a
             // platform edge case ever does throw the cancellation error code

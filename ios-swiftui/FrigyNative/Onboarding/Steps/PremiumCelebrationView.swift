@@ -34,7 +34,10 @@ struct PremiumCelebrationView: View {
                     // don't wrap or size correctly. Pinning an explicit width here
                     // (not just minHeight) is what actually constrains the layout to
                     // the screen, fixing the button/text bleeding past the edge.
-                    .frame(width: geo.size.width, minHeight: geo.size.height)
+                    // (Two separate `.frame` calls — `width:` and `minHeight:` aren't
+                    // parameters of the same overload.)
+                    .frame(width: geo.size.width)
+                    .frame(minHeight: geo.size.height)
             }
         }
     }
