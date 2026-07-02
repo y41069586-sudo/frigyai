@@ -7,10 +7,9 @@ struct LanguageView: View {
     @Environment(LanguageManager.self) private var lang
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Sprache"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Sprache"))
                 VStack(spacing: 20) {
                     Text(lang.t("Wähle deine bevorzugte Sprache. Die Änderung wird sofort übernommen."))
                         .font(.system(size: 14))

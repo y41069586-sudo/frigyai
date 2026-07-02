@@ -894,10 +894,9 @@ struct AppearanceView: View {
     @Environment(LanguageManager.self) private var lang
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Darstellung"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Darstellung"))
                 VStack(spacing: 20) {
                     Text(lang.t("Wähle, wie Frigy aussehen soll. Die Änderung wird sofort übernommen."))
                         .font(.system(size: 14))
@@ -976,10 +975,9 @@ struct AppleHealthView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Apple Health"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Apple Health"))
                 VStack(spacing: 20) {
                     if !healthKit.isAvailable {
                         // HealthKit doesn't exist on iPad — a Connect button here would
@@ -1123,10 +1121,9 @@ struct SubscriptionView: View {
     @State private var packages: [SubscriptionPackage] = []
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Abonnement"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Abonnement"))
                 VStack(spacing: 24) {
                     ZStack {
                         Circle()
@@ -1294,10 +1291,9 @@ struct PrivacyView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Datenschutz"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Datenschutz"))
                 VStack(spacing: 20) {
                     legalBanner(icon: "lock.shield.fill", color: "#34D399",
                                 title: lang.t("Deine Daten gehören dir"),
@@ -1322,10 +1318,9 @@ struct HelpView: View {
     @Environment(LanguageManager.self) private var lang
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Hilfe & Support"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Hilfe & Support"))
                 VStack(spacing: 20) {
                     VStack(spacing: 0) {
                         contactRow("support@frigy.app", icon: "envelope.fill")
@@ -2010,10 +2005,9 @@ struct BadgesView: View {
     @State private var unlockedTypes: Set<String> = []
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Abzeichen"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Abzeichen"))
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(catalog) { badge in
                         let unlocked = unlockedTypes.contains(badge.id.lowercased())
@@ -2173,10 +2167,9 @@ struct MealDetailView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: plannedMeal?.name ?? template?.name ?? id)
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: plannedMeal?.name ?? template?.name ?? id)
                 VStack(spacing: 20) {
                     if let meal = plannedMeal {
                         VStack(spacing: 10) {
@@ -2432,10 +2425,9 @@ struct RemindersView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Erinnerungen"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Erinnerungen"))
                 VStack(spacing: 20) {
                     // Permission banner
                     if !hasPermission {

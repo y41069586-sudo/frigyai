@@ -77,9 +77,9 @@ struct EditProfileView: View {
     }
 
     private var editProfileBaseContent: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Profil bearbeiten"))
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Profil bearbeiten"))
                 editProfileFields
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -594,10 +594,9 @@ struct ImpressumView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Impressum"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("Impressum"))
                 VStack(spacing: 20) {
                     legalBanner(icon: "building.2.fill", color: "#60B4FF",
                                 title: lang.t("Impressum"),
@@ -639,10 +638,9 @@ struct AGBView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("AGB"))
-
-            ScrollView(showsIndicators: false) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                FrigyNavBar(title: lang.t("AGB"))
                 VStack(spacing: 20) {
                     legalBanner(icon: "doc.badge.gearshape.fill", color: "#6366F1",
                                 title: lang.t("Allgemeine Geschäftsbedingungen"),
