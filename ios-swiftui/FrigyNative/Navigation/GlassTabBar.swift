@@ -227,24 +227,47 @@ struct GlassTabBar: View {
             .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
     }
 
-    /// MOTION lens — the real Liquid Glass: adaptive material, specular highlight,
-    /// bright rim and dark lens-edge lines (the top/bottom hairlines a real optical
-    /// lens shows). Rendered ABOVE the icon/label so on iOS 26 the system
-    /// `glassEffect` genuinely refracts the glyph beneath it as it slides — the
-    /// warped-icon look during a transition. Opacity is `liquidIntensity`, so it
-    /// only carries visual weight while MOVING/SETTLING and is invisible at idle.
+    /// MOTION lens — rendered ABOVE the icon/label so it can genuinely refract the
+    /// glyph beneath it as it slides (the warped-icon look in real Liquid Glass).
+    /// Opacity is `liquidIntensity`, so it only carries visual weight while
+    /// MOVING/SETTLING and is invisible at idle.
+    ///
+    /// On iOS 26 this is intentionally almost bare: real `glassEffect` is a live
+    /// Core Animation backdrop sampler — it renders its OWN specular highlight and
+    /// refraction from whatever is actually behind it. Any extra `.overlay`/
+    /// `.shadow` we stack on top of it competes with that live sample and can force
+    /// the layer to flatten into a static bitmap, which is what was reading as
+    /// "flat" before. Hand-painted highlight/rim/lens-edge lines are kept ONLY for
+    /// the iOS 18 fallback, where no real backdrop lensing exists at all and those
+    /// cues are the closest approximation available.
+    @ViewBuilder
     private var motionLens: some View {
-        Capsule()
-            .fill(motionFillColor)
-            .liquidSurface()
-            .overlay(specularHighlight)
-            .overlay(rimHighlight)
-            .overlay(lensEdgeLines)
-            .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
-            .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+        if #available(iOS 26, *) {
+            // Apple's own guidance: even a single glass element should live inside
+            // a GlassEffectContainer so the system compositor treats it as a real
+            // Liquid Glass layer (with its own live specular/refraction) rather
+            // than an ad-hoc material.
+            GlassEffectContainer(spacing: 0) {
+                Capsule()
+                    .fill(.clear)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+            }
             .opacity(liquidIntensity)
             .allowsHitTesting(false)
             .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+        } else {
+            Capsule()
+                .fill(motionFillColor)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(specularHighlight)
+                .overlay(rimHighlight)
+                .overlay(lensEdgeLines)
+                .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
+                .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+                .opacity(liquidIntensity)
+                .allowsHitTesting(false)
+                .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+        }
     }
 
     private var idleFillColor: Color {
@@ -349,18 +372,5 @@ struct GlassTabBar: View {
         .disabled(onTrackerTap == nil)
         .opacity(onTrackerTap == nil ? 0 : 1)
         .accessibilityLabel("Mahlzeit tracken – \(mealCount) heute")
-    }
-}
-
-private extension View {
-    /// Adaptive translucent surface. Real Liquid Glass on iOS 26; `.ultraThinMaterial`
-    /// (adaptive, content-bending blur) on iOS 18 — swap point for the migration.
-    @ViewBuilder
-    func liquidSurface() -> some View {
-        if #available(iOS 26, *) {
-            self.glassEffect(.regular.interactive(), in: .capsule)
-        } else {
-            self.background(.ultraThinMaterial, in: Capsule())
-        }
     }
 }
