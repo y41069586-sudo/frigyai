@@ -52,9 +52,23 @@ import UIKit
 /// Live subscription service backed by RevenueCat. Loads store-localized
 /// monthly/yearly prices and drives purchase / restore against the configured
 /// premium entitlement.
+///
+/// Follows RevenueCat's own recommended integration pattern: `PurchasesDelegate`
+/// (`NSObject` conformance is required by the SDK's delegate protocol) delivers
+/// a fresh `CustomerInfo` any time the SDK learns the entitlement changed for
+/// ANY reason — a purchase, a restore, a renewal, a cancellation, a delayed
+/// server-side sync, even a family-sharing member's purchase. That's the same
+/// event stream Apple's StoreKit transaction observer feeds into the SDK, so
+/// reacting to it (instead of manually polling `customerInfo()` in a sleep
+/// loop after our own purchase calls) is the idiomatic, authoritative way to
+/// stay in sync — `AppRouter` subscribes via `onPremiumStatusChanged` below.
 @MainActor
-final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
+final class RevenueCatSubscriptionService: NSObject, SubscriptionServiceProtocol, PurchasesDelegate {
     static let shared = RevenueCatSubscriptionService()
+
+    /// Set by `AppRouter` at launch. Fires with the freshly-computed premium
+    /// state every time RevenueCat delivers updated `CustomerInfo`.
+    var onPremiumStatusChanged: ((Bool) -> Void)?
 
     private var cachedPackages: [Package] = []
 
@@ -81,6 +95,16 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         guard !Purchases.isConfigured else { return }
         Purchases.logLevel = .error
         Purchases.configure(withAPIKey: key)
+        Purchases.shared.delegate = shared
+    }
+
+    /// RevenueCat's own recommended reactive hook (see the type doc comment
+    /// above) — fires for any entitlement change the SDK learns about, not
+    /// just the ones we triggered ourselves.
+    nonisolated func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        Task { @MainActor in
+            self.onPremiumStatusChanged?(self.isPremiumActive(customerInfo))
+        }
     }
 
     func availablePackages() async -> [SubscriptionPackage] {
@@ -145,27 +169,18 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         }
 
         if result.userCancelled { return false }
-        if isPremiumActive(result.customerInfo) {
-            return true
-        }
         // StoreKit already charged the user at this point — `purchase()` returned
-        // without throwing and without userCancelled, so the transaction is done.
-        // Entitlement activation can lag receipt validation (sandbox/TestFlight
-        // lag noticeably longer than production), so poll a few times with
-        // backoff to pick up the confirmed state quickly if possible. But if it's
-        // still not showing after polling, we do NOT tell a customer who was just
-        // charged that their "purchase failed" — that's false and it's what was
-        // causing the paywall to show an error before the entitlement caught up a
-        // moment later. Treat the completed StoreKit transaction as success
-        // either way; `AppRouter.refreshPremiumOnForeground()` reconciles the
-        // authoritative entitlement state in the background afterwards.
-        for delaySeconds in [2, 3, 5, 8] {
-            try? await Task.sleep(nanoseconds: UInt64(delaySeconds) * 1_000_000_000)
-            if let refreshed = try? await Purchases.shared.customerInfo(),
-               isPremiumActive(refreshed) {
-                return true
-            }
-        }
+        // without throwing and without userCancelled, so the transaction is done,
+        // regardless of whether this particular CustomerInfo snapshot already
+        // reflects the entitlement (activation can lag receipt validation,
+        // especially on sandbox/TestFlight). We do NOT tell a customer who was
+        // just charged that their "purchase failed" just because this one
+        // snapshot hasn't caught up yet — that was the actual bug before.
+        //
+        // No manual polling loop needed: `purchases(_:receivedUpdated:)` above
+        // (RevenueCat's own recommended delegate hook) fires independently the
+        // moment the SDK confirms the entitlement, and updates `AppRouter.isPremium`
+        // directly — often before this function even returns.
         return true
     }
 

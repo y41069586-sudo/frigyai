@@ -45,6 +45,17 @@ final class AppRouter {
         self.subscriptionService = subscriptionService ?? MockSubscriptionService()
         #endif
         self.onboardingCoordinator = onboardingCoordinator ?? OnboardingCoordinator()
+
+        #if canImport(RevenueCat)
+        // RevenueCat's own recommended integration pattern: react to entitlement
+        // changes as the SDK learns about them (purchase, restore, renewal,
+        // cancellation, a delayed server-side sync, family sharing, ...) instead
+        // of only checking at specific moments we remember to poll. This is the
+        // authoritative source of truth for `isPremium` from here on.
+        (self.subscriptionService as? RevenueCatSubscriptionService)?.onPremiumStatusChanged = { [weak self] isPremium in
+            self?.isPremium = isPremium
+        }
+        #endif
     }
 
     func bootstrap() async {
