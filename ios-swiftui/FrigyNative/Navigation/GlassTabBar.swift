@@ -2,17 +2,21 @@ import SwiftUI
 
 /// Bottom navigation with an Apple-"Liquid Glass"-style motion system.
 ///
-/// The selection indicator is a single translucent bubble that FLOWS between tabs
-/// via `matchedGeometryEffect` (SwiftUI owns the geometry, so there is no manual
-/// frame math, no layout jitter and no state desync on rapid tapping). On top of
-/// the flow, a volume-preserving squash-&-stretch layer gives the elastic "liquid"
-/// deformation, and the stretch intensity scales with the travel distance — a
-/// velocity proxy, so a far jump reads more energetic than an adjacent one.
+/// The key correction in this version: on Apple's own surfaces (iOS 26 tab
+/// bars, Dynamic Island, Apple Pay) Liquid Glass is a TRANSITION effect, not a
+/// permanent visual state. At rest the selection indicator is a clean,
+/// near-static, minimally-translucent pill. The glass surface, specular
+/// highlight and rim only gain visual weight WHILE something is moving, then
+/// fade back out as it settles — they never sit at full intensity at idle.
 ///
-/// The bubble surface is adaptive translucency: real `glassEffect` on iOS 26,
-/// `.ultraThinMaterial` (which also bends/blurs the content behind it and adapts to
-/// light/dark) as the iOS 18 stand-in — so migrating to full iOS 26 Liquid Glass is
-/// a one-line surface swap, the motion architecture stays identical.
+/// This is driven by a single continuous `liquidIntensity` (0...1) plus a
+/// `motionPhase` enum (`idle` / `moving` / `settling`) for phase bookkeeping.
+/// The selection bubble itself still FLOWS between tabs via
+/// `matchedGeometryEffect` (SwiftUI owns the geometry, so there is no manual
+/// frame math, no layout jitter and no state desync on rapid tapping), and a
+/// volume-preserving squash-&-stretch layer gives the elastic "liquid"
+/// deformation whose intensity scales with travel distance — a velocity
+/// proxy, since taps have no real velocity to read.
 struct GlassTabBar: View {
     @Binding var selection: AppTab
     var mealCount: Int = 0
@@ -26,10 +30,37 @@ struct GlassTabBar: View {
     /// Namespace the bubble morphs within. Migrates 1:1 to iOS 26 `glassEffectID`.
     @Namespace private var bubbleNS
 
+    private enum MotionPhase {
+        case idle
+        case moving
+        case settling
+    }
+
+    // MARK: Motion-phase state
+
+    /// Coarse phase bookkeeping. Purely descriptive — all actual visuals are
+    /// driven continuously by `liquidIntensity` / `stretchX` below, so a phase
+    /// change never causes a visual "pop".
+    @State private var motionPhase: MotionPhase = .idle
+    /// True for the whole moving+settling window. Exposed mainly so future
+    /// consumers (haptics, debug UI) can key off a single boolean instead of
+    /// the phase enum.
+    @State private var isTransitioning: Bool = false
+    /// 0 = clean idle pill, 1 = full transient glass. Rises fast on tap,
+    /// decays back to 0 once the flow has visually landed — this is the knob
+    /// that keeps Liquid Glass a MOTION-ONLY effect.
+    @State private var liquidIntensity: CGFloat = 0
+    /// Generation counter so a settle scheduled by an earlier tap can't
+    /// clobber phase state for a newer, still-in-flight tap (interruptible
+    /// springs need interruptible bookkeeping too).
+    @State private var motionToken: Int = 0
+
     // Squash-&-stretch state, driven independently of the position spring so the two
     // compose without fighting. `stretchX` > 1 elongates along travel; `y` compresses
     // to preserve volume (the classic liquid deform). `anchor` points at the travel
-    // direction so the leading edge reaches ahead before the body catches up.
+    // direction so the leading edge reaches ahead before the body catches up. This
+    // already self-resets to 1 at rest, so it was never the "permanent liquid" bug —
+    // the always-visible glass surface/highlight/rim were.
     @State private var stretchX: CGFloat = 1
     @State private var stretchAnchor: UnitPoint = .center
 
@@ -112,7 +143,8 @@ struct GlassTabBar: View {
     // MARK: - Motion
 
     /// One place owns the transition, so rapid taps can only ever re-target a single
-    /// spring — no competing animations, no desync.
+    /// set of springs — no competing animations, no desync. Interruptible: a new tap
+    /// bumps `motionToken`, so any settle scheduled by the previous tap silently no-ops.
     private func switchTo(_ tab: AppTab) {
         guard tab != selection,
               let from = tabs.firstIndex(of: selection),
@@ -124,13 +156,24 @@ struct GlassTabBar: View {
         // Lead with the travel direction so the bubble's front edge reaches ahead.
         stretchAnchor = to > from ? .leading : .trailing
 
-        // 1) Position + size FLOW — a responsive spring with a touch of overshoot so
-        //    it settles with life, not a dead ease.
+        motionToken += 1
+        let token = motionToken
+        motionPhase = .moving
+        isTransitioning = true
+
+        // MOTION turns the glass ON: a fast rise so the transient surface is present
+        // the instant travel begins — never a resting-state default.
+        withAnimation(.spring(response: 0.12, dampingFraction: 0.8)) {
+            liquidIntensity = 1
+        }
+
+        // Position + size FLOW — a responsive spring with a touch of overshoot so
+        // it settles with life, not a dead ease.
         withAnimation(.spring(response: 0.44, dampingFraction: 0.74)) {
             selection = tab
         }
 
-        // 2) Elastic squash-&-stretch, decoupled: a fast snappy stretch OUT …
+        // Elastic squash-&-stretch, decoupled: a fast snappy stretch OUT …
         withAnimation(.spring(response: 0.17, dampingFraction: 0.58)) {
             stretchX = peak
         }
@@ -139,41 +182,94 @@ struct GlassTabBar: View {
         withAnimation(.spring(response: 0.46, dampingFraction: 0.7).delay(0.07)) {
             stretchX = 1
         }
+
+        // SETTLE: once the flow has visually landed, calm the glass back OFF. This
+        // is what keeps Liquid Glass a TRANSITION effect instead of a permanent
+        // surface — the idle pill it fades into is the same clean, minimal base
+        // that was there before the tap.
+        withAnimation(.easeOut(duration: 0.32).delay(0.30)) {
+            liquidIntensity = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+            guard token == motionToken else { return }
+            motionPhase = .settling
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.62) {
+            guard token == motionToken else { return }
+            motionPhase = .idle
+            isTransitioning = false
+        }
     }
 
     // MARK: - Surfaces
 
+    /// Two composited layers: a clean, minimal base that IS the idle appearance,
+    /// and a transient glass layer whose opacity is `liquidIntensity` — visible
+    /// only while `isTransitioning`, invisible at rest.
     private var liquidBubble: some View {
+        ZStack {
+            // IDLE — always present, deliberately unglamorous: a quiet translucent
+            // fill and a hairline border. This is the resting state Apple's own
+            // tab bar shows almost all of the time.
+            Capsule()
+                .fill(idleFillColor)
+                .overlay(
+                    Capsule().strokeBorder(idleBorderColor, lineWidth: 0.75)
+                )
+                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+
+            // MOTION — the real Liquid Glass: adaptive material, specular
+            // highlight and a bright rim. Only carries visual weight while
+            // `liquidIntensity` > 0, i.e. during MOVING/SETTLING.
+            Capsule()
+                .fill(motionFillColor)
+                .liquidSurface()
+                .overlay(specularHighlight)
+                .overlay(rimHighlight)
+                .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
+                .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+                .opacity(liquidIntensity)
+        }
+        // Volume-preserving squash-&-stretch anchored to the travel direction.
+        // Already self-resets to 1 at rest, so it never needed gating.
+        .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+    }
+
+    private var idleFillColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.12) : Color.white.opacity(0.68)
+    }
+
+    private var idleBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05)
+    }
+
+    private var motionFillColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.10) : Color.white.opacity(0.55)
+    }
+
+    /// Dynamic specular highlight — a bright top edge that reads as light bending
+    /// across the glass. Only ever seen through the `liquidIntensity`-gated layer.
+    private var specularHighlight: some View {
         Capsule()
-            .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color.white.opacity(0.55))
-            .liquidSurface()
-            // Dynamic specular highlight — a bright top edge that reads as light
-            // bending across the glass.
-            .overlay(
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [.white.opacity(colorScheme == .dark ? 0.22 : 0.55), .clear],
-                            startPoint: .top, endPoint: .center
-                        )
-                    )
-                    .blendMode(.plusLighter)
-                    .allowsHitTesting(false)
-            )
-            // Neutral rim so the glass edge is visible over any background.
-            .overlay(
-                Capsule().strokeBorder(
-                    LinearGradient(
-                        colors: [.white.opacity(0.9), .white.opacity(0.15), .white.opacity(0.4)],
-                        startPoint: .top, endPoint: .bottom
-                    ),
-                    lineWidth: 0.8
+            .fill(
+                LinearGradient(
+                    colors: [.white.opacity(colorScheme == .dark ? 0.22 : 0.55), .clear],
+                    startPoint: .top, endPoint: .center
                 )
             )
-            .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
-            .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
-            // Volume-preserving squash-&-stretch anchored to the travel direction.
-            .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+            .blendMode(.plusLighter)
+            .allowsHitTesting(false)
+    }
+
+    /// Neutral rim so the glass edge is visible over any background.
+    private var rimHighlight: some View {
+        Capsule().strokeBorder(
+            LinearGradient(
+                colors: [.white.opacity(0.9), .white.opacity(0.15), .white.opacity(0.4)],
+                startPoint: .top, endPoint: .bottom
+            ),
+            lineWidth: 0.8
+        )
     }
 
     @ViewBuilder
