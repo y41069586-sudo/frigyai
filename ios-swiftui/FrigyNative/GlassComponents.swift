@@ -423,6 +423,10 @@ private struct FrigyDetailContainerModifier: ViewModifier {
             .frame(maxWidth: .infinity, alignment: .top)
             .frame(height: availableHeight > 0 ? availableHeight : nil, alignment: .top)
             .background(FrigyGlassBackground().ignoresSafeArea())
+            // The system TabView's tab bar would otherwise float over full-screen
+            // detail content (meal details, settings, scanner, …) since by default
+            // it stays visible across NavigationStack pushes.
+            .toolbar(.hidden, for: .tabBar)
     }
 }
 
@@ -456,10 +460,10 @@ extension View {
         // frames, GeometryReader clamp, containerRelativeFrame — depends on that
         // same missing height, so none of them could work.
         //
-        // The fix measures the REAL height once, at the shell level (the ZStack in
-        // MainShellView, where geometry is reliable because it always fills), stores
-        // it on the coordinator, and pins the detail content to it here. Deterministic
-        // and independent of the broken proposal.
+        // The fix measures the REAL height once, at the GeometryReader wrapping each
+        // tab's NavigationStack (see TabRoots.swift), where geometry is reliable
+        // because it always fills, then pins the detail content to it here.
+        // Deterministic and independent of the broken proposal.
         modifier(FrigyDetailContainerModifier())
     }
 
