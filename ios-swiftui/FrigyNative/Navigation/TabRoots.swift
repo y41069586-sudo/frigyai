@@ -48,11 +48,16 @@ struct HomeTabRoot: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
     var body: some View {
-        NavigationStack(path: tabCoordinator.bindingPath(for: .home)) {
-            HomeDashboardView()
-                .navigationDestination(for: HomeRoute.self) {
-                    HomeRouteView(route: $0).frigyDetailContainer()
-                }
+        GeometryReader { geo in
+            NavigationStack(path: tabCoordinator.bindingPath(for: .home)) {
+                HomeDashboardView()
+                    .navigationDestination(for: HomeRoute.self) {
+                        HomeRouteView(route: $0).frigyDetailContainer()
+                    }
+            }
+            // Measure the tab area here (reliable geometry) and hand the real height
+            // down to pushed detail screens via the environment.
+            .environment(\.frigyDetailHeight, geo.size.height)
         }
         .onAppear { tabCoordinator.markTabActivated(.home) }
     }
@@ -62,11 +67,14 @@ struct PlansTabRoot: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
     var body: some View {
-        NavigationStack(path: tabCoordinator.bindingPath(for: .plans)) {
-            MealPlansView()
-                .navigationDestination(for: PlansRoute.self) {
-                    PlansRouteView(route: $0).frigyDetailContainer()
-                }
+        GeometryReader { geo in
+            NavigationStack(path: tabCoordinator.bindingPath(for: .plans)) {
+                MealPlansView()
+                    .navigationDestination(for: PlansRoute.self) {
+                        PlansRouteView(route: $0).frigyDetailContainer()
+                    }
+            }
+            .environment(\.frigyDetailHeight, geo.size.height)
         }
         .onAppear { tabCoordinator.markTabActivated(.plans) }
     }
@@ -76,11 +84,14 @@ struct ShoppingTabRoot: View {
     @Environment(MainTabCoordinator.self) private var tabCoordinator
 
     var body: some View {
-        NavigationStack(path: tabCoordinator.bindingPath(for: .shopping)) {
-            ShoppingListView()
-                .navigationDestination(for: ShoppingRoute.self) {
-                    ShoppingRouteView(route: $0).frigyDetailContainer()
-                }
+        GeometryReader { geo in
+            NavigationStack(path: tabCoordinator.bindingPath(for: .shopping)) {
+                ShoppingListView()
+                    .navigationDestination(for: ShoppingRoute.self) {
+                        ShoppingRouteView(route: $0).frigyDetailContainer()
+                    }
+            }
+            .environment(\.frigyDetailHeight, geo.size.height)
         }
         .onAppear { tabCoordinator.markTabActivated(.shopping) }
     }

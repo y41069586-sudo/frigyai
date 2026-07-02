@@ -397,29 +397,39 @@ struct FrigyNavBar: View {
     }
 }
 
-/// Pins a PUSHED detail screen to the shell's real, reliably-measured content
-/// height (see `MainTabCoordinator.detailContentHeight`) and top-aligns it, so it
-/// can never float to the vertical centre no matter what (broken) height the
-/// navigation container proposes. Until the first measurement lands the height is
-/// left free (nil) so nothing is clipped.
+/// The real, usable height for a pushed detail screen, measured by a GeometryReader
+/// wrapped around each tab's NavigationStack (see TabRoots) — the level where SwiftUI
+/// geometry is reliable (the dashboard fills there). Injected via the environment so
+/// it flows synchronously down into pushed destinations. Default 0 = not yet known.
+private struct FrigyDetailHeightKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+extension EnvironmentValues {
+    var frigyDetailHeight: CGFloat {
+        get { self[FrigyDetailHeightKey.self] }
+        set { self[FrigyDetailHeightKey.self] = newValue }
+    }
+}
+
+/// Pins a PUSHED detail screen to the tab area's real height and top-aligns it, so it
+/// can never float to the vertical centre no matter what (broken) height the pushed
+/// navigation destination is proposed. The height comes from the environment value
+/// set at the reliable tab-root level.
 private struct FrigyDetailContainerModifier: ViewModifier {
-    @Environment(MainTabCoordinator.self) private var coordinator
+    @Environment(\.frigyDetailHeight) private var availableHeight
 
     func body(content: Content) -> some View {
-        let measured = coordinator.detailContentHeight
-        return content
+        content
             .frame(maxWidth: .infinity, alignment: .top)
-            .frame(height: measured > 0 ? measured : nil, alignment: .top)
+            .frame(height: availableHeight > 0 ? availableHeight : nil, alignment: .top)
             .background(FrigyGlassBackground().ignoresSafeArea())
-            // TEMP DIAGNOSTIC — one build tells us exactly what's happening, so the
-            // next fix is precise instead of guessed. `shell` is the height measured
-            // at the reliable shell level; `got` is the height THIS screen is actually
-            // given. If shell=0 → the measurement never reached us. If got≪shell (or
-            // got is tiny) → the screen is being handed a collapsed height. Remove
-            // once the layout is confirmed.
+            // TEMP DIAGNOSTIC — remove once confirmed. `env` = height injected from the
+            // tab-root GeometryReader; `got` = height this screen is actually given. If
+            // env=0 the injection isn't arriving; if got≪env the screen is still being
+            // handed a collapsed height.
             .overlay(alignment: .topTrailing) {
                 GeometryReader { g in
-                    Text("shell=\(Int(measured)) got=\(Int(g.size.height))")
+                    Text("env=\(Int(availableHeight)) got=\(Int(g.size.height))")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                         .padding(4)
