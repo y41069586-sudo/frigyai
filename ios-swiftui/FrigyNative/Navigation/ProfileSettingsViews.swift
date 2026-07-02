@@ -47,10 +47,14 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        // Bare ScrollView root + pinned nav bar (see NutritionGoalsView) so the
-        // screen top-anchors and fills like the dashboard instead of centring.
+        // EXACT dashboard pattern (which renders correctly): a bare ScrollView whose
+        // first content item is the nav bar. No safeAreaInset, no frame hacks — the
+        // diagnostic proved the container height is already correct (got=777); the
+        // safeAreaInset was what centred the content. The container supplies the
+        // height; the ScrollView fills and top-anchors like the dashboard.
         ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
+                    FrigyNavBar(title: lang.t("Profil"))
                     VStack(spacing: 10) {
                         Button { showPhotoPicker = true } label: {
                             ZStack(alignment: .bottomTrailing) {
@@ -239,11 +243,6 @@ struct ProfileView: View {
                 }
                 .detailContentColumn()
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FrigyNavBar(title: lang.t("Profil"))
-                .background(FrigyGlassBackground())
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task {
