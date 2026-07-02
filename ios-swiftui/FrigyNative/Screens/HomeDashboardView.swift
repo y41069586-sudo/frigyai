@@ -240,11 +240,12 @@ struct HomeDashboardView: View {
             loadTodayPlan()
         }
         .sheet(isPresented: $showEditTargets) {
-            // frigyDetailContainer gives the sheet content a definite height and
-            // top-anchors it, so the nav bar/sliders sit at the top instead of
-            // floating in the vertical centre of the sheet.
+            // A .large sheet already has a definite height, so use the sheet-specific
+            // container (background + top-align) — NOT the pushed-detail one, which
+            // would wrongly pin the sheet to the full shell height. NutritionGoalsView
+            // is a ScrollView-root screen, so it fills the sheet on its own.
             NutritionGoalsView()
-                .frigyDetailContainer()
+                .frigySheetContainer()
                 .presentationBackground { FrigyGlassBackground() }
                 .presentationDetents([.large])
         }

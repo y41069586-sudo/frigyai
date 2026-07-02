@@ -24,6 +24,19 @@ struct MainShellView: View {
             tabRoot(ShoppingTabRoot(), tab: .shopping, selected: coordinator.selectedTab)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Measure the shell's REAL content height here, where geometry is reliable
+        // (this ZStack always fills). Pushed detail screens read it back via
+        // `frigyDetailContainer` to pin themselves to a definite height, fixing the
+        // iPad "content floats in the vertical centre / huge empty band" bug that no
+        // proposal-based trick could solve. A background reader doesn't affect layout.
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onChange(of: proxy.size.height, initial: true) { _, newHeight in
+                        if newHeight > 0 { coordinator.detailContentHeight = newHeight }
+                    }
+            }
+        )
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // The bar lives only on the three tab roots. As soon as a detail
             // screen is pushed (the active tab's nav path is non-empty), it is

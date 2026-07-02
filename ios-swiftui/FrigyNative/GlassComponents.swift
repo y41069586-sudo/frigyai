@@ -397,6 +397,23 @@ struct FrigyNavBar: View {
     }
 }
 
+/// Pins a PUSHED detail screen to the shell's real, reliably-measured content
+/// height (see `MainTabCoordinator.detailContentHeight`) and top-aligns it, so it
+/// can never float to the vertical centre no matter what (broken) height the
+/// navigation container proposes. Until the first measurement lands the height is
+/// left free (nil) so nothing is clipped.
+private struct FrigyDetailContainerModifier: ViewModifier {
+    @Environment(MainTabCoordinator.self) private var coordinator
+
+    func body(content: Content) -> some View {
+        let measured = coordinator.detailContentHeight
+        return content
+            .frame(maxWidth: .infinity, alignment: .top)
+            .frame(height: measured > 0 ? measured : nil, alignment: .top)
+            .background(FrigyGlassBackground().ignoresSafeArea())
+    }
+}
+
 extension View {
     /// Constrains scrollable content to a readable centered column (max 700pt)
     /// and top-aligns it. On iPhone this is a no-op visually (screen < 700), but
@@ -418,32 +435,29 @@ extension View {
     /// full-bleed background filling the sides. Applied once at the routing layer
     /// so every pushed detail view is fixed in one place. No-op look on iPhone.
     func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
-        // Deterministic top-anchoring for detail screens (pushed AND sheets).
+        // PUSHED detail screens. The long-standing "content floats in the vertical
+        // centre with a huge empty band on top (esp. iPad landscape)" bug is because
+        // SwiftUI does NOT hand a pushed NavigationStack destination a definite
+        // height the way it does the stack ROOT (the dashboard fills fine for exactly
+        // that reason). So the screen's ScrollView collapses to its content height
+        // and the under-sized block gets centred. EVERY in-place trick — maxHeight
+        // frames, GeometryReader clamp, containerRelativeFrame — depends on that
+        // same missing height, so none of them could work.
         //
-        // On iOS 26 these screens rendered with a huge blank gap above the nav bar
-        // and content overflowing the bottom — on iPhone and iPad alike. That
-        // pattern (shifted down + clipped at the bottom, not centred) is a bogus,
-        // oversized TOP SAFE-AREA INSET injected by the system (the hidden
-        // navigation bar still reserving space). Every proposal-based fix
-        // (maxHeight frames, GeometryReader, containerRelativeFrame) laid out
-        // *inside* that inset, so the gap survived them all.
-        //
-        // Root screens (dashboard) fill correctly because their root is a bare
-        // ScrollView, which always top-anchors and fills. PUSHED destinations here
-        // are `VStack { FrigyNavBar; ScrollView }`, and SwiftUI does NOT hand a
-        // pushed destination a definite height the way it does the stack root — so
-        // the inner ScrollView collapses to its content height and the whole block
-        // gets centred (the "everything floats in the middle, gap at the top" bug).
-        //
-        // `containerRelativeFrame(.vertical)` reads the enclosing navigation
-        // container's REAL height and pins the view to it, regardless of the
-        // proposal — so the VStack gets a definite height, the ScrollView fills, and
-        // the nav bar sits at the top. This is Apple's purpose-built API for exactly
-        // this. (A GeometryReader can't be used here: it *itself* collapses under an
-        // unbounded proposal, which is why the earlier clamp attempt failed.)
+        // The fix measures the REAL height once, at the shell level (the ZStack in
+        // MainShellView, where geometry is reliable because it always fills), stores
+        // it on the coordinator, and pins the detail content to it here. Deterministic
+        // and independent of the broken proposal.
+        modifier(FrigyDetailContainerModifier())
+    }
+
+    /// Background + column for content presented in a SHEET (e.g. the goals editor).
+    /// A `.large` sheet already provides a definite height, so — unlike a pushed
+    /// destination — it must NOT be pinned to the shell height (that's the wrong
+    /// container). Just top-align and paint the background.
+    func frigySheetContainer(maxWidth: CGFloat = 700) -> some View {
         self
             .frame(maxWidth: .infinity, alignment: .top)
-            .containerRelativeFrame(.vertical, alignment: .top)
             .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
