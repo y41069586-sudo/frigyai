@@ -31,14 +31,16 @@ function buildEmailHTML(confirmationLink: string): string {
     .title{font-size:23px;font-weight:800;color:#1F2937;letter-spacing:-.5px;margin-bottom:12px}
     .txt{font-size:15px;color:#6B7280;line-height:1.65;margin-bottom:32px}
     /* CTA button — background-color fallback for clients that drop gradients,
-       plus a solid darker green (not the lighter mint stop) so the text stays
-       readable even if a client washes out the gradient itself. */
+       plus a solid darker green (not the lighter mint stop) so white text
+       stays legible even if a client washes out the gradient itself. */
     .cta{display:block;background-color:#2EB56D;background-image:linear-gradient(135deg,#57E39A,#1F9C5C);border-radius:16px;padding:17px 28px;text-align:center;text-decoration:none;font-size:17px;font-weight:800;letter-spacing:-.3px;margin-bottom:20px}
     .cta:hover{opacity:.92}
     /* Bulletproof text color: an explicit inline-styled span nested inside the
        button (see markup below) survives clients that override an <a> tag's
-       own color but respect a plain <span>'s inline style. */
-    .cta-label{color:#083D22 !important}
+       own color but respect a plain <span>'s inline style. Pure white, plus a
+       soft dark text-shadow so it still pops on the lighter mint gradient stop
+       instead of reading as washed-out gray. */
+    .cta-label{color:#FFFFFF !important}
     /* hint */
     .hint{font-size:12.5px;color:#9CA3AF;line-height:1.55;text-align:center;padding:0 8px}
     .hint a{color:#2EB56D;text-decoration:none}
@@ -63,8 +65,8 @@ function buildEmailHTML(confirmationLink: string): string {
         Fast geschafft! Tippe einmal auf den Button – danach wirst du direkt zur App
         weitergeleitet und kannst sofort mit deinem personalisierten Ernährungsplan starten.
       </p>
-      <a href="${confirmationLink}" class="cta" style="background-color:#2EB56D;background-image:linear-gradient(135deg,#57E39A,#1F9C5C);color:#083D22;">
-        <span class="cta-label" style="color:#083D22 !important;font-weight:800;">✅ &nbsp;Jetzt bestätigen &amp; App öffnen</span>
+      <a href="${confirmationLink}" class="cta" style="background-color:#2EB56D;background-image:linear-gradient(135deg,#57E39A,#1F9C5C);color:#FFFFFF;">
+        <span class="cta-label" style="color:#FFFFFF !important;font-weight:800;text-shadow:0 1px 2px rgba(0,60,30,.35);">✅ &nbsp;Jetzt bestätigen &amp; App öffnen</span>
       </a>
       <p class="hint">
         Der Link ist 24 Stunden gültig. Falls du dich nicht bei Frigy registriert hast,
