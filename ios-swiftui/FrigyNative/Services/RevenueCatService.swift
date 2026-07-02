@@ -109,38 +109,51 @@ final class RevenueCatSubscriptionService: NSObject, SubscriptionServiceProtocol
 
     func availablePackages() async -> [SubscriptionPackage] {
         guard RevenueCatConfig.isConfigured else { return [] }
-        do {
-            let offerings = try await Purchases.shared.offerings()
-            // Prefer the "current" offering, but fall back to ANY offering if none is
-            // marked current in the RevenueCat dashboard — otherwise prices silently
-            // fail to load even though products exist.
-            guard let current = offerings.current ?? offerings.all.values.first else { return [] }
-            cachedPackages = current.availablePackages
-            return current.availablePackages.map { pkg in
-                let isYearly = pkg.packageType == .annual
-                var perMonth: String? = nil
-                if isYearly {
-                    let formatter = pkg.storeProduct.priceFormatter ?? {
-                        let f = NumberFormatter()
-                        f.numberStyle = .currency
-                        f.locale = Locale.current
-                        return f
-                    }()
-                    let monthly = (pkg.storeProduct.price as Decimal) / 12
-                    perMonth = formatter.string(from: monthly as NSDecimalNumber)
-                }
-                return SubscriptionPackage(
-                    id: pkg.identifier,
-                    title: isYearly ? "Jährlich" : "Monatlich",
-                    priceString: pkg.storeProduct.localizedPriceString,
-                    pricePerMonthString: perMonth,
-                    period: isYearly ? "Jahr" : "Monat",
-                    isYearly: isYearly
-                )
+        // A single failed/empty offerings fetch used to permanently show "—"
+        // instead of a price on the paywall (App Review hit exactly this on an
+        // iPad — StoreKit/RevenueCat's product info can take a moment to warm up,
+        // especially on a freshly-provisioned review/sandbox device). Retry a
+        // few times with a short backoff before giving up, instead of a single
+        // best-effort attempt.
+        for attempt in 0..<3 {
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(attempt) * 800_000_000)
             }
-        } catch {
-            return []
+            do {
+                let offerings = try await Purchases.shared.offerings()
+                // Prefer the "current" offering, but fall back to ANY offering if none is
+                // marked current in the RevenueCat dashboard — otherwise prices silently
+                // fail to load even though products exist.
+                guard let current = offerings.current ?? offerings.all.values.first else { continue }
+                guard !current.availablePackages.isEmpty else { continue }
+                cachedPackages = current.availablePackages
+                return current.availablePackages.map { pkg in
+                    let isYearly = pkg.packageType == .annual
+                    var perMonth: String? = nil
+                    if isYearly {
+                        let formatter = pkg.storeProduct.priceFormatter ?? {
+                            let f = NumberFormatter()
+                            f.numberStyle = .currency
+                            f.locale = Locale.current
+                            return f
+                        }()
+                        let monthly = (pkg.storeProduct.price as Decimal) / 12
+                        perMonth = formatter.string(from: monthly as NSDecimalNumber)
+                    }
+                    return SubscriptionPackage(
+                        id: pkg.identifier,
+                        title: isYearly ? "Jährlich" : "Monatlich",
+                        priceString: pkg.storeProduct.localizedPriceString,
+                        pricePerMonthString: perMonth,
+                        period: isYearly ? "Jahr" : "Monat",
+                        isYearly: isYearly
+                    )
+                }
+            } catch {
+                continue
+            }
         }
+        return []
     }
 
     func purchase(_ package: SubscriptionPackage) async throws -> Bool {
@@ -153,19 +166,31 @@ final class RevenueCatSubscriptionService: NSObject, SubscriptionServiceProtocol
         // purchase call hang indefinitely waiting for a transaction update that
         // never arrives — without this, the paywall spins forever with no error,
         // which looks identical to "nothing happened" to the user.
-        let result = try await withThrowingTaskGroup(of: PurchaseResultData.self) { group in
-            group.addTask {
-                try await Purchases.shared.purchase(package: pkg)
+        let result: PurchaseResultData
+        do {
+            result = try await withThrowingTaskGroup(of: PurchaseResultData.self) { group in
+                group.addTask {
+                    try await Purchases.shared.purchase(package: pkg)
+                }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 45_000_000_000)
+                    throw SubscriptionServiceError.purchaseTimedOut
+                }
+                guard let first = try await group.next() else {
+                    throw SubscriptionServiceError.purchaseTimedOut
+                }
+                group.cancelAll()
+                return first
             }
-            group.addTask {
-                try await Task.sleep(nanoseconds: 45_000_000_000)
-                throw SubscriptionServiceError.purchaseTimedOut
-            }
-            guard let first = try await group.next() else {
-                throw SubscriptionServiceError.purchaseTimedOut
-            }
-            group.cancelAll()
-            return first
+        } catch let error as ErrorCode where error == .purchaseCancelledError {
+            // Belt-and-suspenders: `purchase(package:)` is documented to report a
+            // decline via `result.userCancelled` rather than throwing, but if a
+            // platform edge case ever does throw the cancellation error code
+            // instead, treat it exactly like userCancelled — silently returning
+            // to the paywall. Letting this fall into the generic catch below and
+            // surfacing it as an error alert is what App Review flagged as the
+            // app "asking to reconsider" immediately after a decline.
+            return false
         }
 
         if result.userCancelled { return false }
