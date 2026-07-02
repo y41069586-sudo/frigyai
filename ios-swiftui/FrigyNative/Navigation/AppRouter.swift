@@ -208,9 +208,25 @@ final class AppRouter {
                 return
             }
         }
-        if let current = try? await subscriptionService.refreshPremiumState() {
-            isPremium = current
+        guard let current = try? await subscriptionService.refreshPremiumState() else { return }
+        if current {
+            isPremium = true
+            return
         }
+        // Don't downgrade immediately: RevenueCat's entitlement can lag receipt
+        // validation for a few seconds right after a fresh purchase, and a
+        // foreground refresh landing in that exact window (e.g. the user briefly
+        // switches apps right after paying) would otherwise wrongly revoke access
+        // they just bought — they'd suddenly find Premium features like the
+        // weekly plan locked again. Give it one short confirmation window before
+        // accepting the downgrade; a genuinely cancelled/expired subscription
+        // still reliably shows inactive after it.
+        guard isPremium else {
+            isPremium = current
+            return
+        }
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
+        isPremium = (try? await subscriptionService.refreshPremiumState()) ?? current
     }
 
     func navigateToAuth() {

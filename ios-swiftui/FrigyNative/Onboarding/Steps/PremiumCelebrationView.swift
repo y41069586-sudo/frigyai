@@ -14,6 +14,25 @@ struct PremiumCelebrationView: View {
     @Environment(LanguageManager.self) private var lang
 
     var body: some View {
+        // This view is shown both full-screen (onboarding) and inside a plain
+        // .sheet() (Settings → upgrade flow in SubscriptionView), where the
+        // available height can be noticeably smaller. The content below has
+        // several fixed-size decorative elements (150pt ring, feature list,
+        // 54pt button) — without a scroll fallback, a shorter container just
+        // silently overflows past the visible bounds instead of clipping or
+        // shrinking, which reads as the celebration screen (often the CTA
+        // button) rendering "outside" the screen. GeometryReader + ScrollView
+        // keeps the exact same centered look when everything fits, but lets
+        // it scroll instead of overflowing when it doesn't.
+        GeometryReader { geo in
+            ScrollView(showsIndicators: false) {
+                content
+                    .frame(minHeight: geo.size.height)
+            }
+        }
+    }
+
+    private var content: some View {
         ZStack {
             FrigyGlassBackground().ignoresSafeArea()
 
@@ -33,7 +52,7 @@ struct PremiumCelebrationView: View {
             }
 
             VStack(spacing: 24) {
-                Spacer()
+                Spacer(minLength: 12)
 
                 ZStack {
                     // Rotating glow ring
@@ -94,7 +113,7 @@ struct PremiumCelebrationView: View {
                 .padding(.top, 4)
                 .opacity(appear ? 1 : 0)
 
-                Spacer()
+                Spacer(minLength: 12)
 
                 Button(action: onContinue) {
                     Text(lang.t("Los geht's"))

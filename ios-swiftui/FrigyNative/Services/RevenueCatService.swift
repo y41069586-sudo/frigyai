@@ -22,15 +22,12 @@ enum RevenueCatConfig {
 
 enum SubscriptionServiceError: LocalizedError {
     case packageNotFound
-    case entitlementNotActive
     case purchaseTimedOut
 
     var errorDescription: String? {
         switch self {
         case .packageNotFound:
             return "Dieses Abo konnte nicht gefunden werden. Bitte versuche es erneut."
-        case .entitlementNotActive:
-            return "Der Kauf konnte nicht bestätigt werden. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“ oder versuche es in ein paar Minuten erneut."
         case .purchaseTimedOut:
             return "Der Kauf hat zu lange gedauert. Falls dir Geld abgebucht wurde, tippe auf „Käufe wiederherstellen“, ansonsten versuche es erneut."
         }
@@ -151,9 +148,17 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
         if isPremiumActive(result.customerInfo) {
             return true
         }
-        // StoreKit charged the user, but entitlement activation can lag receipt
-        // validation — sandbox/TestFlight builds can lag noticeably longer than
-        // production, so poll a few times with backoff instead of checking once.
+        // StoreKit already charged the user at this point — `purchase()` returned
+        // without throwing and without userCancelled, so the transaction is done.
+        // Entitlement activation can lag receipt validation (sandbox/TestFlight
+        // lag noticeably longer than production), so poll a few times with
+        // backoff to pick up the confirmed state quickly if possible. But if it's
+        // still not showing after polling, we do NOT tell a customer who was just
+        // charged that their "purchase failed" — that's false and it's what was
+        // causing the paywall to show an error before the entitlement caught up a
+        // moment later. Treat the completed StoreKit transaction as success
+        // either way; `AppRouter.refreshPremiumOnForeground()` reconciles the
+        // authoritative entitlement state in the background afterwards.
         for delaySeconds in [2, 3, 5, 8] {
             try? await Task.sleep(nanoseconds: UInt64(delaySeconds) * 1_000_000_000)
             if let refreshed = try? await Purchases.shared.customerInfo(),
@@ -161,7 +166,7 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
                 return true
             }
         }
-        throw SubscriptionServiceError.entitlementNotActive
+        return true
     }
 
     func isTrialEligible(for package: SubscriptionPackage) async -> Bool {
