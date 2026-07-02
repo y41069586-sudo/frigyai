@@ -114,6 +114,17 @@ struct GlassTabBar: View {
                                 .matchedGeometryEffect(id: "liquidBubble", in: bubbleNS)
                         }
                     }
+                    // The transient glass sits ABOVE the icon/label, not behind it.
+                    // Real backdrop glass (iOS 26 `glassEffect`) optically bends
+                    // whatever is beneath it — placing it in front is what lets it
+                    // genuinely refract the glyph as the pill slides across it,
+                    // instead of just tinting a static background.
+                    .overlay {
+                        if active {
+                            motionLens
+                                .matchedGeometryEffect(id: "motionLens", in: bubbleNS)
+                        }
+                    }
                     .contentShape(Rectangle())
                     .onTapGesture { switchTo(tab) }
                     .accessibilityElement()
@@ -203,36 +214,37 @@ struct GlassTabBar: View {
 
     // MARK: - Surfaces
 
-    /// Two composited layers: a clean, minimal base that IS the idle appearance,
-    /// and a transient glass layer whose opacity is `liquidIntensity` — visible
-    /// only while `isTransitioning`, invisible at rest.
+    /// IDLE base — always present, deliberately unglamorous: a quiet translucent
+    /// fill and a hairline border. This is the resting state Apple's own tab bar
+    /// shows almost all of the time; it sits BEHIND the icon/label as usual.
     private var liquidBubble: some View {
-        ZStack {
-            // IDLE — always present, deliberately unglamorous: a quiet translucent
-            // fill and a hairline border. This is the resting state Apple's own
-            // tab bar shows almost all of the time.
-            Capsule()
-                .fill(idleFillColor)
-                .overlay(
-                    Capsule().strokeBorder(idleBorderColor, lineWidth: 0.75)
-                )
-                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        Capsule()
+            .fill(idleFillColor)
+            .overlay(
+                Capsule().strokeBorder(idleBorderColor, lineWidth: 0.75)
+            )
+            .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+            .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+    }
 
-            // MOTION — the real Liquid Glass: adaptive material, specular
-            // highlight and a bright rim. Only carries visual weight while
-            // `liquidIntensity` > 0, i.e. during MOVING/SETTLING.
-            Capsule()
-                .fill(motionFillColor)
-                .liquidSurface()
-                .overlay(specularHighlight)
-                .overlay(rimHighlight)
-                .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
-                .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
-                .opacity(liquidIntensity)
-        }
-        // Volume-preserving squash-&-stretch anchored to the travel direction.
-        // Already self-resets to 1 at rest, so it never needed gating.
-        .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
+    /// MOTION lens — the real Liquid Glass: adaptive material, specular highlight,
+    /// bright rim and dark lens-edge lines (the top/bottom hairlines a real optical
+    /// lens shows). Rendered ABOVE the icon/label so on iOS 26 the system
+    /// `glassEffect` genuinely refracts the glyph beneath it as it slides — the
+    /// warped-icon look during a transition. Opacity is `liquidIntensity`, so it
+    /// only carries visual weight while MOVING/SETTLING and is invisible at idle.
+    private var motionLens: some View {
+        Capsule()
+            .fill(motionFillColor)
+            .liquidSurface()
+            .overlay(specularHighlight)
+            .overlay(rimHighlight)
+            .overlay(lensEdgeLines)
+            .shadow(color: FrigyBrand.primary.opacity(0.18), radius: 10, y: 4)
+            .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+            .opacity(liquidIntensity)
+            .allowsHitTesting(false)
+            .scaleEffect(x: stretchX, y: 2 - stretchX, anchor: stretchAnchor)
     }
 
     private var idleFillColor: Color {
@@ -270,6 +282,27 @@ struct GlassTabBar: View {
             ),
             lineWidth: 0.8
         )
+    }
+
+    /// The thin dark hairline a real optical lens shows near its top and bottom
+    /// edge — light grazing the curved glass surface reads as a dark line right
+    /// before the bright refracted band. Purely cosmetic, but it's what sells a
+    /// pill as GLASS rather than a flat tinted shape.
+    private var lensEdgeLines: some View {
+        VStack {
+            Capsule()
+                .fill(Color.black.opacity(0.16))
+                .frame(height: 1.5)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+            Spacer(minLength: 0)
+            Capsule()
+                .fill(Color.black.opacity(0.12))
+                .frame(height: 1.5)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+        }
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
