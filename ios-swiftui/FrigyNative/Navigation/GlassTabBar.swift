@@ -44,22 +44,35 @@ struct GlassTabBar: View {
 
     @ViewBuilder
     private func bar(slotWidth: CGFloat, innerH: CGFloat, plusSize: CGFloat, activeIndex: CGFloat) -> some View {
-        let pillX = innerH + activeIndex * slotWidth + 3
-        ZStack(alignment: .leading) {
-            // Glass layer: ONE Liquid Glass pill that slides/morphs to the active tab.
-            // It lives in its OWN layer so it can never blur the labels, which are
-            // drawn on top in a separate layer below.
-            glassLayer(width: slotWidth - 6, pillX: pillX)
-
-            HStack(spacing: 0) {
-                ForEach(tabs, id: \.self) { tab in
-                    tabButton(tab).frame(width: slotWidth)
+        HStack(spacing: 0) {
+            // The 3-tab group is ONE clear Liquid Glass capsule (no colour) on iOS 26
+            // — Apple's native look — with the active tab as a brighter interactive
+            // glass pill sliding inside it. The glass refracts whatever scrolls behind
+            // the bar, which is what makes it read as glass instead of flat white.
+            ZStack(alignment: .leading) {
+                glassLayer(width: slotWidth - 6, pillX: 3 + activeIndex * slotWidth)
+                HStack(spacing: 0) {
+                    ForEach(tabs, id: \.self) { tab in
+                        tabButton(tab).frame(width: slotWidth)
+                    }
                 }
-                plusButton(mealCount: mealCount, size: plusSize)
-                    .frame(width: plusSize)
-                    .padding(.leading, 4)
             }
+            .frame(width: slotWidth * 3, height: 50)
             .padding(.horizontal, innerH)
+            .background {
+                if #available(iOS 26, *) {
+                    Capsule().fill(.clear).glassEffect(.regular, in: .capsule)
+                } else {
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.5), lineWidth: 0.8))
+                        .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
+                }
+            }
+
+            plusButton(mealCount: mealCount, size: plusSize)
+                .frame(width: plusSize)
+                .padding(.leading, 4)
         }
         .frame(height: 58)
     }
