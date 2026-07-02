@@ -841,10 +841,12 @@ struct ManualFoodEntrySheet: View {
         _unitIsMl = State(initialValue: Self.drinkKeywords.contains { lowerName.contains($0) })
         if let f = prefill {
             _name = State(initialValue: f.name)
-            _caloriesText = State(initialValue: f.calories > 0 ? "\(f.calories)" : "")
-            _proteinText = State(initialValue: f.protein > 0 ? "\(f.protein)" : "")
-            _carbsText = State(initialValue: f.carbs > 0 ? "\(f.carbs)" : "")
-            _fatText = State(initialValue: f.fat > 0 ? "\(f.fat)" : "")
+            // Show the scanned values as-is, INCLUDING 0 (water, diet drinks, etc.).
+            // Previously 0 became an empty field, which then blocked saving.
+            _caloriesText = State(initialValue: "\(f.calories)")
+            _proteinText = State(initialValue: "\(f.protein)")
+            _carbsText = State(initialValue: "\(f.carbs)")
+            _fatText = State(initialValue: "\(f.fat)")
         }
     }
 
@@ -859,7 +861,10 @@ struct ManualFoodEntrySheet: View {
     private var quickPortions: [Int] { unitIsMl ? [50, 100, 250, 500] : [50, 100, 150, 200] }
 
     private var canSave: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty && Int(caloriesText) != nil
+        // Only a name is required. Calories may be 0 or blank (treated as 0 via
+        // baseCalories) so 0-kcal items like water can be logged. Previously we also
+        // required Int(caloriesText) != nil, which blocked exactly those items.
+        !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var body: some View {

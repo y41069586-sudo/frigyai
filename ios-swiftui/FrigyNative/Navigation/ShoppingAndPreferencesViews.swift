@@ -52,13 +52,15 @@ struct EditProfileView: View {
     private func save() async {
         isSaving = true
         draft.recalculateMacrosIfPossible()
-        // Persist back into onboarding state
-        if let data = UserDefaults.standard.data(forKey: Self.stateKey),
-           var state = try? JSONDecoder().decode(OnboardingPersistedState.self, from: data) {
-            state.context.userProfile = draft
-            if let encoded = try? JSONEncoder().encode(state) {
-                UserDefaults.standard.set(encoded, forKey: Self.stateKey)
-            }
+        // Persist back into onboarding state. Create the state if it doesn't exist
+        // yet, so a profile edit is NEVER silently dropped (the old code only saved
+        // when a prior state was already present).
+        var state = UserDefaults.standard.data(forKey: Self.stateKey)
+            .flatMap { try? JSONDecoder().decode(OnboardingPersistedState.self, from: $0) }
+            ?? OnboardingPersistedState(currentStep: .done, context: .initial)
+        state.context.userProfile = draft
+        if let encoded = try? JSONEncoder().encode(state) {
+            UserDefaults.standard.set(encoded, forKey: Self.stateKey)
         }
         // Sync macro targets to backend
         let targets = MacroTargets(calories: draft.dailyCalories, protein: draft.dailyProtein, carbs: draft.dailyCarbs, fat: draft.dailyFat)
