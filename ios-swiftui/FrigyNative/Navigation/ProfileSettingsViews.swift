@@ -47,10 +47,9 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Profil"))
-
-            ScrollView(showsIndicators: false) {
+        // Bare ScrollView root + pinned nav bar (see NutritionGoalsView) so the
+        // screen top-anchors and fills like the dashboard instead of centring.
+        ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     VStack(spacing: 10) {
                         Button { showPhotoPicker = true } label: {
@@ -239,7 +238,10 @@ struct ProfileView: View {
                     Spacer().frame(height: 32)
                 }
                 .detailContentColumn()
-            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            FrigyNavBar(title: lang.t("Profil"))
+                .background(FrigyGlassBackground())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())
@@ -749,10 +751,10 @@ struct NutritionGoalsView: View {
     @State private var saved = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            FrigyNavBar(title: lang.t("Ernährungsziele"))
-
-            ScrollView(showsIndicators: false) {
+        // Root is a bare ScrollView (top-anchors + fills reliably, exactly like the
+        // dashboard) with the nav bar pinned via safeAreaInset — instead of a
+        // VStack{NavBar;ScrollView} whose ScrollView collapses and centres.
+        ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     Text(lang.t("Passe deine täglichen Makroziele an."))
                         .font(.system(size: 13))
@@ -810,7 +812,10 @@ struct NutritionGoalsView: View {
                     Spacer().frame(height: 32)
                 }
                 .detailContentColumn()
-            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            FrigyNavBar(title: lang.t("Ernährungsziele"))
+                .background(FrigyGlassBackground())
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrigyGlassBackground().ignoresSafeArea())

@@ -360,14 +360,21 @@ struct MealPlanPreferencesView: View {
     }
 
     private var baseContent: some View {
-        VStack(spacing: 0) {
+        // Bare ScrollView root (top-anchors + fills like the dashboard) with the nav
+        // bar pinned at the top and the action buttons pinned at the bottom via
+        // safeAreaInset — instead of a VStack whose ScrollView collapsed and centred.
+        ScrollView(showsIndicators: false) {
+            preferencesContent
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
             FrigyNavBar(title: lang.t("Plan-Einstellungen"))
-            ScrollView(showsIndicators: false) {
-                preferencesContent
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-            }
+                .background(FrigyGlassBackground())
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             actionButtons
+                .background(FrigyGlassBackground())
         }
         .background(FrigyGlassBackground().ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

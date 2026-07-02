@@ -428,20 +428,23 @@ extension View {
         // (maxHeight frames, GeometryReader, containerRelativeFrame) laid out
         // *inside* that inset, so the gap survived them all.
         //
-        // So we opt out of the system inset entirely and apply our own, CLAMPED:
-        // `.ignoresSafeArea(.container)` expands to the true screen edges, then we
-        // pad by at most 62pt top (status bar) / 34pt bottom (home indicator) —
-        // whatever the system claims. Real insets pass through unchanged; a bogus
-        // 300pt inset gets clamped away. Pixel math the system can't shift.
-        // (.container keeps keyboard avoidance intact for screens with fields.)
-        GeometryReader { geo in
-            self
-                .padding(.top, min(geo.safeAreaInsets.top, 62))
-                .padding(.bottom, min(geo.safeAreaInsets.bottom, 34))
-                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
-        }
-        .ignoresSafeArea(.container)
-        .background(FrigyGlassBackground().ignoresSafeArea())
+        // Root screens (dashboard) fill correctly because their root is a bare
+        // ScrollView, which always top-anchors and fills. PUSHED destinations here
+        // are `VStack { FrigyNavBar; ScrollView }`, and SwiftUI does NOT hand a
+        // pushed destination a definite height the way it does the stack root — so
+        // the inner ScrollView collapses to its content height and the whole block
+        // gets centred (the "everything floats in the middle, gap at the top" bug).
+        //
+        // `containerRelativeFrame(.vertical)` reads the enclosing navigation
+        // container's REAL height and pins the view to it, regardless of the
+        // proposal — so the VStack gets a definite height, the ScrollView fills, and
+        // the nav bar sits at the top. This is Apple's purpose-built API for exactly
+        // this. (A GeometryReader can't be used here: it *itself* collapses under an
+        // unbounded proposal, which is why the earlier clamp attempt failed.)
+        self
+            .frame(maxWidth: .infinity, alignment: .top)
+            .containerRelativeFrame(.vertical, alignment: .top)
+            .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
     /// Liquid Glass card on iOS 26+; white rounded card with shadow on older OS.
