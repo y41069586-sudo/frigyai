@@ -14,6 +14,10 @@ struct GlassTabBar: View {
 
     private let tabs: [AppTab] = [.home, .plans, .shopping]
 
+    // Namespace for the Liquid Glass morph: the single active pill keeps a stable
+    // glassEffectID, so iOS fluidly animates the glass to the newly-selected tab.
+    @Namespace private var glassNS
+
     var body: some View {
         content
             .padding(.horizontal, 16)
@@ -40,67 +44,91 @@ struct GlassTabBar: View {
 
     @ViewBuilder
     private func bar(slotWidth: CGFloat, innerH: CGFloat, plusSize: CGFloat, activeIndex: CGFloat) -> some View {
-        HStack(spacing: 0) {
-            ForEach(tabs, id: \.self) { tab in
-                tabButton(tab).frame(width: slotWidth)
+        let pillX = innerH + activeIndex * slotWidth + 3
+        ZStack(alignment: .leading) {
+            // Glass layer: ONE Liquid Glass pill that slides/morphs to the active tab.
+            // It lives in its OWN layer so it can never blur the labels, which are
+            // drawn on top in a separate layer below.
+            glassLayer(width: slotWidth - 6, pillX: pillX)
+
+            HStack(spacing: 0) {
+                ForEach(tabs, id: \.self) { tab in
+                    tabButton(tab).frame(width: slotWidth)
+                }
+                plusButton(mealCount: mealCount, size: plusSize)
+                    .frame(width: plusSize)
+                    .padding(.leading, 4)
             }
-            plusButton(mealCount: mealCount, size: plusSize)
-                .frame(width: plusSize)
-                .padding(.leading, 4)
+            .padding(.horizontal, innerH)
         }
-        .padding(.horizontal, innerH)
         .frame(height: 58)
     }
 
-    /// Real Liquid Glass capsule used as the ACTIVE tab's background. Because it is a
-    /// `.background` it always sits strictly behind the icon/label, so the label can
-    /// never be blurred by the glass (the old separate pill inside a
-    /// GlassEffectContainer was compositing over the label — the washed-out icon).
+    /// A single real Liquid Glass pill that slides to the active tab. The
+    /// GlassEffectContainer is STATIONARY (fills the bar); the pill moves INSIDE it
+    /// with a stable `glassEffectID`, so iOS renders the native fluid glass
+    /// transition when you switch tabs. Kept in its own layer (labels drawn on top)
+    /// so the glass never blurs the icon/text.
     @ViewBuilder
-    private func activeGlassBackground() -> some View {
+    private func glassLayer(width: CGFloat, pillX: CGFloat) -> some View {
         if #available(iOS 26, *) {
-            Capsule()
-                .fill(.clear)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .overlay(
-                    Capsule().strokeBorder(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.85), Color.white.opacity(0.15), Color.white.opacity(0.35)],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 0.8
-                    )
-                )
-                .shadow(color: .black.opacity(0.10), radius: 8, y: 3)
-        } else {
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    Capsule().fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.6), FrigyBrand.primary.opacity(0.14)],
-                            startPoint: .top, endPoint: .bottom
+            GlassEffectContainer(spacing: 12) {
+                Capsule()
+                    .fill(.clear)
+                    .frame(width: width, height: 46)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .glassEffectID("activeTabPill", in: glassNS)
+                    .overlay(
+                        Capsule().strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.85), Color.white.opacity(0.15), Color.white.opacity(0.35)],
+                                startPoint: .top, endPoint: .bottom
+                            ),
+                            lineWidth: 0.8
                         )
+                        .frame(width: width, height: 46)
                     )
-                )
-                .overlay(
-                    Capsule().stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.9), FrigyBrand.primary.opacity(0.45)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-                )
-                .shadow(color: FrigyBrand.primary.opacity(0.28), radius: 10, y: 4)
-                .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+                    .offset(x: pillX)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .animation(.spring(response: 0.42, dampingFraction: 0.72), value: selection)
+        } else {
+            fallbackPill(width: width)
+                .offset(x: pillX)
+                .animation(.spring(response: 0.42, dampingFraction: 0.72), value: selection)
         }
+    }
+
+    /// Pre-iOS-26 frosted-glass approximation of the active pill.
+    private func fallbackPill(width: CGFloat) -> some View {
+        Capsule()
+            .fill(.ultraThinMaterial)
+            .overlay(
+                Capsule().fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.6), FrigyBrand.primary.opacity(0.14)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+            )
+            .overlay(
+                Capsule().stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.9), FrigyBrand.primary.opacity(0.45)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            )
+            .shadow(color: FrigyBrand.primary.opacity(0.28), radius: 10, y: 4)
+            .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+            .frame(width: width, height: 46)
     }
 
     private func tabButton(_ tab: AppTab) -> some View {
         let active = selection == tab
         return Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) { selection = tab }
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) { selection = tab }
         } label: {
             VStack(spacing: 2) {
                 Image(systemName: tab.systemImage)
@@ -110,14 +138,12 @@ struct GlassTabBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
+            // Labels are drawn ON TOP of the glass layer (never inside it), so they
+            // always stay crisp — never blurred by the glass.
             .foregroundColor(active ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
             .frame(maxWidth: .infinity)
-            .frame(height: 46)
-            // Glass lives in the BACKGROUND → strictly behind the label → crisp label.
-            .background { if active { activeGlassBackground().padding(.horizontal, 3) } }
             .frame(height: 50)
             .contentShape(Rectangle())
-            .animation(.spring(response: 0.35, dampingFraction: 0.78), value: active)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(tab.shortTitle)
