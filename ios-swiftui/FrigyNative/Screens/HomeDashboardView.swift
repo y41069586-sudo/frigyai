@@ -81,6 +81,7 @@ struct HomeDashboardView: View {
     @State private var todayPlanMeals: [PlannedMeal] = []
     @State private var hasSavedWeekPlan = false
     @Environment(\.horizontalSizeClass) private var hSizeClass
+    @Environment(\.colorScheme) private var colorScheme
     // Goal is adjustable; default 8 glasses × 0.25 L = 2.0 L.
     @AppStorage("frigy.water.goal") private var waterGoal: Int = 8
     private let waterKey = "frigy.water.glasses"
@@ -770,7 +771,12 @@ struct HomeDashboardView: View {
         // light control chips) so everything stays legible both over the empty
         // light-blue base and over the filled blue water.
         let prog = waterGoal > 0 ? min(1.0, Double(waterGlasses) / Double(waterGoal)) : 0
-        let navy = Color(hex: "#0C2E4E")
+        // Adaptive so the widget isn't a glaring light block in dark mode: a deep
+        // navy base with light-blue labels in dark, the original light look in light.
+        let isDark = colorScheme == .dark
+        let navy = isDark ? Color(hex: "#DBEAFE") : Color(hex: "#0C2E4E")
+        let baseFill = isDark ? Color(hex: "#0B2138") : Color(hex: "#EFF6FF")
+        let baseBorder = isDark ? Color(hex: "#1E3A5F") : Color(hex: "#BFDBFE")
         return ZStack(alignment: .bottom) {
             // Rising water fill
             GeometryReader { geo in
@@ -857,9 +863,9 @@ struct HomeDashboardView: View {
             .padding(16)
         }
         .frame(height: 150)
-        .background(Color(hex: "#EFF6FF"))
+        .background(baseFill)
         .clipShape(RoundedRectangle(cornerRadius: 22))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Color(hex: "#BFDBFE"), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(baseBorder, lineWidth: 1))
         .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
     }
 
