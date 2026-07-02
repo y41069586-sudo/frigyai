@@ -39,16 +39,17 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    # Final answer, back to Universal: iPhone-only was tried twice. First
-    # attempt rendered full-bleed anyway on a real iPadOS 26 build (not the
-    # classic small window). Second attempt (after removing the ~ipad
-    # orientation key) got hard-rejected by App Store Connect's own upload
-    # validator, which insists the bundle "needs all 4 orientations to
-    # support iPad multitasking" regardless of device family. Apple's own
-    # server treats this app as iPad-capable no matter what we declare here,
-    # so the phone-shaped look on iPad is handled entirely in SwiftUI
-    # instead (see PhoneCanvas.swift / .phoneCanvasOnPad()).
-    TARGETED_DEVICE_FAMILY: "1,2"
+    # iPhone-only, attempt 3: a real screen recording of Cal AI confirms genuine
+    # Apple Compatibility Mode is real and achievable (draggable window, sharp
+    # corners, plain black backdrop, the actual 1x/2x-style resize toggle).
+    # App Store Connect's own validator (error 90474) demands all 4 iPad
+    # orientations be declared regardless of device family — that's kept as-is
+    # this time (see Info.plist), since removing it only broke the upload
+    # without ever getting to test the visual result. Device family alone is
+    # the real lever; the previous "full-bleed" result on a real device may
+    # have been caused by the test iPad having Stage Manager enabled, which
+    # changes how iPhone-only apps present.
+    TARGETED_DEVICE_FAMILY: "1"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     # Required for App Store archive: build all slices (arm64 + arm64e), not just

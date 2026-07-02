@@ -49,14 +49,14 @@ struct FrigyNativeApp: App {
                     // (Respects the paywall bypass for tester/review accounts.)
                     Task { await router.refreshPremiumOnForeground() }
                 }
-                // Native iPadOS Compatibility Mode (TARGETED_DEVICE_FAMILY "1")
-                // was tried twice: once it built and ran but still rendered
-                // full-bleed iPad UI, once it got hard-rejected by App Store
-                // Connect's own upload validator over iPad orientation
-                // requirements. Apple's tooling doesn't offer a path that is
-                // both uploadable AND shows the compact iPhone window, so the
-                // phone-shaped look on iPad is handled here instead.
-                .phoneCanvasOnPad()
+                // Disabled again: a real Cal AI screen recording confirmed native
+                // Compatibility Mode is genuine and achievable, so retrying it
+                // (device family "1", full iPad orientations kept to satisfy
+                // App Store Connect's validator). Re-add this line if the
+                // device still shows full-bleed iPad UI instead of the compact
+                // window — possibly caused by Stage Manager being enabled on
+                // the test device rather than a config problem.
+                // .phoneCanvasOnPad()
         }
     }
 }
