@@ -77,13 +77,15 @@ struct OnboardingContinueButton: View {
     let isEnabled: Bool
     let action: () -> Void
 
+    @Environment(LanguageManager.self) private var lang
+
     // Most call sites don't pass an explicit title (`OnboardingContinueButton(action:)` /
-    // `OnboardingContinueButton(isEnabled:action:)`), relying on this default — it must go
-    // through the translation table itself, otherwise every one of those ~29 call sites
-    // shows hardcoded German regardless of the user's selected language. `LanguageManager`
-    // is a plain singleton, so calling `.t(...)` here doesn't need SwiftUI environment
-    // injection.
-    init(_ title: String = LanguageManager.shared.t("Weiter"), isEnabled: Bool = true, action: @escaping () -> Void) {
+    // `OnboardingContinueButton(isEnabled:action:)`), relying on this default. The default
+    // stays a plain literal (translating it here would need a @MainActor-isolated
+    // LanguageManager call inside a default-argument expression, which doesn't compile —
+    // that's what broke the last archive). Instead the translation happens in `body` via
+    // the injected `lang` environment, same as every other call site in this file.
+    init(_ title: String = "Weiter", isEnabled: Bool = true, action: @escaping () -> Void) {
         self.title = title
         self.isEnabled = isEnabled
         self.action = action
@@ -92,7 +94,7 @@ struct OnboardingContinueButton: View {
     var body: some View {
         Button(action: { if isEnabled { action() } }) {
             HStack(spacing: 8) {
-                Text(title)
+                Text(lang.t(title))
                     .font(.system(size: 16, weight: .semibold))
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .bold))
