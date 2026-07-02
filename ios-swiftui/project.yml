@@ -39,12 +39,13 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    # iPhone-only (not Universal "1,2"): this is what makes iOS run the app on
-    # iPad in its native Compatibility Mode (a real, system-rendered iPhone-
-    # sized window with the built-in 1x/2x zoom control) instead of stretching
-    # our layout across the full iPad screen. Same mechanism apps like Cal AI
-    # rely on — it's an OS feature, not something drawn in SwiftUI.
-    TARGETED_DEVICE_FAMILY: "1"
+    # Reverted to Universal: iPhone-only (TARGETED_DEVICE_FAMILY "1") did NOT
+    # trigger the classic small-window Compatibility Mode on a real iPadOS 26
+    # build — confirmed by an actual green build still rendering full-bleed
+    # iPad layout. Whatever iPadOS 26 does with iPhone-only apps now, it isn't
+    # the legacy letterboxed window, so the phone-shaped look is handled
+    # entirely in SwiftUI instead (see PhoneCanvas.swift).
+    TARGETED_DEVICE_FAMILY: "1,2"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     # Required for App Store archive: build all slices (arm64 + arm64e), not just
