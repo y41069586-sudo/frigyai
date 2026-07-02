@@ -64,15 +64,20 @@ final class ThemeManager {
     var colorScheme: ColorScheme? { preference.colorScheme }
 
     init() {
+        let hasChosen = UserDefaults.standard.bool(forKey: Self.chosenKey)
         let raw = UserDefaults.standard.string(forKey: Self.key)
-        if let raw, let pref = ThemePreference(rawValue: raw) {
+        if hasChosen, let raw, let pref = ThemePreference(rawValue: raw) {
+            // Only ever honor a stored preference the user actually CONFIRMED
+            // (via the post-paywall theme step or Settings > Appearance). This is
+            // what keeps every launch light by default for new AND existing
+            // users: it can never silently follow the system or start dark from
+            // a stray/incomplete write (e.g. tapping a preview card without
+            // finishing the step) — only a deliberate, completed choice sticks.
             self.preference = pref
-            self.hasChosen = UserDefaults.standard.bool(forKey: Self.chosenKey)
-        } else {
-            // No stored preference: default to light mode and treat as chosen so no
-            // popup is ever shown to users who skipped or never saw the theme step.
-            self.preference = .light
             self.hasChosen = true
+        } else {
+            self.preference = .light
+            self.hasChosen = false
         }
     }
 
