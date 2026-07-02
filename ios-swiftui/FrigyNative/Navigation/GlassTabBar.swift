@@ -50,7 +50,9 @@ struct GlassTabBar: View {
             // glass pill sliding inside it. The glass refracts whatever scrolls behind
             // the bar, which is what makes it read as glass instead of flat white.
             ZStack(alignment: .leading) {
-                glassLayer(width: slotWidth - 6, pillX: 3 + activeIndex * slotWidth)
+                // Full-width pill (covers the WHOLE active button, like the iOS
+                // segmented control), not a narrow capsule in the middle.
+                glassLayer(width: slotWidth, pillX: activeIndex * slotWidth)
                 HStack(spacing: 0) {
                     ForEach(tabs, id: \.self) { tab in
                         tabButton(tab).frame(width: slotWidth)
