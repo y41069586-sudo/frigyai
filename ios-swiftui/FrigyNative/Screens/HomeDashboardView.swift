@@ -398,9 +398,9 @@ struct HomeDashboardView: View {
 
             // Macro cards
             HStack(spacing: 10) {
-                macroCard("Protein", icon: "fork.knife", eaten: consumed.protein, target: targets.protein, color: Color(hex: "#FB7185"))
-                macroCard("Carbs", icon: "leaf.fill", eaten: consumed.carbs, target: targets.carbs, color: Color(hex: "#FBBF24"))
-                macroCard("Fat", icon: "drop.fill", eaten: consumed.fat, target: targets.fat, color: Color(hex: "#38BDF8"))
+                macroCard(lang.t("Protein"), icon: "fork.knife", eaten: consumed.protein, target: targets.protein, color: Color(hex: "#FB7185"))
+                macroCard(lang.t("Kohlenhydrate"), icon: "leaf.fill", eaten: consumed.carbs, target: targets.carbs, color: Color(hex: "#FBBF24"))
+                macroCard(lang.t("Fett"), icon: "drop.fill", eaten: consumed.fat, target: targets.fat, color: Color(hex: "#38BDF8"))
             }
         }
         .padding(20)
@@ -500,7 +500,7 @@ struct HomeDashboardView: View {
         Group {
             if !meals.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Geloggte Mahlzeiten")
+                    Text(lang.t("Geloggte Mahlzeiten"))
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(FrigyBrand.text)
 
