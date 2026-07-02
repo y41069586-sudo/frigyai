@@ -257,6 +257,7 @@ enum Translations {
         "ARTIKEL": [.en: "ITEMS", .fr: "ARTICLES", .es: "ARTÍCULOS", .it: "ARTICOLI", .hi: "वस्तुएं"],
         "NÄHRWERTE (PRO 100g)": [.en: "NUTRITION (PER 100g)", .fr: "VALEURS NUTRITIONNELLES (PAR 100g)", .es: "NUTRICIÓN (POR 100g)", .it: "VALORI NUTRIZIONALI (PER 100g)", .hi: "पोषण (प्रति 100g)"],
         "Geloggte Mahlzeiten": [.en: "Logged meals", .fr: "Repas enregistrés", .es: "Comidas registradas", .it: "Pasti registrati", .hi: "लॉग किए गए भोजन"],
+        "Du hast gestern %@ kcal zu viel gegessen. Passe deinen heutigen Plan an!": [.en: "You ate %@ kcal too many yesterday. Adjust today's plan!", .fr: "Tu as mangé %@ kcal de trop hier. Ajuste ton plan d'aujourd'hui !", .es: "Ayer comiste %@ kcal de más. ¡Ajusta el plan de hoy!", .it: "Ieri hai mangiato %@ kcal di troppo. Adatta il piano di oggi!", .hi: "कल आपने %@ kcal ज़्यादा खा लीं। आज की योजना समायोजित करें!"],
         "Zuletzt gegessen": [.en: "Recently eaten", .fr: "Mangé récemment", .es: "Comido recientemente", .it: "Mangiato di recente", .hi: "हाल ही में खाया"],
         "Hinzufügen": [.en: "Add", .fr: "Ajouter", .es: "Agregar", .it: "Aggiungi", .hi: "जोड़ें"],
         "Plan ansehen": [.en: "View plan", .fr: "Voir le plan", .es: "Ver plan", .it: "Visualizza piano", .hi: "योजना देखें"],

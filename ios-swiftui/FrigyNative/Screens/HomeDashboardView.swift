@@ -153,7 +153,8 @@ struct HomeDashboardView: View {
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
             let content = UNMutableNotificationContent()
             content.title = lang.t("⚠️ Gestern warst du im Kalorienüberschuss")
-            content.body = "Du hast gestern \(over) kcal zu viel gegessen. Passe deinen heutigen Plan an!"
+            content.body = lang.t("Du hast gestern %@ kcal zu viel gegessen. Passe deinen heutigen Plan an!")
+                .replacingOccurrences(of: "%@", with: "\(over)")
             content.sound = .default
             var comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
             comps.day = (comps.day ?? 0) + 1
