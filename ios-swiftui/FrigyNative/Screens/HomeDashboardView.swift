@@ -888,7 +888,7 @@ struct HomeDashboardView: View {
                 // auth). Disconnected → "Verbinden"; connected → "Einstellungen"
                 // opens Frigy's in-app Apple Health screen (where it can be toggled),
                 // not the iOS Settings page that has no Health control.
-                if !healthKit.isLocallyConnected || healthKit.authStatus == .denied {
+                if !healthKit.isLocallyConnected {
                     Button {
                         Task {
                             await healthKit.requestAuthorization()

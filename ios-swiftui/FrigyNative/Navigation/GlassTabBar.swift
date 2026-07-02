@@ -61,6 +61,9 @@ struct GlassTabBar: View {
             }
             .frame(width: slotWidth * 3, height: 50)
             .padding(.horizontal, innerH)
+            // Clear Liquid Glass bar (no colour, no dark tint). Over the light app
+            // background it reads light; it picks up glassy depth from content that
+            // scrolls behind it.
             .background {
                 if #available(iOS 26, *) {
                     Capsule().fill(.clear).glassEffect(.regular, in: .capsule)
@@ -153,8 +156,7 @@ struct GlassTabBar: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            // Labels are drawn ON TOP of the glass layer (never inside it), so they
-            // always stay crisp — never blurred by the glass.
+            // Labels drawn ON TOP of the glass so they stay crisp — never blurred.
             .foregroundColor(active ? FrigyBrand.primaryDeep : FrigyBrand.textMuted)
             .frame(maxWidth: .infinity)
             .frame(height: 50)

@@ -964,14 +964,12 @@ struct AppleHealthView: View {
 
     // The app-local flag is the reliable source of truth. iOS deliberately does
     // NOT report read-authorization status (authorizationStatus returns
-    // .notDetermined even after the user granted read access), so basing the
-    // toggle on authStatus made it show "off" while Health was actually working.
-    // Connected = the user's in-app opt-in AND not explicitly denied at the OS
-    // level. (iOS won't confirm read-*grants*, but it does report an explicit
-    // .denied, so we can at least rule that out — otherwise a denied user would
-    // show as "connected" with no data.)
+    // .notDetermined even after the user granted read access — and sometimes even
+    // .denied for a READ-only request, which then made the toggle snap straight back
+    // to "off": the stuck-toggle bug). authStatus is therefore unreliable for reads,
+    // so connection state is driven SOLELY by the user's in-app opt-in.
     private var isConnected: Bool {
-        healthKit.isLocallyConnected && healthKit.authStatus != .denied
+        healthKit.isLocallyConnected
     }
 
     var body: some View {
@@ -979,19 +977,20 @@ struct AppleHealthView: View {
             VStack(spacing: 0) {
                 FrigyNavBar(title: lang.t("Apple Health"))
                 VStack(spacing: 20) {
-                    // TEMP DIAGNOSTIC — tells us exactly why Health isn't working.
-                    // avail=false → HealthKit not available on this device (e.g. iPad).
-                    // auth=denied → you denied read access in the OS sheet.
-                    // conn=false → turned off in-app. steps=0 with avail/conn true →
-                    // access granted but no step data (or read denied silently).
-                    Text("avail=\(healthKit.isAvailable ? 1 : 0) auth=\(String(describing: healthKit.authStatus)) conn=\(healthKit.isLocallyConnected ? 1 : 0) prompted=\(healthKit.hasPrompted ? 1 : 0) steps=\(healthKit.stepsToday) kcal=\(healthKit.activeCaloriesToday)")
-                        .font(.system(size: 12, weight: .bold, design: .monospaced))
-                        .foregroundColor(.white)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.red)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
+                    // iPad reports HealthKit as "available" but has no pedometer/step
+                    // data (that lives on the iPhone), so a connect here would always
+                    // read 0. Tell the user to use the iPhone instead of leaving them
+                    // wondering why it stays empty.
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        Text(lang.t("Schritte & aktive Kalorien kommen vom iPhone. Öffne Frigy auf deinem iPhone, um Apple Health zu verbinden — auf dem iPad gibt es keine Schrittdaten."))
+                            .font(.system(size: 13))
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color(hex: "#FEF3C7")))
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
+                    }
 
                     if !healthKit.isAvailable {
                         // HealthKit doesn't exist on iPad — a Connect button here would
