@@ -27,7 +27,14 @@ struct PremiumCelebrationView: View {
         GeometryReader { geo in
             ScrollView(showsIndicators: false) {
                 content
-                    .frame(minHeight: geo.size.height)
+                    // A vertical ScrollView does NOT constrain its content's width to
+                    // the available space — it lets content size itself to its own
+                    // "ideal" width in the cross axis, so `.frame(maxWidth: .infinity)`
+                    // on the text/button below has nothing to expand into and they
+                    // don't wrap or size correctly. Pinning an explicit width here
+                    // (not just minHeight) is what actually constrains the layout to
+                    // the screen, fixing the button/text bleeding past the edge.
+                    .frame(width: geo.size.width, minHeight: geo.size.height)
             }
         }
     }
