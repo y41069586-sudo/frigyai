@@ -1,7 +1,7 @@
 import type { Lang } from "./types.ts";
 
 export function resolveLang(raw: unknown): Lang {
-  return raw === "en" || raw === "fr" ? raw : "de";
+  return (raw === "en" || raw === "fr" || raw === "es" || raw === "it" || raw === "hi") ? raw : "de";
 }
 
 /** Structured constraints — serialized to AI prompt only at the boundary. */

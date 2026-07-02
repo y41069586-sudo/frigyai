@@ -7,7 +7,7 @@ import { z } from "https://esm.sh/zod@3.24.1";
 /// <reference lib="deno.ns" />
 
 // ----- types.ts -----
-export type Lang = "de" | "en" | "fr";
+export type Lang = "de" | "en" | "fr" | "es" | "it" | "hi";
 
 export type MacroTargets = {
   dailyCalories: number;
@@ -194,6 +194,21 @@ export const LANG: Record<Lang, { days: string[]; meal: string; lang: string }> 
     days: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"],
     meal: "Repas",
     lang: "French",
+  },
+  es: {
+    days: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+    meal: "Comida",
+    lang: "Spanish",
+  },
+  it: {
+    days: ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"],
+    meal: "Pasto",
+    lang: "Italian",
+  },
+  hi: {
+    days: ["सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"],
+    meal: "भोजन",
+    lang: "Hindi",
   },
 };
 
@@ -1979,7 +1994,7 @@ export function filterPool(
 
 // ----- constraints.ts -----
 export function resolveLang(raw: unknown): Lang {
-  return raw === "en" || raw === "fr" ? raw : "de";
+  return (raw === "en" || raw === "fr" || raw === "es" || raw === "it" || raw === "hi") ? raw : "de";
 }
 
 /** Structured constraints — serialized to AI prompt only at the boundary. */

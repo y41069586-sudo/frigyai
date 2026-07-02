@@ -1,4 +1,4 @@
-export type Lang = "de" | "en" | "fr";
+export type Lang = "de" | "en" | "fr" | "es" | "it" | "hi";
 
 export type MacroTargets = {
   dailyCalories: number;

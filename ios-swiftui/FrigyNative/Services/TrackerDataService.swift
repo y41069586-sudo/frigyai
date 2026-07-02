@@ -543,7 +543,8 @@ final class TrackerDataService {
             dietaryPreferences: dietaryPreferences, allergies: allergies, healthGoals: healthGoals,
             mealPlanPreferences: mealPlanPreferences,
             varietySeed: UUID().uuidString,
-            isRegeneration: isRegeneration
+            isRegeneration: isRegeneration,
+            language: LanguageManager.shared.language.rawValue
         ))
 
         do {
@@ -989,6 +990,9 @@ private struct MealPlanRequest: Encodable {
     // variety token.
     let varietySeed: String
     let isRegeneration: Bool
+    // The user's app language (de/en/fr/es/it/hi) so the AI generates meal names
+    // and steps in that language instead of always German.
+    let language: String
 }
 
 /// Mirrors `MealPlanPrefsInput` in `supabase/functions/generate-meal-plan/mealPlanPrefs.ts`.

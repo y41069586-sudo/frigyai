@@ -25,6 +25,21 @@ export const LANG: Record<Lang, { days: string[]; meal: string; lang: string }> 
     meal: "Repas",
     lang: "French",
   },
+  es: {
+    days: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+    meal: "Comida",
+    lang: "Spanish",
+  },
+  it: {
+    days: ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"],
+    meal: "Pasto",
+    lang: "Italian",
+  },
+  hi: {
+    days: ["सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"],
+    meal: "भोजन",
+    lang: "Hindi",
+  },
 };
 
 export const SLOT_WEIGHTS: Record<number, number[]> = {
