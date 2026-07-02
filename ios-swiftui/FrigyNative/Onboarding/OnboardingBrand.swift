@@ -77,7 +77,13 @@ struct OnboardingContinueButton: View {
     let isEnabled: Bool
     let action: () -> Void
 
-    init(_ title: String = "Weiter", isEnabled: Bool = true, action: @escaping () -> Void) {
+    // Most call sites don't pass an explicit title (`OnboardingContinueButton(action:)` /
+    // `OnboardingContinueButton(isEnabled:action:)`), relying on this default — it must go
+    // through the translation table itself, otherwise every one of those ~29 call sites
+    // shows hardcoded German regardless of the user's selected language. `LanguageManager`
+    // is a plain singleton, so calling `.t(...)` here doesn't need SwiftUI environment
+    // injection.
+    init(_ title: String = LanguageManager.shared.t("Weiter"), isEnabled: Bool = true, action: @escaping () -> Void) {
         self.title = title
         self.isEnabled = isEnabled
         self.action = action

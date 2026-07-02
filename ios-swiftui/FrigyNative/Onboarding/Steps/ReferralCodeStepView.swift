@@ -295,7 +295,7 @@ struct ReferralCodeStepView: View {
             }
         } else {
             withAnimation { phase = .input }
-            fieldError = result.error ?? lang.t("Ungültiger Code. Bitte prüfen.")
+            fieldError = result.error.map { lang.t($0) } ?? lang.t("Ungültiger Code. Bitte prüfen.")
         }
     }
 }
