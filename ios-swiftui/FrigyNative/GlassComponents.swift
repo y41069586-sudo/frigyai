@@ -411,6 +411,22 @@ private struct FrigyDetailContainerModifier: ViewModifier {
             .frame(maxWidth: .infinity, alignment: .top)
             .frame(height: measured > 0 ? measured : nil, alignment: .top)
             .background(FrigyGlassBackground().ignoresSafeArea())
+            // TEMP DIAGNOSTIC — one build tells us exactly what's happening, so the
+            // next fix is precise instead of guessed. `shell` is the height measured
+            // at the reliable shell level; `got` is the height THIS screen is actually
+            // given. If shell=0 → the measurement never reached us. If got≪shell (or
+            // got is tiny) → the screen is being handed a collapsed height. Remove
+            // once the layout is confirmed.
+            .overlay(alignment: .topTrailing) {
+                GeometryReader { g in
+                    Text("shell=\(Int(measured)) got=\(Int(g.size.height))")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(4)
+                        .background(Color.red)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                }
+            }
     }
 }
 
