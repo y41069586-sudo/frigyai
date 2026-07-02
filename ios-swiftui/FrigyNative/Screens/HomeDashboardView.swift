@@ -60,6 +60,60 @@ enum MealCategory: String, CaseIterable, Codable {
         case .snack:     "Snack"
         }
     }
+
+    /// Best-effort emoji for the actual food, matched by keyword against the
+    /// meal's name — falls back to the plain category emoji (`emoji`) when
+    /// nothing matches. Without this every snack showed the same 🍎 regardless
+    /// of what it actually was. Meal names can be in any of the app's 6
+    /// languages (the weekly plan is generated server-side in the user's
+    /// selected language), so the keyword list covers common food words across
+    /// all of them rather than German alone.
+    func emoji(forName name: String) -> String {
+        let n = name.lowercased()
+        for (keywords, emoji) in Self.foodEmojiKeywords where keywords.contains(where: n.contains) {
+            return emoji
+        }
+        return emoji
+    }
+
+    private static let foodEmojiKeywords: [(keywords: [String], emoji: String)] = [
+        (["hähnchen", "huhn", "hühnchen", "chicken", "poulet", "pollo", "pollame", "मुर्गा", "चिकन"], "🍗"),
+        (["rind", "steak", "beef", "bœuf", "boeuf", "ternera", "manzo", "बीफ़"], "🥩"),
+        (["schwein", "speck", "bacon", "pork", "porc", "cerdo", "maiale", "बेकन"], "🥓"),
+        (["wurst", "würstchen", "sausage", "saucisse", "salchicha", "salsiccia"], "🌭"),
+        (["lachs", "salmon", "saumon", "salmón", "salmone", "thunfisch", "tuna", "thon", "atún", "tonno", "fisch", "fish", "poisson", "pescado", "pesce", "मछली"], "🐟"),
+        (["garnelen", "shrimp", "crevette", "camarón", "gamberi"], "🍤"),
+        (["sushi"], "🍣"),
+        (["ei ", "eier", "spiegelei", "rührei", "egg", "œuf", "oeuf", "huevo", "uovo", "अंडा"], "🥚"),
+        (["reis", "rice", "riz", "arroz", "riso", "चावल"], "🍚"),
+        (["nudeln", "pasta", "spaghetti", "penne", "nouilles", "fideos", "मैकरोनी"], "🍝"),
+        (["pizza"], "🍕"),
+        (["burger", "hamburger"], "🍔"),
+        (["sandwich", "wrap", "brötchen", "toast", "brot", "bread", "pain", "pan ", "pane", "ब्रेड"], "🍞"),
+        (["salat", "salad", "salade", "ensalada", "insalata", "सलाद"], "🥗"),
+        (["suppe", "soup", "soupe", "sopa", "zuppa", "सूप"], "🍲"),
+        (["curry", "दाल", "dal "], "🍛"),
+        (["taco"], "🌮"),
+        (["kartoffel", "potato", "pomme de terre", "patata", "patate", "आलू"], "🥔"),
+        (["brokkoli", "broccoli", "gemüse", "vegetable", "légumes", "verdura", "verduras", "सब्ज़ी"], "🥦"),
+        (["karotte", "carrot", "carotte", "zanahoria", "carota"], "🥕"),
+        (["tomate", "tomato", "pomodoro"], "🍅"),
+        (["avocado", "avocat", "aguacate"], "🥑"),
+        (["apfel", "apple", "pomme", "manzana", "mela", "सेब"], "🍎"),
+        (["banane", "banana", "plátano", "केला"], "🍌"),
+        (["beere", "beeren", "berry", "berries", "baie", "baies", "erdbeer", "himbeer", "blaubeer", "blueberr", "strawberr"], "🫐"),
+        (["orange", "orangen", "naranja", "arancia"], "🍊"),
+        (["joghurt", "yogurt", "yaourt", "yogur", "दही"], "🥣"),
+        (["müsli", "muesli", "hafer", "oats", "avena", "porridge"], "🥣"),
+        (["käse", "cheese", "fromage", "queso", "formaggio", "पनीर"], "🧀"),
+        (["milch", "milk", "lait", "leche", "latte", "दूध"], "🥛"),
+        (["nüsse", "mandeln", "walnuss", "nuts", "noix", "nueces", "noci", "almond", "cashew", "मूंगफली"], "🥜"),
+        (["smoothie", "shake"], "🥤"),
+        (["kaffee", "coffee", "café", "caffè", "कॉफ़ी"], "☕"),
+        (["pfannkuchen", "pancake", "crêpe", "crepe", "panqueque"], "🥞"),
+        (["schokolade", "chocolate", "chocolat", "cioccolato"], "🍫"),
+        (["kuchen", "cake", "gâteau", "gateau", "torta", "tarta"], "🍰"),
+    ]
 }
 
 // MARK: - Main View
@@ -509,7 +563,7 @@ struct HomeDashboardView: View {
                     VStack(spacing: 8) {
                         ForEach(meals) { meal in
                             HStack(spacing: 12) {
-                                Text(meal.category.emoji)
+                                Text(meal.category.emoji(forName: meal.name))
                                     .font(.system(size: 22))
                                     .frame(width: 36, height: 36)
 
@@ -624,7 +678,7 @@ struct HomeDashboardView: View {
                 if let meal = currentPlannedMeal {
                     // Only the meal that's relevant right now (by time of day).
                     HStack(spacing: 12) {
-                        Text(meal.category.emoji)
+                        Text(meal.category.emoji(forName: meal.name))
                             .font(.system(size: 26))
                         VStack(alignment: .leading, spacing: 3) {
                             Text(lang.t(meal.category.shortLabel).uppercased())

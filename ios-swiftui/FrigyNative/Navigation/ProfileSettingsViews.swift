@@ -2089,7 +2089,7 @@ struct FoodEntryView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         VStack(spacing: 10) {
-                            Text(meal.category.emoji)
+                            Text(meal.category.emoji(forName: meal.name))
                                 .font(.system(size: 56))
                             Text(meal.name)
                                 .font(.system(size: 22, weight: .black))
@@ -2193,7 +2193,7 @@ struct MealDetailView: View {
                 VStack(spacing: 20) {
                     if let meal = plannedMeal {
                         VStack(spacing: 10) {
-                            Text(meal.category.emoji).font(.system(size: 56))
+                            Text(meal.category.emoji(forName: meal.name)).font(.system(size: 56))
                             Text(meal.name)
                                 .font(.system(size: 22, weight: .black))
                                 .foregroundColor(FrigyBrand.text)
