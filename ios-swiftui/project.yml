@@ -39,7 +39,12 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    TARGETED_DEVICE_FAMILY: "1,2"
+    # iPhone-only (not Universal "1,2"): this is what makes iOS run the app on
+    # iPad in its native Compatibility Mode (a real, system-rendered iPhone-
+    # sized window with the built-in 1x/2x zoom control) instead of stretching
+    # our layout across the full iPad screen. Same mechanism apps like Cal AI
+    # rely on — it's an OS feature, not something drawn in SwiftUI.
+    TARGETED_DEVICE_FAMILY: "1"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     # Required for App Store archive: build all slices (arm64 + arm64e), not just

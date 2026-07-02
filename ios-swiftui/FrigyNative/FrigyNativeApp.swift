@@ -49,7 +49,6 @@ struct FrigyNativeApp: App {
                     // (Respects the paywall bypass for tester/review accounts.)
                     Task { await router.refreshPremiumOnForeground() }
                 }
-                .phoneCanvasOnPad()
         }
     }
 }
