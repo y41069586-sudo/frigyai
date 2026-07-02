@@ -9,6 +9,13 @@ function buildEmailHTML(confirmationLink: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <!-- Locks the email to its designed light look. Without these, some clients
+       (Apple Mail dark mode especially) auto-recolor text — that's what was
+       turning the button's dark-green text near-white/washed-out on the mint
+       gradient, since the client ignored the explicit color and "smart"
+       re-themed it for dark mode. -->
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>Bestätige deine E-Mail – Frigy</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -23,9 +30,15 @@ function buildEmailHTML(confirmationLink: string): string {
     .bdy{padding:40px 40px 36px}
     .title{font-size:23px;font-weight:800;color:#1F2937;letter-spacing:-.5px;margin-bottom:12px}
     .txt{font-size:15px;color:#6B7280;line-height:1.65;margin-bottom:32px}
-    /* CTA button */
-    .cta{display:block;background:linear-gradient(135deg,#75FBB2,#2EB56D);border-radius:16px;padding:17px 28px;text-align:center;text-decoration:none;font-size:17px;font-weight:800;color:#0a4a28 !important;letter-spacing:-.3px;margin-bottom:20px}
+    /* CTA button — background-color fallback for clients that drop gradients,
+       plus a solid darker green (not the lighter mint stop) so the text stays
+       readable even if a client washes out the gradient itself. */
+    .cta{display:block;background-color:#2EB56D;background-image:linear-gradient(135deg,#57E39A,#1F9C5C);border-radius:16px;padding:17px 28px;text-align:center;text-decoration:none;font-size:17px;font-weight:800;letter-spacing:-.3px;margin-bottom:20px}
     .cta:hover{opacity:.92}
+    /* Bulletproof text color: an explicit inline-styled span nested inside the
+       button (see markup below) survives clients that override an <a> tag's
+       own color but respect a plain <span>'s inline style. */
+    .cta-label{color:#083D22 !important}
     /* hint */
     .hint{font-size:12.5px;color:#9CA3AF;line-height:1.55;text-align:center;padding:0 8px}
     .hint a{color:#2EB56D;text-decoration:none}
@@ -50,7 +63,9 @@ function buildEmailHTML(confirmationLink: string): string {
         Fast geschafft! Tippe einmal auf den Button – danach wirst du direkt zur App
         weitergeleitet und kannst sofort mit deinem personalisierten Ernährungsplan starten.
       </p>
-      <a href="${confirmationLink}" class="cta">✅ &nbsp;Jetzt bestätigen &amp; App öffnen</a>
+      <a href="${confirmationLink}" class="cta" style="background-color:#2EB56D;background-image:linear-gradient(135deg,#57E39A,#1F9C5C);color:#083D22;">
+        <span class="cta-label" style="color:#083D22 !important;font-weight:800;">✅ &nbsp;Jetzt bestätigen &amp; App öffnen</span>
+      </a>
       <p class="hint">
         Der Link ist 24 Stunden gültig. Falls du dich nicht bei Frigy registriert hast,
         kannst du diese E-Mail einfach ignorieren.
@@ -116,13 +131,20 @@ serve(async (req) => {
     // signup link fail. If the user already exists (e.g. a resend tap), fall back
     // to a magic link, which works for existing unconfirmed accounts and also
     // confirms the email when tapped.
+    //
+    // redirectTo uses the Universal Link (https://app.frigy.app/auth), NOT the
+    // frigy:// custom scheme. A custom scheme reached via a browser redirect
+    // always forces iOS to show an "Open in Frigy?" confirmation prompt — a
+    // Universal Link (once the associated-domain / apple-app-site-association
+    // setup is correct) is intercepted by iOS silently, so the tap goes
+    // straight from Mail into the app with no browser step at all.
     async function makeLink() {
       if (password) {
         const r = await supabase.auth.admin.generateLink({
           type: "signup",
           email,
           password,
-          options: { redirectTo: "frigy://callback" },
+          options: { redirectTo: "https://app.frigy.app/auth" },
         });
         if (!r.error && r.data?.properties?.action_link) return r;
         console.warn("[send-email-confirmation] signup link failed, trying magiclink:", r.error?.message);
@@ -130,7 +152,7 @@ serve(async (req) => {
       return await supabase.auth.admin.generateLink({
         type: "magiclink",
         email,
-        options: { redirectTo: "frigy://callback" },
+        options: { redirectTo: "https://app.frigy.app/auth" },
       });
     }
 

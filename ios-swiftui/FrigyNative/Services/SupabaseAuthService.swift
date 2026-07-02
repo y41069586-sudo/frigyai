@@ -281,8 +281,24 @@ final class SupabaseAuthService: AuthServiceProtocol {
     // MARK: - Private
 
     private func isOAuthCallbackURL(_ url: URL) -> Bool {
-        url.scheme?.lowercased() == SupabaseConfig.oauthRedirectScheme
-            && url.host?.lowercased() == SupabaseConfig.oauthCallbackHost
+        if url.scheme?.lowercased() == SupabaseConfig.oauthRedirectScheme
+            && url.host?.lowercased() == SupabaseConfig.oauthCallbackHost {
+            return true
+        }
+        // Email confirmation / magic links now redirect to the Universal Link
+        // https://app.frigy.app/auth (see send-email-confirmation) instead of the
+        // frigy:// custom scheme, so a real tap opens the app directly with no
+        // "Open in Frigy?" prompt. Supabase appends the actual access/refresh
+        // tokens as a query or fragment on THIS url, so it must be matched here
+        // and handed to `client.auth.session(from:)` as-is — routing it through
+        // DeepLinkParser instead would rebuild a bare placeholder URL with no
+        // tokens at all and silently fail to sign the user in.
+        if (url.scheme?.lowercased() == "https" || url.scheme?.lowercased() == "http")
+            && url.host?.lowercased() == SupabaseConfig.appWebHost.lowercased()
+            && url.path == "/auth" {
+            return true
+        }
+        return false
     }
 
     private func startWebAuthenticationSession(url: URL) async throws {
