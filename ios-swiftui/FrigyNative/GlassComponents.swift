@@ -397,23 +397,6 @@ struct FrigyNavBar: View {
     }
 }
 
-/// Pins a PUSHED detail screen to the shell's real, reliably-measured content
-/// height (see `MainTabCoordinator.detailContentHeight`) and top-aligns it, so it
-/// can never float to the vertical centre no matter what (broken) height the
-/// navigation container proposes. Until the first measurement lands the height is
-/// left free (nil) so nothing is clipped.
-private struct FrigyDetailContainerModifier: ViewModifier {
-    @Environment(MainTabCoordinator.self) private var coordinator
-
-    func body(content: Content) -> some View {
-        let measured = coordinator.detailContentHeight
-        return content
-            .frame(maxWidth: .infinity, alignment: .top)
-            .frame(height: measured > 0 ? measured : nil, alignment: .top)
-            .background(FrigyGlassBackground().ignoresSafeArea())
-    }
-}
-
 extension View {
     /// Constrains scrollable content to a readable centered column (max 700pt)
     /// and top-aligns it. On iPhone this is a no-op visually (screen < 700), but
@@ -435,20 +418,20 @@ extension View {
     /// full-bleed background filling the sides. Applied once at the routing layer
     /// so every pushed detail view is fixed in one place. No-op look on iPhone.
     func frigyDetailContainer(maxWidth: CGFloat = 700) -> some View {
-        // PUSHED detail screens. The long-standing "content floats in the vertical
-        // centre with a huge empty band on top (esp. iPad landscape)" bug is because
-        // SwiftUI does NOT hand a pushed NavigationStack destination a definite
-        // height the way it does the stack ROOT (the dashboard fills fine for exactly
-        // that reason). So the screen's ScrollView collapses to its content height
-        // and the under-sized block gets centred. EVERY in-place trick — maxHeight
-        // frames, GeometryReader clamp, containerRelativeFrame — depends on that
-        // same missing height, so none of them could work.
+        // Clean, no-injection container: just make the screen greedy vertically and
+        // top-align it. `maxHeight: .infinity, alignment: .top` proposes the full
+        // available height to the content, so a bare ScrollView (or a
+        // VStack{header;ScrollView} whose ScrollView is a greedy child) FILLS it and
+        // top-anchors — the nav bar sits at the top, content starts right below it.
         //
-        // The fix measures the REAL height once, at the shell level (the ZStack in
-        // MainShellView, where geometry is reliable because it always fills), stores
-        // it on the coordinator, and pins the detail content to it here. Deterministic
-        // and independent of the broken proposal.
-        modifier(FrigyDetailContainerModifier())
+        // History note: earlier builds centred the content NOT because of the OS but
+        // because the container itself was contaminated — a GeometryReader clamp /
+        // containerRelativeFrame that collapsed under the push proposal and handed the
+        // screen a collapsed height. With the container reduced to a plain greedy
+        // frame (nothing competing) the content fills correctly on iPhone AND iPad.
+        self
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(FrigyGlassBackground().ignoresSafeArea())
     }
 
     /// Background + column for content presented in a SHEET (e.g. the goals editor).

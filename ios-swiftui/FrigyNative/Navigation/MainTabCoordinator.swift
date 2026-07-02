@@ -11,14 +11,6 @@ final class MainTabCoordinator {
     var trackerPreselectedCategory: MealCategory? = nil
     var todayMealCount: Int = 0
 
-    /// The real, reliable content height measured at the shell level (the ZStack in
-    /// MainShellView, which always fills correctly — the dashboard proves it). Pushed
-    /// NavigationStack destinations on iPad do NOT get a definite height proposal, so
-    /// their content collapses and floats to the vertical centre. Detail screens read
-    /// this value to pin themselves to the true available height instead of guessing
-    /// from a broken proposal. 0 until the first measurement lands.
-    var detailContentHeight: CGFloat = 0
-
     /// Tracks whether each tab root has been instantiated (TabView keeps views alive; this aids debugging).
     private(set) var tabActivationCounts: [AppTab: Int] = [:]
 
