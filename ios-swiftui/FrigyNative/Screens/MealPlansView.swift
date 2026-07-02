@@ -69,6 +69,10 @@ struct PlannedMeal: Identifiable, Codable {
 // Web tokens: --primary = #75FBB2, macros = red-400/amber-400/blue-400.
 
 let weekPlanKey = "frigy.weekPlan.v1"
+// The app language the current plan was generated in — so we can auto-regenerate
+// it in the new language when the user switches languages (meal names are AI data
+// and can't go through lang.t()).
+let weekPlanLanguageKey = "frigy.weekPlan.language.v1"
 extension Notification.Name {
     static let weekPlanDidUpdate = Notification.Name("frigy.weekPlanDidUpdate")
     /// Posted by the plan-settings screen's "Neu generieren" button so the
@@ -112,6 +116,7 @@ struct MealPlansView: View {
         if let data = try? JSONEncoder().encode(weekPlan) {
             UserDefaults.standard.set(data, forKey: weekPlanKey)
         }
+        UserDefaults.standard.set(lang.language.rawValue, forKey: weekPlanLanguageKey)
         NotificationCenter.default.post(name: .weekPlanDidUpdate, object: nil)
     }
 
@@ -194,6 +199,16 @@ struct MealPlansView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .weekPlanShouldRegenerate)) { _ in
             guard !isGenerating else { return }
+            Task { await generatePlan() }
+        }
+        .onChange(of: lang.language) { _, newLang in
+            // Option A: switching language auto-regenerates an EXISTING plan in the
+            // new language (meal names are AI data, not lang.t() strings). The
+            // shopping list derives from the plan, so it follows automatically.
+            guard !isGenerating,
+                  UserDefaults.standard.data(forKey: weekPlanKey) != nil,
+                  UserDefaults.standard.string(forKey: weekPlanLanguageKey) != newLang.rawValue
+            else { return }
             Task { await generatePlan() }
         }
     }
