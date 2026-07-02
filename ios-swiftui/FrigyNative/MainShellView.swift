@@ -24,23 +24,23 @@ struct MainShellView: View {
         @Bindable var coordinator = tabCoordinator
 
         TabView(selection: $coordinator.selectedTab) {
-            Tab(value: AppTab.home) {
-                HomeTabRoot()
-            } label: {
-                Label(lang.t(AppTab.home.shortTitle), systemImage: AppTab.home.systemImage)
-            }
+            HomeTabRoot()
+                .tabItem {
+                    Label(lang.t(AppTab.home.shortTitle), systemImage: AppTab.home.systemImage)
+                }
+                .tag(AppTab.home)
 
-            Tab(value: AppTab.plans) {
-                PlansTabRoot()
-            } label: {
-                Label(lang.t(AppTab.plans.shortTitle), systemImage: AppTab.plans.systemImage)
-            }
+            PlansTabRoot()
+                .tabItem {
+                    Label(lang.t(AppTab.plans.shortTitle), systemImage: AppTab.plans.systemImage)
+                }
+                .tag(AppTab.plans)
 
-            Tab(value: AppTab.shopping) {
-                ShoppingTabRoot()
-            } label: {
-                Label(lang.t(AppTab.shopping.shortTitle), systemImage: AppTab.shopping.systemImage)
-            }
+            ShoppingTabRoot()
+                .tabItem {
+                    Label(lang.t(AppTab.shopping.shortTitle), systemImage: AppTab.shopping.systemImage)
+                }
+                .tag(AppTab.shopping)
         }
         .tint(FrigyBrand.primaryDeep)
         .overlay(alignment: .bottomTrailing) {
