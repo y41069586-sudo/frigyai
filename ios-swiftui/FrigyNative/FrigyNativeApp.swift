@@ -49,10 +49,14 @@ struct FrigyNativeApp: App {
                     // (Respects the paywall bypass for tester/review accounts.)
                     Task { await router.refreshPremiumOnForeground() }
                 }
-                // Temporarily disabled: testing whether real iPadOS Compatibility
-                // Mode now works with the ~ipad orientation key removed (see
-                // project.yml). Re-add this line if it still doesn't trigger.
-                // .phoneCanvasOnPad()
+                // Native iPadOS Compatibility Mode (TARGETED_DEVICE_FAMILY "1")
+                // was tried twice: once it built and ran but still rendered
+                // full-bleed iPad UI, once it got hard-rejected by App Store
+                // Connect's own upload validator over iPad orientation
+                // requirements. Apple's tooling doesn't offer a path that is
+                // both uploadable AND shows the compact iPhone window, so the
+                // phone-shaped look on iPad is handled here instead.
+                .phoneCanvasOnPad()
         }
     }
 }

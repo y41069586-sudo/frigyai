@@ -39,14 +39,16 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
-    # iPhone-only, attempt 2: the first try at this (device family "1" alone)
-    # still rendered full-bleed on a real iPadOS 26 build. Likely cause: the
-    # Info.plist ALSO declared full iPad-specific orientations
-    # (UISupportedInterfaceOrientations~ipad), which contradicts an iPhone-
-    # only app and may have stopped iPadOS from treating it as one. That key
-    # is now removed too (see Info.plist) — testing whether Compatibility
-    # Mode actually triggers now.
-    TARGETED_DEVICE_FAMILY: "1"
+    # Final answer, back to Universal: iPhone-only was tried twice. First
+    # attempt rendered full-bleed anyway on a real iPadOS 26 build (not the
+    # classic small window). Second attempt (after removing the ~ipad
+    # orientation key) got hard-rejected by App Store Connect's own upload
+    # validator, which insists the bundle "needs all 4 orientations to
+    # support iPad multitasking" regardless of device family. Apple's own
+    # server treats this app as iPad-capable no matter what we declare here,
+    # so the phone-shaped look on iPad is handled entirely in SwiftUI
+    # instead (see PhoneCanvas.swift / .phoneCanvasOnPad()).
+    TARGETED_DEVICE_FAMILY: "1,2"
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     # Required for App Store archive: build all slices (arm64 + arm64e), not just
@@ -109,12 +111,17 @@ targets:
             CFBundleURLSchemes:
               - com.googleusercontent.apps.153158265512-8ookf1g41bc74527pqh66ufga6uatrlm
         UILaunchScreen: {}
-        # Portrait only, no ~ipad override: an iPhone-only app declaring iPad-
-        # specific orientations contradicts TARGETED_DEVICE_FAMILY "1" and was
-        # likely why iPadOS wasn't treating it as a real Compatibility Mode
-        # (iPhone-only) app.
+        # iPhone: portrait only (food-tracking UX is vertical). iPad: all 4
+        # orientations — App Store Connect's upload validator hard-rejects the
+        # bundle without this ("needs all 4 orientations to support iPad
+        # multitasking"), regardless of TARGETED_DEVICE_FAMILY.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         # Supabase + OAuth — values injected by Secrets.xcconfig on Codemagic
         SUPABASE_URL: "$(SUPABASE_URL)"
         SUPABASE_ANON_KEY: "$(SUPABASE_ANON_KEY)"
