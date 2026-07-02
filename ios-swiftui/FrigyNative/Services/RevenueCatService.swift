@@ -190,12 +190,26 @@ final class RevenueCatSubscriptionService: SubscriptionServiceProtocol {
     /// Alias the RevenueCat app user ID to the Supabase user ID. Without this the
     /// purchase lands on an anonymous RevenueCat user, and the backend
     /// (`check-subscription` → RevenueCat REST lookup keyed by Supabase user ID)
-    /// never finds the entitlement, so premium features stay locked after payment.
+    /// never finds the entitlement, so premium features stay locked after payment
+    /// even though the app itself (and RevenueCat's own client-side entitlement
+    /// check) correctly shows the purchase as active — this exact split ("restore
+    /// says it worked, but no premium features") was silently possible before,
+    /// because a single `logIn` attempt that failed (a transient network blip)
+    /// was never retried or verified, and the purchase/restore proceeded on the
+    /// still-anonymous identity regardless.
+    ///
+    /// Retries a few times and verifies `appUserID` actually matches before
+    /// returning, instead of firing a single best-effort attempt.
     func identify(userId: String) async {
         guard RevenueCatConfig.isConfigured, Purchases.isConfigured, !userId.isEmpty else { return }
-        // No-op if already identified as this user (avoids a redundant network call).
-        if Purchases.shared.appUserID == userId { return }
-        _ = try? await Purchases.shared.logIn(userId)
+        for attempt in 0..<3 {
+            // No-op once already identified as this user (avoids redundant calls).
+            if Purchases.shared.appUserID == userId { return }
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
+            }
+            _ = try? await Purchases.shared.logIn(userId)
+        }
     }
 
     func clearIdentity() async {

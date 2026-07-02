@@ -322,6 +322,18 @@ struct PaywallStepView: View {
                     isPurchasing = true
                     Task {
                         do {
+                            // Re-assert the store-identity link right before the purchase,
+                            // not just once when the paywall first loaded — if that
+                            // earlier attempt silently failed (a transient network blip),
+                            // the purchase would otherwise proceed on the anonymous store
+                            // identity: RevenueCat and the app both correctly show the
+                            // purchase as active, but the backend (which looks up
+                            // RevenueCat by Supabase user ID) never finds it, so
+                            // server-gated Premium features stay locked despite the
+                            // successful payment.
+                            if let session = try? await router.authService.currentSession() {
+                                await router.subscriptionService.identify(userId: session.userId)
+                            }
                             let ok = try await router.subscriptionService.purchase(pkg)
                             isPurchasing = false
                             if ok {
@@ -374,6 +386,13 @@ struct PaywallStepView: View {
                         isRestoring = true
                         Task {
                             do {
+                                // Same reasoning as the purchase button: restore must run
+                                // on the correctly-identified store identity, otherwise it
+                                // can "succeed" locally while remaining invisible to the
+                                // server-side premium check.
+                                if let session = try? await router.authService.currentSession() {
+                                    await router.subscriptionService.identify(userId: session.userId)
+                                }
                                 let ok = try await router.subscriptionService.restorePurchases()
                                 isRestoring = false
                                 if ok {

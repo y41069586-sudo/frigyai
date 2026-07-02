@@ -176,6 +176,13 @@ struct ProfileView: View {
                         Button {
                             isRestoring = true
                             Task {
+                                // Re-assert the store-identity link right before restoring —
+                                // otherwise restore can "succeed" against the wrong (anonymous)
+                                // store identity while staying invisible to the server-side
+                                // premium check, so Premium features stay locked regardless.
+                                if let session = try? await router.authService.currentSession() {
+                                    await router.subscriptionService.identify(userId: session.userId)
+                                }
                                 let ok = (try? await router.subscriptionService.restorePurchases()) ?? false
                                 if ok { router.isPremium = true }
                                 isRestoring = false
