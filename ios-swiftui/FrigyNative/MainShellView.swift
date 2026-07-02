@@ -43,10 +43,6 @@ struct MainShellView: View {
             }
         }
         .tint(FrigyBrand.primaryDeep)
-        // Opts OUT of iPadOS 18+'s automatic top-floating tab bar adaptation, so
-        // the bar stays pinned to the bottom on every device — iPhone AND iPad —
-        // while still getting the real iOS 26 Liquid Glass rendering.
-        .tabViewStyle(.tabBarOnly)
         .overlay(alignment: .bottomTrailing) {
             // Only alongside a tab's ROOT screen — hidden once a detail screen is
             // pushed, matching `frigyDetailContainer()` hiding the tab bar itself.
