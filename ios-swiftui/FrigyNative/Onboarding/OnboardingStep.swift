@@ -68,6 +68,25 @@ enum OnboardingStep: String, CaseIterable, Codable, Hashable, Identifiable {
     var id: String { rawValue }
 }
 
+/// The four designed phases of the onboarding journey. Drives the segmented
+/// progress header (`OnboardingPhaseProgress`) rendered on every step.
+enum OnboardingPhase: Int, CaseIterable {
+    case discover   // feature hook: weeklyPlan / scanFridge / shoppingList
+    case profile    // personalization questions
+    case setup      // permissions + referral
+    case plan       // analyzing + plan reveal + account/paywall finale
+
+    /// German source label — translated at render time via `lang.t`.
+    var germanLabel: String {
+        switch self {
+        case .discover: "Entdecken"
+        case .profile:  "Dein Profil"
+        case .setup:    "Einrichtung"
+        case .plan:     "Dein Plan"
+        }
+    }
+}
+
 /// Production onboarding order from `onboardingSteps` in `types.ts`.
 enum OnboardingFlow {
     /// Macro-level entry managed by `DefaultOnboardingRulesEngine`.
@@ -118,6 +137,52 @@ enum OnboardingFlow {
 
     static func isDetailedProfileStep(_ step: OnboardingStep) -> Bool {
         detailedProfileSteps.contains(step)
+    }
+
+    // MARK: - Phase model (drives the segmented progress header)
+
+    /// Total units the coordinator's progress fraction is computed against
+    /// (`(index + 1) / totalProgressUnits`) — detail steps plus the four
+    /// macro finale steps (account, paywall, theme, done). Single source of
+    /// truth shared by the coordinator and the phase header.
+    static var totalProgressUnits: Int { detailedProfileSteps.count + 4 }
+
+    /// Unit-index ranges of each phase, derived from the live step order so
+    /// reordering steps inside a phase never desyncs the header.
+    static func phaseRange(_ phase: OnboardingPhase) -> Range<Int> {
+        func idx(_ s: OnboardingStep) -> Int { detailedProfileSteps.firstIndex(of: s) ?? 0 }
+        switch phase {
+        case .discover: return 0..<idx(.gender)
+        case .profile:  return idx(.gender)..<idx(.cameraPermission)
+        case .setup:    return idx(.cameraPermission)..<idx(.analyzing)
+        case .plan:     return idx(.analyzing)..<totalProgressUnits
+        }
+    }
+
+    /// Recovers the discrete unit index from a progress fraction. Exact,
+    /// because the coordinator computes progress as `(index+1)/units`.
+    static func unitIndex(forProgress p: Double) -> Int {
+        max(0, Int((p * Double(totalProgressUnits)).rounded()) - 1)
+    }
+
+    /// Phase + position-within-phase for a progress fraction (nil outside the flow).
+    static func phaseInfo(forProgress p: Double) -> (phase: OnboardingPhase, stepInPhase: Int, phaseLength: Int)? {
+        let i = unitIndex(forProgress: p)
+        for phase in OnboardingPhase.allCases {
+            let r = phaseRange(phase)
+            if r.contains(i) { return (phase, i - r.lowerBound + 1, r.count) }
+        }
+        return nil
+    }
+
+    /// Fill fraction (0…1) of one header segment for the given overall progress.
+    static func segmentFill(for phase: OnboardingPhase, progress p: Double) -> Double {
+        let r = phaseRange(phase)
+        guard !r.isEmpty else { return 0 }
+        let i = unitIndex(forProgress: p)
+        if i < r.lowerBound { return 0 }
+        if i >= r.upperBound - 1 { return 1 }
+        return Double(i - r.lowerBound + 1) / Double(r.count)
     }
 
     static func index(of step: OnboardingStep) -> Int? {

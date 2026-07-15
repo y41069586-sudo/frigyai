@@ -45,7 +45,8 @@ final class OnboardingCoordinator {
     }
 
     var stepCount: Int {
-        OnboardingFlow.detailedProfileSteps.count + 4
+        // Shared with the phase-progress header — see OnboardingFlow.totalProgressUnits.
+        OnboardingFlow.totalProgressUnits
     }
 
     var progressFraction: Double {

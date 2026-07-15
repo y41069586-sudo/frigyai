@@ -93,24 +93,38 @@ struct OnboardingContinueButton: View {
 
     var body: some View {
         Button(action: { if isEnabled { action() } }) {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Text(lang.t(title))
-                    .font(.system(size: 16, weight: .semibold))
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                // Arrow sits in its own subtle disc — gives the CTA a clear
+                // "forward" affordance and a place for the eye to land.
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(isEnabled ? 0.22 : 0.35))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .bold))
+                }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .background(isEnabled ? AnyShapeStyle(FrigyBrand.buttonGradient) : AnyShapeStyle(FrigyBrand.buttonDisabledGradient))
+            .frame(height: 56)
+            // Deeper green stops than the brand mint so white text always has
+            // solid contrast (the light-mint gradient washed white text out).
+            .background(
+                isEnabled
+                    ? AnyShapeStyle(LinearGradient(
+                        colors: [FrigyBrand.primaryDark, FrigyBrand.primaryDeep],
+                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                    : AnyShapeStyle(FrigyBrand.buttonDisabledGradient)
+            )
             .foregroundColor(isEnabled ? .white : Color(hex: "#4AE896"))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            // Soft top sheen — frosted-glass highlight catching light.
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(Color.white.opacity(isEnabled ? 0.22 : 0), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(isEnabled ? 0.25 : 0), lineWidth: 1)
                     .blendMode(.plusLighter)
             )
-            .shadow(color: isEnabled ? Color(hex: "#4AE896").opacity(0.5) : .clear, radius: 12, y: 6)
+            .shadow(color: isEnabled ? FrigyBrand.primaryDeep.opacity(0.38) : .clear, radius: 14, y: 7)
         }
         .buttonStyle(PressableButtonStyle())
         .disabled(!isEnabled)
@@ -137,16 +151,18 @@ struct OnboardingBackButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "chevron.left")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(FrigyBrand.primaryDark)
-                .frame(width: 40, height: 40)
-                .background(Color(UIColor.secondarySystemBackground))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(FrigyBrand.text)
+                .frame(width: 38, height: 38)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().stroke(FrigyBrand.cardBorder.opacity(0.8), lineWidth: 1))
+                .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
         }
+        .buttonStyle(PressableButtonStyle(scale: 0.92))
     }
 }
 
+/// Legacy single-bar progress — kept for call sites outside the main flow.
 struct OnboardingProgressBar: View {
     let fraction: Double
 
@@ -170,6 +186,69 @@ struct OnboardingProgressBar: View {
             }
         }
         .frame(height: 4)
+    }
+}
+
+/// The redesigned journey header: four phase segments (Entdecken · Dein Profil ·
+/// Einrichtung · Dein Plan) with a live fill inside the current segment, plus a
+/// phase label + in-phase counter row. Rendered by the scaffold on every step,
+/// so the user always knows WHERE they are and how much of THIS chapter is left
+/// — a single 24-step bar reads as endless; four short chapters feel quick.
+struct OnboardingPhaseProgress: View {
+    let progress: Double
+
+    @Environment(LanguageManager.self) private var lang
+
+    private var info: (phase: OnboardingPhase, stepInPhase: Int, phaseLength: Int)? {
+        OnboardingFlow.phaseInfo(forProgress: progress)
+    }
+
+    var body: some View {
+        VStack(spacing: 7) {
+            HStack(spacing: 5) {
+                ForEach(OnboardingPhase.allCases, id: \.rawValue) { phase in
+                    segment(for: phase)
+                }
+            }
+            if let info {
+                HStack {
+                    Text(lang.t(info.phase.germanLabel).uppercased())
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .tracking(1.3)
+                        .foregroundColor(FrigyBrand.primaryDeep)
+                    Spacer()
+                    // The finale chapter carries no counter — it's the reveal.
+                    if info.phase != .plan {
+                        Text("\(info.stepInPhase)/\(info.phaseLength)")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(FrigyBrand.textMuted)
+                            .monospacedDigit()
+                    }
+                }
+            }
+        }
+    }
+
+    private func segment(for phase: OnboardingPhase) -> some View {
+        let fill = OnboardingFlow.segmentFill(for: phase, progress: progress)
+        let isCurrent = info?.phase == phase
+        return GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(FrigyBrand.borderMint.opacity(0.25))
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(geo.size.width * fill, fill > 0 ? 5 : 0))
+                    .shadow(color: isCurrent ? FrigyBrand.primary.opacity(0.6) : .clear, radius: 4)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.82), value: fill)
+            }
+        }
+        .frame(height: 5)
     }
 }
 
@@ -222,16 +301,23 @@ struct OnboardingSelectionCard: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(isSelected ? FrigyBrand.primary : FrigyBrand.selectedBg.opacity(0.5))
-                        .frame(width: 44, height: 44)
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            isSelected
+                                ? AnyShapeStyle(LinearGradient(
+                                    colors: [FrigyBrand.primary, FrigyBrand.primaryDark],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+                                : AnyShapeStyle(FrigyBrand.selectedBg.opacity(0.55))
+                        )
+                        .frame(width: 48, height: 48)
+                        .shadow(color: isSelected ? FrigyBrand.primaryDark.opacity(0.35) : .clear, radius: 8, y: 3)
                     Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 19, weight: .semibold))
                         .foregroundColor(isSelected ? .white : FrigyBrand.primaryDark)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(FrigyBrand.text)
                     if let subtitle {
                         Text(subtitle)
@@ -240,18 +326,39 @@ struct OnboardingSelectionCard: View {
                     }
                 }
                 Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(FrigyBrand.primaryDark)
-                        .font(.system(size: 20))
+                // Selection state is always visible: empty ring → filled check.
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? FrigyBrand.primaryDeep : FrigyBrand.cardBorder, lineWidth: 2)
+                        .frame(width: 24, height: 24)
+                    if isSelected {
+                        Circle()
+                            .fill(FrigyBrand.primaryDeep)
+                            .frame(width: 24, height: 24)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundColor(.white)
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
             }
             .padding(16)
-            .modifier(FrigySelectionCardBackground(isSelected: isSelected))
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(isSelected ? FrigyBrand.selectedBg : Color(UIColor.systemBackground))
+                    .shadow(
+                        color: isSelected ? FrigyBrand.primaryDark.opacity(0.16) : Color.black.opacity(0.04),
+                        radius: isSelected ? 12 : 6, y: 4
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(isSelected ? FrigyBrand.primaryDeep : FrigyBrand.cardBorder, lineWidth: isSelected ? 1.5 : 1)
+            )
         }
         .buttonStyle(.plain)
-        .scaleEffect(isSelected ? 1.01 : 1)
-        .animation(.spring(duration: 0.2), value: isSelected)
+        .scaleEffect(isSelected ? 1.015 : 1)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
 
@@ -265,26 +372,26 @@ struct OnboardingStepScaffold<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Nav bar
-            HStack {
+            // Journey header: back button inline with the 4-phase segmented
+            // progress (label + counter row underneath). One compact block
+            // instead of the old two stacked rows — content starts higher.
+            HStack(alignment: .top, spacing: 14) {
                 if let back = onBack {
                     OnboardingBackButton(action: back)
                 } else {
-                    Color.clear.frame(width: 40, height: 40)
+                    Color.clear.frame(width: 38, height: 38)
                 }
-                Spacer()
+                if showProgress {
+                    OnboardingPhaseProgress(progress: progress)
+                        .padding(.top, 5)
+                } else {
+                    Spacer()
+                }
+                Color.clear.frame(width: 38, height: 38)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-
-            // Progress
-            if showProgress {
-                OnboardingProgressBar(fraction: progress)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    // Breathing room so the question never sits right under the bar.
-                    .padding(.bottom, 20)
-            }
+            .padding(.bottom, showProgress ? 18 : 4)
 
             content
         }

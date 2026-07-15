@@ -21,9 +21,16 @@ struct FrigyMascotQuestion: View {
     }
 
     var body: some View {
-        Text(typed)
-            .font(.system(size: 22, weight: .bold, design: .rounded))
-            .foregroundColor(FrigyBrand.text)
+        // Reserve the final height up front (hidden full text underneath) so
+        // the layout never jumps while the typewriter is still writing.
+        Text(question)
+            .font(.system(size: 25, weight: .heavy, design: .rounded))
+            .hidden()
+            .overlay(alignment: .topLeading) {
+                Text(typed)
+                    .font(.system(size: 25, weight: .heavy, design: .rounded))
+                    .foregroundColor(FrigyBrand.text)
+            }
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)

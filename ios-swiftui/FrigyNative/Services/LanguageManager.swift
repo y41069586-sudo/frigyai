@@ -132,6 +132,15 @@ enum Translations {
         "Monat": [.en: "month", .fr: "mois", .es: "mes", .it: "mese", .hi: "महीना"],
         "Jahr": [.en: "year", .fr: "an", .es: "año", .it: "anno", .hi: "वर्ष"],
 
+        // ===== ONBOARDING REDESIGN: phase header + hook-screen mockups =====
+        "Entdecken": [.en: "Discover", .fr: "Découvrir", .es: "Descubre", .it: "Scopri", .hi: "खोजें"],
+        "Dein Profil": [.en: "Your profile", .fr: "Ton profil", .es: "Tu perfil", .it: "Il tuo profilo", .hi: "आपकी प्रोफ़ाइल"],
+        "Einrichtung": [.en: "Setup", .fr: "Configuration", .es: "Configuración", .it: "Configurazione", .hi: "सेटअप"],
+        "KI": [.en: "AI", .fr: "IA", .es: "IA", .it: "IA", .hi: "AI"],
+        "Haferflocken & Beeren": [.en: "Oats & berries", .fr: "Flocons d'avoine et baies", .es: "Avena y bayas", .it: "Avena e frutti di bosco", .hi: "ओट्स और बेरीज़"],
+        "Hähnchen-Bowl": [.en: "Chicken bowl", .fr: "Bol de poulet", .es: "Bowl de pollo", .it: "Bowl di pollo", .hi: "चिकन बाउल"],
+        "Lachs & Gemüse": [.en: "Salmon & veggies", .fr: "Saumon et légumes", .es: "Salmón y verduras", .it: "Salmone e verdure", .hi: "सैल्मन और सब्ज़ियाँ"],
+
         // ===== TABS =====
         "Start": [.en: "Home", .fr: "Accueil", .es: "Inicio", .it: "Home", .hi: "होम"],
         "Plan": [.en: "Plan", .fr: "Plan", .es: "Plan", .it: "Piano", .hi: "योजना"],
