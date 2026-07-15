@@ -1,0 +1,8 @@
+/* Localized permission-dialog strings shown by iOS in the device language.
+   iOS reads these for the system permission alerts; the in-app LanguageManager
+   cannot localize them, so they must live here per language. */
+"NSCameraUsageDescription" = "Frigy necesita la cámara para escanear códigos de barras y tomar fotos de tus comidas para el análisis con IA.";
+"NSPhotoLibraryUsageDescription" = "Elige fotos de tus comidas de tu biblioteca para que Frigy pueda calcular los valores nutricionales con IA.";
+"NSHealthShareUsageDescription" = "Frigy lee tus pasos y calorías activas de la app Salud para calcular tu balance calórico neto.";
+"NSHealthUpdateUsageDescription" = "Frigy no escribe ningún dato de salud. Este texto es necesario por razones técnicas.";
+"NSUserNotificationsUsageDescription" = "Frigy te envía recordatorios para tus comidas y actualizaciones de progreso.";

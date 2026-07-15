@@ -5,6 +5,10 @@ options:
     iOS: "17.0"
   createIntermediateGroups: true
   groupSortPosition: top
+  # English is the base/development region: the project's known regions are
+  # derived from the <lang>.lproj folders under FrigyNative/, and any device
+  # language without its own .lproj falls back to en (never the German base).
+  developmentLanguage: en
 
 configs:
   Debug: debug
@@ -101,6 +105,20 @@ targets:
       path: FrigyNative/Info.plist
       properties:
         CFBundleDisplayName: Frigy
+        # Declares the languages the app is localized into. Combined with the
+        # per-language <lang>.lproj/InfoPlist.strings files, this makes iOS show
+        # the system permission dialogs (camera, photos, Health, notifications)
+        # in the device language instead of always German — App Review rejected
+        # 4.0/2.1 because an English device saw German permission text. English
+        # is the development region (CFBundleDevelopmentRegion), so unsupported
+        # system languages fall back to English, never German.
+        CFBundleLocalizations:
+          - en
+          - de
+          - fr
+          - es
+          - it
+          - hi
         CFBundleURLTypes:
           - CFBundleURLName: com.frigyapp.app
             CFBundleURLSchemes:

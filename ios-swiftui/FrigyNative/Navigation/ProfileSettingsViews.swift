@@ -1200,7 +1200,7 @@ struct SubscriptionView: View {
         guard let monthly else { return lang.t("Jetzt upgraden") }
         return lang.t("Jetzt upgraden – %1 / %2")
             .replacingOccurrences(of: "%1", with: monthly.priceString)
-            .replacingOccurrences(of: "%2", with: monthly.period)
+            .replacingOccurrences(of: "%2", with: lang.t(monthly.period))
     }
 
     private var upgradeButton: some View {

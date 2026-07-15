@@ -77,8 +77,26 @@ final class LanguageManager {
            let lang = AppLanguage(rawValue: raw) {
             self.language = lang
         } else {
-            self.language = .en
+            // First launch: follow the device language (among the ones we support),
+            // falling back to English. This is what keeps the in-app UI language and
+            // the iOS system permission dialogs — which always use the device language
+            // — consistent. App Review rejected the app for showing English UI next to
+            // German permission text; defaulting to the device language (plus the
+            // per-language InfoPlist.strings) makes both sides match from the start.
+            self.language = Self.deviceDefaultLanguage()
         }
+    }
+
+    /// The best-matching supported language for the device's preferred languages,
+    /// or English if none of them are supported.
+    private static func deviceDefaultLanguage() -> AppLanguage {
+        for identifier in Locale.preferredLanguages {
+            let base = String(identifier.prefix(2)).lowercased()
+            if let match = AppLanguage(rawValue: base) {
+                return match
+            }
+        }
+        return .en
     }
 
     func choose(_ language: AppLanguage) {
@@ -100,6 +118,20 @@ final class LanguageManager {
 /// not present here render in German regardless of the selected language.
 enum Translations {
     static let table: [String: [AppLanguage: String]] = [
+        // ===== APP REVIEW: previously-missing keys (fell back to German → mixed
+        // language on a non-German device, which App Review rejected) =====
+        "Alle Premium-Funktionen freischalten – KI-Scan, Tracker und mehr": [.en: "Unlock all premium features – AI scan, tracker and more", .fr: "Débloque toutes les fonctions premium – scan IA, tracker et plus", .es: "Desbloquea todas las funciones premium: escaneo con IA, tracker y más", .it: "Sblocca tutte le funzioni premium – scansione AI, tracker e altro", .hi: "सभी प्रीमियम सुविधाएँ अनलॉक करें – AI स्कैन, ट्रैकर और अधिक"],
+        "Erstelle ein Konto, um deinen Plan\nauch auf anderen Geräten zu nutzen.": [.en: "Create an account to use your plan\non other devices too.", .fr: "Crée un compte pour utiliser ton plan\nsur d'autres appareils aussi.", .es: "Crea una cuenta para usar tu plan\ntambién en otros dispositivos.", .it: "Crea un account per usare il tuo piano\nanche su altri dispositivi.", .hi: "अन्य डिवाइस पर भी अपनी योजना का उपयोग करने के लिए\nएक खाता बनाएं।"],
+        "Fortschritt speichern": [.en: "Save progress", .fr: "Enregistrer la progression", .es: "Guardar progreso", .it: "Salva i progressi", .hi: "प्रगति सहेजें"],
+        "Mit Apple fortfahren": [.en: "Continue with Apple", .fr: "Continuer avec Apple", .es: "Continuar con Apple", .it: "Continua con Apple", .hi: "Apple के साथ जारी रखें"],
+        "Mit Google fortfahren": [.en: "Continue with Google", .fr: "Continuer avec Google", .es: "Continuar con Google", .it: "Continua con Google", .hi: "Google के साथ जारी रखें"],
+        "Mit E-Mail fortfahren": [.en: "Continue with email", .fr: "Continuer avec l'e-mail", .es: "Continuar con correo electrónico", .it: "Continua con e-mail", .hi: "ईमेल के साथ जारी रखें"],
+        "Schritte & aktive Kalorien kommen vom iPhone. Öffne Frigy auf deinem iPhone, um Apple Health zu verbinden — auf dem iPad gibt es keine Schrittdaten.": [.en: "Steps & active calories come from the iPhone. Open Frigy on your iPhone to connect Apple Health — there's no step data on iPad.", .fr: "Les pas et les calories actives proviennent de l'iPhone. Ouvre Frigy sur ton iPhone pour connecter Apple Santé — il n'y a pas de données de pas sur iPad.", .es: "Los pasos y las calorías activas provienen del iPhone. Abre Frigy en tu iPhone para conectar Apple Salud: no hay datos de pasos en el iPad.", .it: "I passi e le calorie attive provengono dall'iPhone. Apri Frigy sul tuo iPhone per collegare Apple Salute — sull'iPad non ci sono dati sui passi.", .hi: "कदम और सक्रिय कैलोरी iPhone से आते हैं। Apple Health को कनेक्ट करने के लिए अपने iPhone पर Frigy खोलें — iPad पर कदम डेटा नहीं है।"],
+        // Subscription period unit (from RevenueCatService.period) shown in the
+        // "Upgrade now – $8.99 / Monat" button — was raw German next to English UI.
+        "Monat": [.en: "month", .fr: "mois", .es: "mes", .it: "mese", .hi: "महीना"],
+        "Jahr": [.en: "year", .fr: "an", .es: "año", .it: "anno", .hi: "वर्ष"],
+
         // ===== TABS =====
         "Start": [.en: "Home", .fr: "Accueil", .es: "Inicio", .it: "Home", .hi: "होम"],
         "Plan": [.en: "Plan", .fr: "Plan", .es: "Plan", .it: "Piano", .hi: "योजना"],
