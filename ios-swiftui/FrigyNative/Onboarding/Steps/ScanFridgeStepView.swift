@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct ScanFridgeStepView: View {
     let progress: Double
@@ -40,16 +39,16 @@ struct ScanFridgeStepView: View {
 
             VStack(spacing: 0) {
                 Divider().overlay(Color.black.opacity(0.06))
-                OnboardingContinueButton {
-                    Task {
-                        _ = await AVCaptureDevice.requestAccess(for: .video)
-                        await MainActor.run { onNext() }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, max(20, 16))
-                .background(FrigyBrand.bg)
+                // Pure feature showcase — this screen now sits in the value-first
+                // hook phase at the very start of onboarding, so it must NOT
+                // trigger the camera permission (a context-free system prompt
+                // seconds after launch gets denied). The request lives in
+                // CameraPermissionStepView, late in the flow where it has context.
+                OnboardingContinueButton(action: onNext)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, max(20, 16))
+                    .background(FrigyBrand.bg)
             }
         }
         .onAppear {

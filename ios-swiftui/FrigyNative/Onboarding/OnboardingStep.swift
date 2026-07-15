@@ -73,8 +73,25 @@ enum OnboardingFlow {
     /// Macro-level entry managed by `DefaultOnboardingRulesEngine`.
     static let macroEntryStep: OnboardingStep = .splash
 
-    /// Body/profile data collection (entered from `.profileSetup`).
+    /// The main onboarding sequence (entered from `.splash` / `.profileSetup`).
+    ///
+    /// Deliberate 4-phase structure (value-first onboarding):
+    /// 1. **Hook** — show what Frigy DOES before asking for anything. Users decide
+    ///    within seconds whether an app is worth their data; leading with the
+    ///    feature showcases (previously buried at positions 13–16) earns the
+    ///    right to ask the 12 personalization questions that follow.
+    /// 2. **Personalization** — the body/goal questions, now framed by the value
+    ///    the user just saw ("so the plan fits YOU").
+    /// 3. **Permissions & referral** — system prompts sit late and in context,
+    ///    right before the features that need them go live. Never up front:
+    ///    context-free permission prompts get denied and cannot be re-asked.
+    /// 4. **Payoff** — analyzing + plan reveal, then account/paywall (macro flow).
     static let detailedProfileSteps: [OnboardingStep] = [
+        // ── Phase 1 · Hook: features first ──
+        .weeklyPlan,        // KI-Wochenplan: hero + value rows ("Was erwartet dich bei Frigy?")
+        .scanFridge,        // Zutaten-/Kühlschrank-Scan showcase (pure showcase, no permission)
+        .shoppingList,      // automatische Einkaufsliste
+        // ── Phase 2 · Personalization ──
         .gender,
         .birthdate,
         .weight,
@@ -87,12 +104,11 @@ enum OnboardingFlow {
         .healthGoals,
         .dietaryPreferences,
         .allergies,
-        .weeklyPlanPreview,
-        .scanFridge,
-        .cameraPermission,
-        .shoppingList,
+        // ── Phase 3 · Permissions & referral, in context ──
+        .cameraPermission,  // real screen again (request moved out of scanFridge)
         .notificationPrefs,
         .referralCode,
+        // ── Phase 4 · Payoff ──
         .analyzing,
         .macroPreview,
     ]

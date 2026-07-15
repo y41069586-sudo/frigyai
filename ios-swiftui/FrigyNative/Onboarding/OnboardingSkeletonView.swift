@@ -249,9 +249,15 @@ struct OnboardingSkeletonView: View {
             )
 
         case .cameraPermission:
-            // Permission is now requested inline in ScanFridgeStepView — auto-advance.
-            Color.clear
-                .onAppear { next() }
+            // Real permission screen (Phase 3 of the flow). The request used to
+            // fire inline in ScanFridgeStepView, but that screen moved to the
+            // value-first hook at the very start — asking for camera access
+            // there would be context-free and get denied.
+            CameraPermissionStepView(
+                progress: progress,
+                onBack: canGoBack ? back : nil,
+                onNext: next
+            )
 
         case .shoppingList:
             ShoppingListIntroStepView(

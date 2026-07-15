@@ -234,7 +234,11 @@ struct OnboardingCoordinatorTests {
         coordinator.jump(to: .profileSetup)
 
         let next = coordinator.next()
-        #expect(next == .gender)
+        // First step of the value-first flow: the feature hook (weeklyPlan),
+        // not data collection — assert via the flow definition so this test
+        // tracks the designed order instead of hardcoding one step.
+        #expect(next == OnboardingFlow.detailedProfileSteps.first)
+        #expect(next == .weeklyPlan)
     }
 
     @Test @MainActor func markCompleteClearsPersistedState() async throws {

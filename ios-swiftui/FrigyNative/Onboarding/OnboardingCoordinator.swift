@@ -100,7 +100,18 @@ final class OnboardingCoordinator {
         if let saved = persistence.load() {
             // Migrate the legacy ".welcome" feature-list entry screen (not part of the
             // web flow) to the mascot splash, so resumed users see the correct first screen.
-            currentStep = saved.currentStep == .welcome ? .splash : saved.currentStep
+            let restored = saved.currentStep == .welcome ? .splash : saved.currentStep
+            // The flow gets reordered between builds (e.g. weeklyPlanPreview was
+            // removed when the feature showcases moved to the front). A persisted
+            // step that no longer exists in the flow would leave next() with no
+            // successor — the user would be stuck on it forever. Restart such
+            // users at the flow entry instead; their collected answers survive
+            // in `context`, only the screen position resets.
+            let knownSteps = Set(OnboardingFlow.detailedProfileSteps).union(
+                [.splash, .accountCreation, .profileSetup, .goalSelection,
+                 .paywall, .premiumHint, .themeChoice, .done]
+            )
+            currentStep = knownSteps.contains(restored) ? restored : OnboardingFlow.macroEntryStep
             context = saved.context
             recordTrace(
                 action: .resume,
